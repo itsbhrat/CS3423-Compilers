@@ -1,4 +1,4 @@
-# COOL Compiler #
+# COOL Abstract Syntax Tree Generation Using Antlr #
 **Sections of interest in the COOL Manual**
 
 * The grammar of COOL presented after the section 10 in the COOL Manual (refer to page number 16)
