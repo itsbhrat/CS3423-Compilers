@@ -1,5 +1,8 @@
 -- demonstration of class with no parent(inherited type)
-class A2I {
+
+-- Parent Node Is Program
+
+class A2I { -- 
 
 -- demonstration of a typical method with arguments(attribute list) returning an object of type
      c2i(char : String) : Int {
