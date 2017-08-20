@@ -1,4 +1,4 @@
--- demonstration of simple cool program to visualize AST diagram generated
+-- A simple cool program to visualize pictorially AST diagram generated
 
 -- Parent Node Is Program
 
