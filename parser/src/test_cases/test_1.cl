@@ -1,10 +1,10 @@
--- demonstration of case-insensitivity and string handling by the lexer and passed on to the parser
-Class Main inhERits IO {
+-- demonstration of simple cool program to visualize AST diagram generated
+
+Class Main{
+	global_var : Int;
 	main() : Object {
 	   {
-	   	out_string("This is awesome. \
-	   	I have my first lexer!!!\n");
-	        if 3 <= 2 then out_string("Awesome") else out_string("Not Awesome!!") fi;
+			global_var <- 1;
 	   }
 	};
 };
