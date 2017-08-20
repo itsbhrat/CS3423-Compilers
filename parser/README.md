@@ -22,16 +22,50 @@
 	
 	In the case of programs, if the given test code is syntactical correct, then the code written will print out a parse tree in the console. There will be no errors whatsoever. On the otherhand, if the given test code is syntactical incorrect, then the code written will print the first error detected with its line number. This may be used to evaluate the correctness of the parser/AST generator that we have written.
 
+
+### Common Observations In Test Cases
+<ol><li> In the AST of any Cool Program the parent node is always <b>PROGRAM</b> . </li>
+<li>Every Class Has children of 2 types  ATTRIBUTE or METHOD.</li>
+<li> Every child of <b>METHOD</b> & <b>ATTRIBUTE</b> node has a <b>: _no_type</b> label associated with it at it's end.</li>
+</ol>
+
 ### Explanation Of Test Cases
+ (More Details Explained in the test_cases programs )
+* __visualize_AST.cl__
+ This test case is a simple Cool Program which is assigning value to a class attribute inside a function.
+ The purpose of this test case is  to visualize pictorially the AST generated.<br>
+  
+ AST Pictorial Representation             |  AST Screenshot Representation
+:-------------------------:|:-------------------------:
+<img src="ast_picture.png" alt="Test 1 AST Image" style="width: 40em;"/>  |  <img src="ast_screenshot.png" alt="Test 1 AST Image" style="width: 20em;"/>
 
-* __test_1.cl__
- This test case is to visualize graphically the AST generated.<br>
- In the AST of any Cool Program the parent node is always <b>PROGRAM</b> .
- Since this program has only 1 class , PROGRAM has only child <b>CLASS MAIN</b>.
- In CLASS MAIN, 1 <b>ATTRIBUTE</b> "global_var" and 1 <b>METHOD</b> "main() : Object " is present. Hence the 2 child nodes of Class Main.
- In  method main() the <b>BLOCK</b> child has an <b>ASSIGN</b> operation in it , which assigns token <b>INT</b> to global_var.
+ <span>
  
- A graphical visualization is present below.
 
 
-<img src="ast.png" alt="Test 1 AST Image" style="width: 50em;"/>
+ </span>
+
+* __class_attributes_switch.cl__
+This test case demonstrates how the following are represented in the AST.
+	<ul><li>Class Declarations</li><li>Class Attributes</li><li>Switch Case</li></ul>
+
+
+* __method_if_loop.cl__
+This test case demonstrates how the following are represented in the AST.
+	<ul><li>If then else conditions</li><li>Class Methods</li><li>Dispatch Mechanism of Cool</li><li>while loop</li></ul>
+ 
+* __let_equivalence.cl__
+This test case demonstrates how let statements  are represented in the AST and proves the semantic equivalence of
+let a:Int in let b:Int in let c:Int in
+ and
+let a:Int , b:Int , c:Int in
+ 
+* __incorrect_test_4.cl__
+This test case demonstrates a syntactically incorrect program : A class name starting with a lower case letter.
+
+* __incorrect_test_5.cl__
+This test case demonstrates a syntactically incorrect program : a missing semicolon at the end of out_string function.
+
+
+* __incorrect_test_6.cl__
+This test case demonstrates a syntactically incorrect program : invalid function call.
