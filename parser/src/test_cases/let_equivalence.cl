@@ -20,6 +20,13 @@ class Main inherits IO
             a <- 9;
 
             (*
+			    let a : Int	is represented as a node in the AST with the following properties
+            		a (specifying variable name)
+            		Int (telling type of variable)
+            		__no_expr (telling this let has no assignment expression/value if expr is given)
+            		: _no_type ( acc to point #2)
+
+
             	A small extract of the AST is given below.
             	In both the cases we get a nested AST with the following characteristics of the let statement
 

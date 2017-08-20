@@ -1,5 +1,36 @@
+(*
+  class Some_1 inherits Some_2 is represented in a AST node as follows
+
+  _class
+    class_name
+    inherited_class_name_1
+    inherited_class_name_2
+    ...
+
+    _attr
+
+    _method
+
+*)
+
+
 class Some_1 inherits Some_2 {
 -- demonstrates case-of-esac syntax verification
+(*
+
+         a : Some_3 <- case self of is represented in a AST node as follows
+
+        _typcase       (non terminal of switch condition)
+            _object    (terminal of self (variable of Cool) => variable of switch case)
+              object_name
+            _branch    (non terminal of first case of the switch case)
+              object_name
+              type
+              expr (non terminal telling case body of 1st case)
+            _branch    (non terminal of other cases of the switch case)
+
+*)
+
      a : Some_3 <- case self of
 		      n : Some_3 => (new Some_4);
 		      n : Some_1 => (new Some_3);
@@ -45,6 +76,15 @@ class Some_2 inherits IO {
 };
 
 class Main {
+(*
+  Attributes  & Methods of Classes are represented in a AST node as follows
+  _class
+    _attr
+      attr_name
+      attr_type
+      attr_assignment (in this case _new => object_type)
+
+*)
   a : Some_2 <- new Some_2;
   b : Some_1 <- new Some_1;
   c : Some_3 <- new Some_3;

@@ -1,0 +1,38 @@
+#5
+_program
+  #5
+  _class
+    Main
+    Object
+    "visualize_AST.cl"
+    (
+    #6
+    _attr
+      global_var
+      Int
+      #6
+      _no_expr
+      : _no_type
+    #7
+    _attr
+      global_var
+      Int
+      #7
+      _no_expr
+      : _no_type
+    #9
+    _method
+      main
+      Object
+      #10
+      _block
+        #11
+        _assign
+          global_var
+          #11
+          _int
+            1
+          : _no_type
+        : _no_type
+      : _no_type
+    )
