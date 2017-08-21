@@ -1,13 +1,13 @@
 (* 
 
-demonstration of semantic equivalence of
+demonstration of syntactic equivalence of
  (let a:Int in let b:Int in let c:Int in {
  and 
  (let a:Int ,b:Int, c:Int in {
 
 
 When we visualize the AST  generated for the above 2 cases , we get the same AST.
-Hence the above 2 statements are semantically equivalent in Cool.
+Hence the above 2 statements are syntactically equivalent in Cool.
 *)
 
 
