@@ -3,7 +3,7 @@
 
 * The grammar of COOL presented after the section 10 in the COOL Manual (refer to page number 16)
 
-* The precedence and associativity of operators presented in section 10 in the COOL Manual (refer to page number 17)
+* The precedence and associativity of operators presented in section 11 in the COOL Manual (refer to page number 17)
 
 ### Design/pipeline of the parser: ###
 * __The Grammar__
@@ -14,7 +14,7 @@
 
 	The Grammar rules have to be split token by token to extract the textual information captured by every token. The ANTLR tool provided an API to help extract this information. In our code, we made use of these special functions which included `getLine()`, `getText()`. 
 	
-	Every grammar rule returns an AST Node, with some value. This value is determined by the token stream that occur on the right-hand-side of the grammar rule. For example: the node for a boolean constant i.e., `true` or `false` is given by `bool_const(<truth_value>, line_\number)`. The truth value and the line number is determined by examining the token content which is emitted by the lexer using the functions `getText()` and `getLine()`. 
+	Every grammar rule returns an AST Node, with some value. This value is determined by the token stream that occur on the right-hand-side of the grammar rule. For example: the node for a boolean constant i.e., `true` or `false` is given by `bool_const(<truth_value>, line_number)`. The truth value and the line number is determined by examining the token content which is emitted by the lexer using the functions `getText()` and `getLine()`. 
 	
 	If a rule requires some variables to be used in the rules defined for a given node, then we use the `@init` section for declarations. We make use of it in a few places such as in `expression_list`, `branch_list` and `formal_list`, where we deem it necessary. These declarations help us modulate our code to make it look better and isolate errors if any in an easier manner.
 	
@@ -35,6 +35,10 @@
 
 ### Explanation Of Test Cases
  (More Details Explained in the test_cases programs )
+ 
+**Disclaimer: We used ANTLR GRUN to generate the AST using the basefile provided. The screenshot is generated after completion of the grammar.**
+
+
 * __visualize_AST.cl__
  This test case is a simple Cool Program which is assigning value to a class attribute inside a function.
  The purpose of this test case is  to visualize pictorially the AST generated.<br>
@@ -53,24 +57,23 @@ This test case demonstrates how the following are represented in the AST.
 	<ul><li>If then else conditions</li><li>Class Methods</li><li>Dispatch Mechanism of Cool</li><li>while loop</li></ul>
  
 * __let_equivalence.cl__
-This test case demonstrates how let statements  are represented in the AST and proves the semantic equivalence of
-let a:Int in let b:Int in let c:Int in
+This test case demonstrates how let statements  are represented in the AST and proves the syntactic equivalence of
+`let a:Int in let b:Int in let c:Int in`
  and
-let a:Int , b:Int , c:Int in
+`let a:Int , b:Int , c:Int in`
 
 * __precedence.cl__
-This test case demonstrates how arithmetic operators are arranged in a precedence basis in our CoolParser.g4 of the "COOL" Grammar.
+This test case demonstrates how arithmetic operators are arranged in a precedence basis in our `CoolParser.g4` of the "COOL" Grammar.
 
  AST Pictorial Representation             |  AST Screenshot Representation
 :-------------------------:|:-------------------------:
 <img src="precedence-gui.png" alt="Precedence AST Image" style="width: 40em;"/> | <img src="precedence-tree.png" alt="Precedence AST Image" style="width: 20em;"/>
 
-* __incorrect_test_4.cl__
+* __incorrect_test_1.cl__
 This test case demonstrates a syntactically incorrect program : A class name starting with a lower case letter.
 
-* __incorrect_test_5.cl__
+* __incorrect_test_2.cl__
 This test case demonstrates a syntactically incorrect program : a missing semicolon at the end of out_string function.
 
-
-* __incorrect_test_6.cl__
+* __incorrect_test_3.cl__
 This test case demonstrates a syntactically incorrect program : invalid function call.
