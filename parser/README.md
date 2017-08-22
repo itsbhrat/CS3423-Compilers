@@ -41,13 +41,7 @@
   
  AST Pictorial Representation             |  AST Screenshot Representation
 :-------------------------:|:-------------------------:
-<img src="ast_picture.png" alt="Test 1 AST Image" style="width: 40em;"/>  |  <img src="ast_screenshot.png" alt="Test 1 AST Image" style="width: 20em;"/>
-
- <span>
- 
-
-
- </span>
+<img src="visualize-gui.png" alt="Visualize AST Image" style="width: 40em;"/>  |  <img src="visualize-tree.png" alt="Visualize AST Image" style="width: 20em;"/>
 
 * __class_attributes_switch.cl__
 This test case demonstrates how the following are represented in the AST.
@@ -63,7 +57,14 @@ This test case demonstrates how let statements  are represented in the AST and p
 let a:Int in let b:Int in let c:Int in
  and
 let a:Int , b:Int , c:Int in
- 
+
+* __precedence.cl__
+This test case demonstrates how arithmetic operators are arranged in a precedence basis in our CoolParser.g4 of the "COOL" Grammar.
+
+ AST Pictorial Representation             |  AST Screenshot Representation
+:-------------------------:|:-------------------------:
+<img src="precedence-gui.png" alt="Precedence AST Image" style="width: 40em;"/> | <img src="precedence-tree.png" alt="Precedence AST Image" style="width: 20em;"/>
+
 * __incorrect_test_4.cl__
 This test case demonstrates a syntactically incorrect program : A class name starting with a lower case letter.
 

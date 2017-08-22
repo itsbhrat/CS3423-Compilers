@@ -1086,79 +1086,79 @@ public class CoolParser extends Parser {
 
 	public static class ExpressionContext extends ParserRuleContext {
 		public AST.expression value;
-		public ExpressionContext expr1;
 		public ExpressionContext expr;
-		public Token bool;
-		public Token string_literal;
-		public Token integer;
+		public ExpressionContext expr1;
 		public Token object_id;
-		public Token nt;
-		public Token tld;
-		public Token ivd;
-		public Token nw;
-		public Token type;
-		public Token cse;
-		public Branch_listContext branches;
-		public Token let_;
-		public Attr_listContext attributes;
+		public Expression_listContext expr_list;
+		public Token if_cond;
+		public ExpressionContext expr2;
+		public ExpressionContext expr3;
+		public Token whl;
 		public Token lb;
 		public Blocked_exprContext nested_exprs;
-		public Token whl;
-		public ExpressionContext expr2;
-		public Token if_cond;
-		public ExpressionContext expr3;
-		public Expression_listContext expr_list;
-		public TerminalNode BOOL_CONST() { return getToken(CoolParser.BOOL_CONST, 0); }
-		public TerminalNode STR_CONST() { return getToken(CoolParser.STR_CONST, 0); }
-		public TerminalNode INT_CONST() { return getToken(CoolParser.INT_CONST, 0); }
-		public TerminalNode OBJECTID() { return getToken(CoolParser.OBJECTID, 0); }
+		public Token let_;
+		public Attr_listContext attributes;
+		public Token cse;
+		public Branch_listContext branches;
+		public Token nw;
+		public Token type;
+		public Token tld;
+		public Token ivd;
+		public Token nt;
+		public Token integer;
+		public Token string_literal;
+		public Token bool;
 		public TerminalNode LPAREN() { return getToken(CoolParser.LPAREN, 0); }
 		public TerminalNode RPAREN() { return getToken(CoolParser.RPAREN, 0); }
+		public TerminalNode OBJECTID() { return getToken(CoolParser.OBJECTID, 0); }
+		public Expression_listContext expression_list() {
+			return getRuleContext(Expression_listContext.class,0);
+		}
+		public TerminalNode THEN() { return getToken(CoolParser.THEN, 0); }
+		public TerminalNode ELSE() { return getToken(CoolParser.ELSE, 0); }
+		public TerminalNode FI() { return getToken(CoolParser.FI, 0); }
+		public TerminalNode IF() { return getToken(CoolParser.IF, 0); }
 		public List<ExpressionContext> expression() {
 			return getRuleContexts(ExpressionContext.class);
 		}
 		public ExpressionContext expression(int i) {
 			return getRuleContext(ExpressionContext.class,i);
 		}
-		public TerminalNode NOT() { return getToken(CoolParser.NOT, 0); }
-		public TerminalNode TILDE() { return getToken(CoolParser.TILDE, 0); }
-		public TerminalNode ISVOID() { return getToken(CoolParser.ISVOID, 0); }
-		public TerminalNode NEW() { return getToken(CoolParser.NEW, 0); }
-		public TerminalNode TYPEID() { return getToken(CoolParser.TYPEID, 0); }
-		public TerminalNode OF() { return getToken(CoolParser.OF, 0); }
-		public TerminalNode ESAC() { return getToken(CoolParser.ESAC, 0); }
-		public TerminalNode CASE() { return getToken(CoolParser.CASE, 0); }
-		public Branch_listContext branch_list() {
-			return getRuleContext(Branch_listContext.class,0);
+		public TerminalNode LOOP() { return getToken(CoolParser.LOOP, 0); }
+		public TerminalNode POOL() { return getToken(CoolParser.POOL, 0); }
+		public TerminalNode WHILE() { return getToken(CoolParser.WHILE, 0); }
+		public TerminalNode RBRACE() { return getToken(CoolParser.RBRACE, 0); }
+		public TerminalNode LBRACE() { return getToken(CoolParser.LBRACE, 0); }
+		public Blocked_exprContext blocked_expr() {
+			return getRuleContext(Blocked_exprContext.class,0);
 		}
 		public TerminalNode IN() { return getToken(CoolParser.IN, 0); }
 		public TerminalNode LET() { return getToken(CoolParser.LET, 0); }
 		public Attr_listContext attr_list() {
 			return getRuleContext(Attr_listContext.class,0);
 		}
-		public TerminalNode RBRACE() { return getToken(CoolParser.RBRACE, 0); }
-		public TerminalNode LBRACE() { return getToken(CoolParser.LBRACE, 0); }
-		public Blocked_exprContext blocked_expr() {
-			return getRuleContext(Blocked_exprContext.class,0);
+		public TerminalNode OF() { return getToken(CoolParser.OF, 0); }
+		public TerminalNode ESAC() { return getToken(CoolParser.ESAC, 0); }
+		public TerminalNode CASE() { return getToken(CoolParser.CASE, 0); }
+		public Branch_listContext branch_list() {
+			return getRuleContext(Branch_listContext.class,0);
 		}
-		public TerminalNode LOOP() { return getToken(CoolParser.LOOP, 0); }
-		public TerminalNode POOL() { return getToken(CoolParser.POOL, 0); }
-		public TerminalNode WHILE() { return getToken(CoolParser.WHILE, 0); }
-		public TerminalNode THEN() { return getToken(CoolParser.THEN, 0); }
-		public TerminalNode ELSE() { return getToken(CoolParser.ELSE, 0); }
-		public TerminalNode FI() { return getToken(CoolParser.FI, 0); }
-		public TerminalNode IF() { return getToken(CoolParser.IF, 0); }
-		public Expression_listContext expression_list() {
-			return getRuleContext(Expression_listContext.class,0);
-		}
+		public TerminalNode NEW() { return getToken(CoolParser.NEW, 0); }
+		public TerminalNode TYPEID() { return getToken(CoolParser.TYPEID, 0); }
+		public TerminalNode TILDE() { return getToken(CoolParser.TILDE, 0); }
+		public TerminalNode ISVOID() { return getToken(CoolParser.ISVOID, 0); }
+		public TerminalNode NOT() { return getToken(CoolParser.NOT, 0); }
 		public TerminalNode ASSIGN() { return getToken(CoolParser.ASSIGN, 0); }
-		public TerminalNode EQUALS() { return getToken(CoolParser.EQUALS, 0); }
+		public TerminalNode INT_CONST() { return getToken(CoolParser.INT_CONST, 0); }
+		public TerminalNode STR_CONST() { return getToken(CoolParser.STR_CONST, 0); }
+		public TerminalNode BOOL_CONST() { return getToken(CoolParser.BOOL_CONST, 0); }
+		public TerminalNode STAR() { return getToken(CoolParser.STAR, 0); }
+		public TerminalNode SLASH() { return getToken(CoolParser.SLASH, 0); }
+		public TerminalNode PLUS() { return getToken(CoolParser.PLUS, 0); }
+		public TerminalNode MINUS() { return getToken(CoolParser.MINUS, 0); }
 		public TerminalNode LE() { return getToken(CoolParser.LE, 0); }
 		public TerminalNode LT() { return getToken(CoolParser.LT, 0); }
-		public TerminalNode SLASH() { return getToken(CoolParser.SLASH, 0); }
-		public TerminalNode STAR() { return getToken(CoolParser.STAR, 0); }
-		public TerminalNode MINUS() { return getToken(CoolParser.MINUS, 0); }
-		public TerminalNode PLUS() { return getToken(CoolParser.PLUS, 0); }
+		public TerminalNode EQUALS() { return getToken(CoolParser.EQUALS, 0); }
 		public TerminalNode DOT() { return getToken(CoolParser.DOT, 0); }
 		public TerminalNode ATSYM() { return getToken(CoolParser.ATSYM, 0); }
 		public ExpressionContext(ParserRuleContext parent, int invokingState) {
@@ -1193,145 +1193,84 @@ public class CoolParser extends Parser {
 			case 1:
 				{
 				setState(177);
-				((ExpressionContext)_localctx).bool = match(BOOL_CONST);
+				((ExpressionContext)_localctx).object_id = match(OBJECTID);
+				setState(178);
+				match(LPAREN);
+				setState(179);
+				((ExpressionContext)_localctx).expr_list = expression_list();
+				setState(180);
+				match(RPAREN);
 
-							boolName	= (((ExpressionContext)_localctx).bool.getText());
-							curLineNo	= ((ExpressionContext)_localctx).bool.getLine();
-							if(boolName.charAt(0) == 't')
-							{
-								((ExpressionContext)_localctx).value =  new AST.bool_const(true, curLineNo);
-							}
-							else
-							{
-								((ExpressionContext)_localctx).value =  new AST.bool_const(false, curLineNo);
-							}
+							objectName	= (((ExpressionContext)_localctx).object_id.getText());
+							curLineNo	= ((ExpressionContext)_localctx).object_id.getLine();
+							((ExpressionContext)_localctx).value =  new AST.dispatch(new AST.object("self", curLineNo), objectName, ((ExpressionContext)_localctx).expr_list.value, curLineNo);
 						
 				}
 				break;
 			case 2:
 				{
-				setState(179);
-				((ExpressionContext)_localctx).string_literal = match(STR_CONST);
+				setState(183);
+				((ExpressionContext)_localctx).if_cond = match(IF);
+				setState(184);
+				((ExpressionContext)_localctx).expr1 = expression(0);
+				setState(185);
+				match(THEN);
+				setState(186);
+				((ExpressionContext)_localctx).expr2 = expression(0);
+				setState(187);
+				match(ELSE);
+				setState(188);
+				((ExpressionContext)_localctx).expr3 = expression(0);
+				setState(189);
+				match(FI);
 
-							stringContent	= (((ExpressionContext)_localctx).string_literal.getText());
-							curLineNo	= ((ExpressionContext)_localctx).string_literal.getLine();
-							((ExpressionContext)_localctx).value =  new AST.string_const(stringContent, curLineNo);
+							curLineNo	= ((ExpressionContext)_localctx).if_cond.getLine();
+							((ExpressionContext)_localctx).value =  new AST.cond(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, ((ExpressionContext)_localctx).expr3.value, curLineNo);
 						
 				}
 				break;
 			case 3:
 				{
-				setState(181);
-				((ExpressionContext)_localctx).integer = match(INT_CONST);
+				setState(192);
+				((ExpressionContext)_localctx).whl = match(WHILE);
+				setState(193);
+				((ExpressionContext)_localctx).expr1 = expression(0);
+				setState(194);
+				match(LOOP);
+				setState(195);
+				((ExpressionContext)_localctx).expr2 = expression(0);
+				setState(196);
+				match(POOL);
 
-							integerString	= (((ExpressionContext)_localctx).integer.getText());
-							integerVal	= Integer.parseInt(integerString);
-							curLineNo	= ((ExpressionContext)_localctx).integer.getLine();
-							((ExpressionContext)_localctx).value =  new AST.int_const(integerVal, curLineNo);
+							curLineNo	= ((ExpressionContext)_localctx).whl.getLine();
+							((ExpressionContext)_localctx).value =  new AST.loop(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						
 				}
 				break;
 			case 4:
 				{
-				setState(183);
-				((ExpressionContext)_localctx).object_id = match(OBJECTID);
+				setState(199);
+				((ExpressionContext)_localctx).lb = match(LBRACE);
+				setState(200);
+				((ExpressionContext)_localctx).nested_exprs = blocked_expr();
+				setState(201);
+				match(RBRACE);
 
-							objectName	= (((ExpressionContext)_localctx).object_id.getText());
-							curLineNo	= ((ExpressionContext)_localctx).object_id.getLine();
-							((ExpressionContext)_localctx).value =  new AST.object(objectName, curLineNo);
+							curLineNo	= ((ExpressionContext)_localctx).lb.getLine();
+							((ExpressionContext)_localctx).value =  new AST.block(((ExpressionContext)_localctx).nested_exprs.value, curLineNo);
 						
 				}
 				break;
 			case 5:
 				{
-				setState(185);
-				match(LPAREN);
-				setState(186);
-				((ExpressionContext)_localctx).expr = expression(0);
-				setState(187);
-				match(RPAREN);
-
-							((ExpressionContext)_localctx).value =  ((ExpressionContext)_localctx).expr.value;
-						
-				}
-				break;
-			case 6:
-				{
-				setState(190);
-				((ExpressionContext)_localctx).nt = match(NOT);
-				setState(191);
-				((ExpressionContext)_localctx).expr = expression(20);
-
-							curLineNo	= ((ExpressionContext)_localctx).nt.getLine();
-							((ExpressionContext)_localctx).value =  new AST.neg(((ExpressionContext)_localctx).expr.value, curLineNo);
-						
-				}
-				break;
-			case 7:
-				{
-				setState(194);
-				((ExpressionContext)_localctx).tld = match(TILDE);
-				setState(195);
-				((ExpressionContext)_localctx).expr = expression(16);
-
-							curLineNo	= ((ExpressionContext)_localctx).tld.getLine();
-							((ExpressionContext)_localctx).value =  new AST.comp(((ExpressionContext)_localctx).expr.value, curLineNo);
-						
-				}
-				break;
-			case 8:
-				{
-				setState(198);
-				((ExpressionContext)_localctx).ivd = match(ISVOID);
-				setState(199);
-				((ExpressionContext)_localctx).expr = expression(11);
-
-							curLineNo	= ((ExpressionContext)_localctx).ivd.getLine();
-							((ExpressionContext)_localctx).value =  new AST.isvoid(((ExpressionContext)_localctx).expr.value, curLineNo);
-						
-				}
-				break;
-			case 9:
-				{
-				setState(202);
-				((ExpressionContext)_localctx).nw = match(NEW);
-				setState(203);
-				((ExpressionContext)_localctx).type = match(TYPEID);
-
-							typeName	= (((ExpressionContext)_localctx).type.getText());
-							curLineNo	= ((ExpressionContext)_localctx).nw.getLine();
-							((ExpressionContext)_localctx).value =  new AST.new_(typeName, curLineNo);
-						
-				}
-				break;
-			case 10:
-				{
-				setState(205);
-				((ExpressionContext)_localctx).cse = match(CASE);
-				setState(206);
-				((ExpressionContext)_localctx).expr = expression(0);
-				setState(207);
-				match(OF);
-				setState(208);
-				((ExpressionContext)_localctx).branches = branch_list();
-				setState(209);
-				match(ESAC);
-
-							curLineNo	= ((ExpressionContext)_localctx).cse.getLine();
-							((ExpressionContext)_localctx).value =  new AST.typcase(((ExpressionContext)_localctx).expr.value, ((ExpressionContext)_localctx).branches.value, curLineNo);
-						
-				}
-				break;
-			case 11:
-				{
-				setState(212);
+				setState(204);
 				((ExpressionContext)_localctx).let_ = match(LET);
-				setState(213);
+				setState(205);
 				((ExpressionContext)_localctx).attributes = attr_list();
-				setState(214);
+				setState(206);
 				match(IN);
-				setState(215);
-				((ExpressionContext)_localctx).expr = expression(8);
+				setState(207);
+				((ExpressionContext)_localctx).expr = expression(19);
 
 							((ExpressionContext)_localctx).value =  ((ExpressionContext)_localctx).expr.value;
 							curLineNo	= ((ExpressionContext)_localctx).let_.getLine();  
@@ -1346,89 +1285,150 @@ public class CoolParser extends Parser {
 						
 				}
 				break;
+			case 6:
+				{
+				setState(210);
+				((ExpressionContext)_localctx).cse = match(CASE);
+				setState(211);
+				((ExpressionContext)_localctx).expr = expression(0);
+				setState(212);
+				match(OF);
+				setState(213);
+				((ExpressionContext)_localctx).branches = branch_list();
+				setState(214);
+				match(ESAC);
+
+							curLineNo	= ((ExpressionContext)_localctx).cse.getLine();
+							((ExpressionContext)_localctx).value =  new AST.typcase(((ExpressionContext)_localctx).expr.value, ((ExpressionContext)_localctx).branches.value, curLineNo);
+						
+				}
+				break;
+			case 7:
+				{
+				setState(217);
+				((ExpressionContext)_localctx).nw = match(NEW);
+				setState(218);
+				((ExpressionContext)_localctx).type = match(TYPEID);
+
+							typeName	= (((ExpressionContext)_localctx).type.getText());
+							curLineNo	= ((ExpressionContext)_localctx).nw.getLine();
+							((ExpressionContext)_localctx).value =  new AST.new_(typeName, curLineNo);
+						
+				}
+				break;
+			case 8:
+				{
+				setState(220);
+				((ExpressionContext)_localctx).tld = match(TILDE);
+				setState(221);
+				((ExpressionContext)_localctx).expr = expression(16);
+
+							curLineNo	= ((ExpressionContext)_localctx).tld.getLine();
+							((ExpressionContext)_localctx).value =  new AST.comp(((ExpressionContext)_localctx).expr.value, curLineNo);
+						
+				}
+				break;
+			case 9:
+				{
+				setState(224);
+				((ExpressionContext)_localctx).ivd = match(ISVOID);
+				setState(225);
+				((ExpressionContext)_localctx).expr = expression(15);
+
+							curLineNo	= ((ExpressionContext)_localctx).ivd.getLine();
+							((ExpressionContext)_localctx).value =  new AST.isvoid(((ExpressionContext)_localctx).expr.value, curLineNo);
+						
+				}
+				break;
+			case 10:
+				{
+				setState(228);
+				((ExpressionContext)_localctx).nt = match(NOT);
+				setState(229);
+				((ExpressionContext)_localctx).expr = expression(7);
+
+							curLineNo	= ((ExpressionContext)_localctx).nt.getLine();
+							((ExpressionContext)_localctx).value =  new AST.neg(((ExpressionContext)_localctx).expr.value, curLineNo);
+						
+				}
+				break;
+			case 11:
+				{
+				setState(232);
+				((ExpressionContext)_localctx).object_id = match(OBJECTID);
+				setState(233);
+				match(ASSIGN);
+				setState(234);
+				((ExpressionContext)_localctx).expr1 = expression(6);
+
+							objectName	= (((ExpressionContext)_localctx).object_id.getText());
+							curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
+							((ExpressionContext)_localctx).value =  new AST.assign(objectName, ((ExpressionContext)_localctx).expr1.value, curLineNo);
+						
+				}
+				break;
 			case 12:
 				{
-				setState(218);
-				((ExpressionContext)_localctx).lb = match(LBRACE);
-				setState(219);
-				((ExpressionContext)_localctx).nested_exprs = blocked_expr();
-				setState(220);
-				match(RBRACE);
+				setState(237);
+				match(LPAREN);
+				setState(238);
+				((ExpressionContext)_localctx).expr = expression(0);
+				setState(239);
+				match(RPAREN);
 
-							curLineNo	= ((ExpressionContext)_localctx).lb.getLine();
-							((ExpressionContext)_localctx).value =  new AST.block(((ExpressionContext)_localctx).nested_exprs.value, curLineNo);
+							((ExpressionContext)_localctx).value =  ((ExpressionContext)_localctx).expr.value;
 						
 				}
 				break;
 			case 13:
 				{
-				setState(223);
-				((ExpressionContext)_localctx).whl = match(WHILE);
-				setState(224);
-				((ExpressionContext)_localctx).expr1 = expression(0);
-				setState(225);
-				match(LOOP);
-				setState(226);
-				((ExpressionContext)_localctx).expr2 = expression(0);
-				setState(227);
-				match(POOL);
+				setState(242);
+				((ExpressionContext)_localctx).object_id = match(OBJECTID);
 
-							curLineNo	= ((ExpressionContext)_localctx).whl.getLine();
-							((ExpressionContext)_localctx).value =  new AST.loop(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+							objectName	= (((ExpressionContext)_localctx).object_id.getText());
+							curLineNo	= ((ExpressionContext)_localctx).object_id.getLine();
+							((ExpressionContext)_localctx).value =  new AST.object(objectName, curLineNo);
 						
 				}
 				break;
 			case 14:
 				{
-				setState(230);
-				((ExpressionContext)_localctx).if_cond = match(IF);
-				setState(231);
-				((ExpressionContext)_localctx).expr1 = expression(0);
-				setState(232);
-				match(THEN);
-				setState(233);
-				((ExpressionContext)_localctx).expr2 = expression(0);
-				setState(234);
-				match(ELSE);
-				setState(235);
-				((ExpressionContext)_localctx).expr3 = expression(0);
-				setState(236);
-				match(FI);
+				setState(244);
+				((ExpressionContext)_localctx).integer = match(INT_CONST);
 
-							curLineNo	= ((ExpressionContext)_localctx).if_cond.getLine();
-							((ExpressionContext)_localctx).value =  new AST.cond(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, ((ExpressionContext)_localctx).expr3.value, curLineNo);
+							integerString	= (((ExpressionContext)_localctx).integer.getText());
+							integerVal	= Integer.parseInt(integerString);
+							curLineNo	= ((ExpressionContext)_localctx).integer.getLine();
+							((ExpressionContext)_localctx).value =  new AST.int_const(integerVal, curLineNo);
 						
 				}
 				break;
 			case 15:
 				{
-				setState(239);
-				((ExpressionContext)_localctx).object_id = match(OBJECTID);
-				setState(240);
-				match(LPAREN);
-				setState(241);
-				((ExpressionContext)_localctx).expr_list = expression_list();
-				setState(242);
-				match(RPAREN);
+				setState(246);
+				((ExpressionContext)_localctx).string_literal = match(STR_CONST);
 
-							objectName	= (((ExpressionContext)_localctx).object_id.getText());
-							curLineNo	= ((ExpressionContext)_localctx).object_id.getLine();
-							((ExpressionContext)_localctx).value =  new AST.dispatch(new AST.object("self", curLineNo), objectName, ((ExpressionContext)_localctx).expr_list.value, curLineNo);
+							stringContent	= (((ExpressionContext)_localctx).string_literal.getText());
+							curLineNo	= ((ExpressionContext)_localctx).string_literal.getLine();
+							((ExpressionContext)_localctx).value =  new AST.string_const(stringContent, curLineNo);
 						
 				}
 				break;
 			case 16:
 				{
-				setState(245);
-				((ExpressionContext)_localctx).object_id = match(OBJECTID);
-				setState(246);
-				match(ASSIGN);
-				setState(247);
-				((ExpressionContext)_localctx).expr1 = expression(1);
+				setState(248);
+				((ExpressionContext)_localctx).bool = match(BOOL_CONST);
 
-							objectName	= (((ExpressionContext)_localctx).object_id.getText());
-							curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-							((ExpressionContext)_localctx).value =  new AST.assign(objectName, ((ExpressionContext)_localctx).expr1.value, curLineNo);
+							boolName	= (((ExpressionContext)_localctx).bool.getText());
+							curLineNo	= ((ExpressionContext)_localctx).bool.getLine();
+							if(boolName.charAt(0) == 't')
+							{
+								((ExpressionContext)_localctx).value =  new AST.bool_const(true, curLineNo);
+							}
+							else
+							{
+								((ExpressionContext)_localctx).value =  new AST.bool_const(false, curLineNo);
+							}
 						
 				}
 				break;
@@ -1452,14 +1452,14 @@ public class CoolParser extends Parser {
 						_localctx.expr1 = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(252);
-						if (!(precpred(_ctx, 19))) throw new FailedPredicateException(this, "precpred(_ctx, 19)");
+						if (!(precpred(_ctx, 14))) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
 						setState(253);
-						match(EQUALS);
+						match(STAR);
 						setState(254);
-						((ExpressionContext)_localctx).expr2 = expression(20);
+						((ExpressionContext)_localctx).expr2 = expression(15);
 
 						          			curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-						          			((ExpressionContext)_localctx).value =  new AST.eq(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+						          			((ExpressionContext)_localctx).value =  new AST.mul(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						          		
 						}
 						break;
@@ -1470,14 +1470,14 @@ public class CoolParser extends Parser {
 						_localctx.expr1 = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(257);
-						if (!(precpred(_ctx, 18))) throw new FailedPredicateException(this, "precpred(_ctx, 18)");
+						if (!(precpred(_ctx, 13))) throw new FailedPredicateException(this, "precpred(_ctx, 13)");
 						setState(258);
-						match(LE);
+						match(SLASH);
 						setState(259);
-						((ExpressionContext)_localctx).expr2 = expression(19);
+						((ExpressionContext)_localctx).expr2 = expression(14);
 
 						          			curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-						          			((ExpressionContext)_localctx).value =  new AST.leq(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+						          			((ExpressionContext)_localctx).value =  new AST.divide(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						          		
 						}
 						break;
@@ -1488,14 +1488,14 @@ public class CoolParser extends Parser {
 						_localctx.expr1 = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(262);
-						if (!(precpred(_ctx, 17))) throw new FailedPredicateException(this, "precpred(_ctx, 17)");
+						if (!(precpred(_ctx, 12))) throw new FailedPredicateException(this, "precpred(_ctx, 12)");
 						setState(263);
-						match(LT);
+						match(PLUS);
 						setState(264);
-						((ExpressionContext)_localctx).expr2 = expression(18);
+						((ExpressionContext)_localctx).expr2 = expression(13);
 
 						          			curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-						          			((ExpressionContext)_localctx).value =  new AST.lt(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+						          			((ExpressionContext)_localctx).value =  new AST.plus(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						          		
 						}
 						break;
@@ -1506,14 +1506,14 @@ public class CoolParser extends Parser {
 						_localctx.expr1 = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(267);
-						if (!(precpred(_ctx, 15))) throw new FailedPredicateException(this, "precpred(_ctx, 15)");
+						if (!(precpred(_ctx, 11))) throw new FailedPredicateException(this, "precpred(_ctx, 11)");
 						setState(268);
-						match(SLASH);
+						match(MINUS);
 						setState(269);
-						((ExpressionContext)_localctx).expr2 = expression(16);
+						((ExpressionContext)_localctx).expr2 = expression(12);
 
 						          			curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-						          			((ExpressionContext)_localctx).value =  new AST.divide(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+						          			((ExpressionContext)_localctx).value =  new AST.sub(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						          		
 						}
 						break;
@@ -1524,14 +1524,14 @@ public class CoolParser extends Parser {
 						_localctx.expr1 = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(272);
-						if (!(precpred(_ctx, 14))) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
+						if (!(precpred(_ctx, 10))) throw new FailedPredicateException(this, "precpred(_ctx, 10)");
 						setState(273);
-						match(STAR);
+						match(LE);
 						setState(274);
-						((ExpressionContext)_localctx).expr2 = expression(15);
+						((ExpressionContext)_localctx).expr2 = expression(11);
 
 						          			curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-						          			((ExpressionContext)_localctx).value =  new AST.mul(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+						          			((ExpressionContext)_localctx).value =  new AST.leq(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						          		
 						}
 						break;
@@ -1542,14 +1542,14 @@ public class CoolParser extends Parser {
 						_localctx.expr1 = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(277);
-						if (!(precpred(_ctx, 13))) throw new FailedPredicateException(this, "precpred(_ctx, 13)");
+						if (!(precpred(_ctx, 9))) throw new FailedPredicateException(this, "precpred(_ctx, 9)");
 						setState(278);
-						match(MINUS);
+						match(LT);
 						setState(279);
-						((ExpressionContext)_localctx).expr2 = expression(14);
+						((ExpressionContext)_localctx).expr2 = expression(10);
 
 						          			curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-						          			((ExpressionContext)_localctx).value =  new AST.sub(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+						          			((ExpressionContext)_localctx).value =  new AST.lt(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						          		
 						}
 						break;
@@ -1560,14 +1560,14 @@ public class CoolParser extends Parser {
 						_localctx.expr1 = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(282);
-						if (!(precpred(_ctx, 12))) throw new FailedPredicateException(this, "precpred(_ctx, 12)");
+						if (!(precpred(_ctx, 8))) throw new FailedPredicateException(this, "precpred(_ctx, 8)");
 						setState(283);
-						match(PLUS);
+						match(EQUALS);
 						setState(284);
-						((ExpressionContext)_localctx).expr2 = expression(13);
+						((ExpressionContext)_localctx).expr2 = expression(9);
 
 						          			curLineNo	= ((ExpressionContext)_localctx).expr1.value.lineNo;
-						          			((ExpressionContext)_localctx).value =  new AST.plus(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
+						          			((ExpressionContext)_localctx).value =  new AST.eq(((ExpressionContext)_localctx).expr1.value, ((ExpressionContext)_localctx).expr2.value, curLineNo);
 						          		
 						}
 						break;
@@ -1578,7 +1578,7 @@ public class CoolParser extends Parser {
 						_localctx.expr = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(287);
-						if (!(precpred(_ctx, 3))) throw new FailedPredicateException(this, "precpred(_ctx, 3)");
+						if (!(precpred(_ctx, 25))) throw new FailedPredicateException(this, "precpred(_ctx, 25)");
 						setState(288);
 						match(DOT);
 						setState(289);
@@ -1603,7 +1603,7 @@ public class CoolParser extends Parser {
 						_localctx.expr = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(295);
-						if (!(precpred(_ctx, 2))) throw new FailedPredicateException(this, "precpred(_ctx, 2)");
+						if (!(precpred(_ctx, 24))) throw new FailedPredicateException(this, "precpred(_ctx, 24)");
 						setState(296);
 						match(ATSYM);
 						setState(297);
@@ -1656,23 +1656,23 @@ public class CoolParser extends Parser {
 	private boolean expression_sempred(ExpressionContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 0:
-			return precpred(_ctx, 19);
-		case 1:
-			return precpred(_ctx, 18);
-		case 2:
-			return precpred(_ctx, 17);
-		case 3:
-			return precpred(_ctx, 15);
-		case 4:
 			return precpred(_ctx, 14);
-		case 5:
+		case 1:
 			return precpred(_ctx, 13);
-		case 6:
+		case 2:
 			return precpred(_ctx, 12);
+		case 3:
+			return precpred(_ctx, 11);
+		case 4:
+			return precpred(_ctx, 10);
+		case 5:
+			return precpred(_ctx, 9);
+		case 6:
+			return precpred(_ctx, 8);
 		case 7:
-			return precpred(_ctx, 3);
+			return precpred(_ctx, 25);
 		case 8:
-			return precpred(_ctx, 2);
+			return precpred(_ctx, 24);
 		}
 		return true;
 	}
@@ -1736,53 +1736,53 @@ public class CoolParser extends Parser {
 		"\b\17\1\2\u00aa\u00ac\3\2\2\2\u00ab\u00a7\3\2\2\2\u00ac\u00af\3\2\2\2"+
 		"\u00ad\u00ab\3\2\2\2\u00ad\u00ae\3\2\2\2\u00ae\u00b1\3\2\2\2\u00af\u00ad"+
 		"\3\2\2\2\u00b0\u00a5\3\2\2\2\u00b0\u00b1\3\2\2\2\u00b1\35\3\2\2\2\u00b2"+
-		"\u00b3\b\20\1\2\u00b3\u00b4\7\6\2\2\u00b4\u00fd\b\20\1\2\u00b5\u00b6\7"+
-		"\b\2\2\u00b6\u00fd\b\20\1\2\u00b7\u00b8\7\7\2\2\u00b8\u00fd\b\20\1\2\u00b9"+
-		"\u00ba\7\5\2\2\u00ba\u00fd\b\20\1\2\u00bb\u00bc\7\t\2\2\u00bc\u00bd\5"+
-		"\36\20\2\u00bd\u00be\7\n\2\2\u00be\u00bf\b\20\1\2\u00bf\u00fd\3\2\2\2"+
-		"\u00c0\u00c1\7,\2\2\u00c1\u00c2\5\36\20\26\u00c2\u00c3\b\20\1\2\u00c3"+
-		"\u00fd\3\2\2\2\u00c4\u00c5\7\23\2\2\u00c5\u00c6\5\36\20\22\u00c6\u00c7"+
-		"\b\20\1\2\u00c7\u00fd\3\2\2\2\u00c8\u00c9\7+\2\2\u00c9\u00ca\5\36\20\r"+
-		"\u00ca\u00cb\b\20\1\2\u00cb\u00fd\3\2\2\2\u00cc\u00cd\7*\2\2\u00cd\u00ce"+
-		"\7\4\2\2\u00ce\u00fd\b\20\1\2\u00cf\u00d0\7\'\2\2\u00d0\u00d1\5\36\20"+
-		"\2\u00d1\u00d2\7)\2\2\u00d2\u00d3\5\26\f\2\u00d3\u00d4\7(\2\2\u00d4\u00d5"+
-		"\b\20\1\2\u00d5\u00fd\3\2\2\2\u00d6\u00d7\7\"\2\2\u00d7\u00d8\5\16\b\2"+
-		"\u00d8\u00d9\7 \2\2\u00d9\u00da\5\36\20\n\u00da\u00db\b\20\1\2\u00db\u00fd"+
-		"\3\2\2\2\u00dc\u00dd\7\26\2\2\u00dd\u00de\5\32\16\2\u00de\u00df\7\27\2"+
-		"\2\u00df\u00e0\b\20\1\2\u00e0\u00fd\3\2\2\2\u00e1\u00e2\7&\2\2\u00e2\u00e3"+
-		"\5\36\20\2\u00e3\u00e4\7#\2\2\u00e4\u00e5\5\36\20\2\u00e5\u00e6\7$\2\2"+
-		"\u00e6\u00e7\b\20\1\2\u00e7\u00fd\3\2\2\2\u00e8\u00e9\7\37\2\2\u00e9\u00ea"+
-		"\5\36\20\2\u00ea\u00eb\7%\2\2\u00eb\u00ec\5\36\20\2\u00ec\u00ed\7\35\2"+
-		"\2\u00ed\u00ee\5\36\20\2\u00ee\u00ef\7\36\2\2\u00ef\u00f0\b\20\1\2\u00f0"+
-		"\u00fd\3\2\2\2\u00f1\u00f2\7\5\2\2\u00f2\u00f3\7\t\2\2\u00f3\u00f4\5\34"+
-		"\17\2\u00f4\u00f5\7\n\2\2\u00f5\u00f6\b\20\1\2\u00f6\u00fd\3\2\2\2\u00f7"+
-		"\u00f8\7\5\2\2\u00f8\u00f9\7\33\2\2\u00f9\u00fa\5\36\20\3\u00fa\u00fb"+
-		"\b\20\1\2\u00fb\u00fd\3\2\2\2\u00fc\u00b2\3\2\2\2\u00fc\u00b5\3\2\2\2"+
-		"\u00fc\u00b7\3\2\2\2\u00fc\u00b9\3\2\2\2\u00fc\u00bb\3\2\2\2\u00fc\u00c0"+
-		"\3\2\2\2\u00fc\u00c4\3\2\2\2\u00fc\u00c8\3\2\2\2\u00fc\u00cc\3\2\2\2\u00fc"+
-		"\u00cf\3\2\2\2\u00fc\u00d6\3\2\2\2\u00fc\u00dc\3\2\2\2\u00fc\u00e1\3\2"+
-		"\2\2\u00fc\u00e8\3\2\2\2\u00fc\u00f1\3\2\2\2\u00fc\u00f7\3\2\2\2\u00fd"+
-		"\u0135\3\2\2\2\u00fe\u00ff\f\25\2\2\u00ff\u0100\7\25\2\2\u0100\u0101\5"+
-		"\36\20\26\u0101\u0102\b\20\1\2\u0102\u0134\3\2\2\2\u0103\u0104\f\24\2"+
-		"\2\u0104\u0105\7\32\2\2\u0105\u0106\5\36\20\25\u0106\u0107\b\20\1\2\u0107"+
-		"\u0134\3\2\2\2\u0108\u0109\f\23\2\2\u0109\u010a\7\24\2\2\u010a\u010b\5"+
-		"\36\20\24\u010b\u010c\b\20\1\2\u010c\u0134\3\2\2\2\u010d\u010e\f\21\2"+
-		"\2\u010e\u010f\7\22\2\2\u010f\u0110\5\36\20\22\u0110\u0111\b\20\1\2\u0111"+
-		"\u0134\3\2\2\2\u0112\u0113\f\20\2\2\u0113\u0114\7\21\2\2\u0114\u0115\5"+
-		"\36\20\21\u0115\u0116\b\20\1\2\u0116\u0134\3\2\2\2\u0117\u0118\f\17\2"+
-		"\2\u0118\u0119\7\20\2\2\u0119\u011a\5\36\20\20\u011a\u011b\b\20\1\2\u011b"+
-		"\u0134\3\2\2\2\u011c\u011d\f\16\2\2\u011d\u011e\7\17\2\2\u011e\u011f\5"+
-		"\36\20\17\u011f\u0120\b\20\1\2\u0120\u0134\3\2\2\2\u0121\u0122\f\5\2\2"+
-		"\u0122\u0123\7\30\2\2\u0123\u0124\7\5\2\2\u0124\u0125\7\t\2\2\u0125\u0126"+
-		"\5\34\17\2\u0126\u0127\7\n\2\2\u0127\u0128\b\20\1\2\u0128\u0134\3\2\2"+
-		"\2\u0129\u012a\f\4\2\2\u012a\u012b\7\f\2\2\u012b\u012c\7\4\2\2\u012c\u012d"+
-		"\7\30\2\2\u012d\u012e\7\5\2\2\u012e\u012f\7\t\2\2\u012f\u0130\5\34\17"+
-		"\2\u0130\u0131\7\n\2\2\u0131\u0132\b\20\1\2\u0132\u0134\3\2\2\2\u0133"+
-		"\u00fe\3\2\2\2\u0133\u0103\3\2\2\2\u0133\u0108\3\2\2\2\u0133\u010d\3\2"+
-		"\2\2\u0133\u0112\3\2\2\2\u0133\u0117\3\2\2\2\u0133\u011c\3\2\2\2\u0133"+
-		"\u0121\3\2\2\2\u0133\u0129\3\2\2\2\u0134\u0137\3\2\2\2\u0135\u0133\3\2"+
-		"\2\2\u0135\u0136\3\2\2\2\u0136\37\3\2\2\2\u0137\u0135\3\2\2\2\21*<DMd"+
-		"n|\u0086\u0094\u00a3\u00ad\u00b0\u00fc\u0133\u0135";
+		"\u00b3\b\20\1\2\u00b3\u00b4\7\5\2\2\u00b4\u00b5\7\t\2\2\u00b5\u00b6\5"+
+		"\34\17\2\u00b6\u00b7\7\n\2\2\u00b7\u00b8\b\20\1\2\u00b8\u00fd\3\2\2\2"+
+		"\u00b9\u00ba\7\37\2\2\u00ba\u00bb\5\36\20\2\u00bb\u00bc\7%\2\2\u00bc\u00bd"+
+		"\5\36\20\2\u00bd\u00be\7\35\2\2\u00be\u00bf\5\36\20\2\u00bf\u00c0\7\36"+
+		"\2\2\u00c0\u00c1\b\20\1\2\u00c1\u00fd\3\2\2\2\u00c2\u00c3\7&\2\2\u00c3"+
+		"\u00c4\5\36\20\2\u00c4\u00c5\7#\2\2\u00c5\u00c6\5\36\20\2\u00c6\u00c7"+
+		"\7$\2\2\u00c7\u00c8\b\20\1\2\u00c8\u00fd\3\2\2\2\u00c9\u00ca\7\26\2\2"+
+		"\u00ca\u00cb\5\32\16\2\u00cb\u00cc\7\27\2\2\u00cc\u00cd\b\20\1\2\u00cd"+
+		"\u00fd\3\2\2\2\u00ce\u00cf\7\"\2\2\u00cf\u00d0\5\16\b\2\u00d0\u00d1\7"+
+		" \2\2\u00d1\u00d2\5\36\20\25\u00d2\u00d3\b\20\1\2\u00d3\u00fd\3\2\2\2"+
+		"\u00d4\u00d5\7\'\2\2\u00d5\u00d6\5\36\20\2\u00d6\u00d7\7)\2\2\u00d7\u00d8"+
+		"\5\26\f\2\u00d8\u00d9\7(\2\2\u00d9\u00da\b\20\1\2\u00da\u00fd\3\2\2\2"+
+		"\u00db\u00dc\7*\2\2\u00dc\u00dd\7\4\2\2\u00dd\u00fd\b\20\1\2\u00de\u00df"+
+		"\7\23\2\2\u00df\u00e0\5\36\20\22\u00e0\u00e1\b\20\1\2\u00e1\u00fd\3\2"+
+		"\2\2\u00e2\u00e3\7+\2\2\u00e3\u00e4\5\36\20\21\u00e4\u00e5\b\20\1\2\u00e5"+
+		"\u00fd\3\2\2\2\u00e6\u00e7\7,\2\2\u00e7\u00e8\5\36\20\t\u00e8\u00e9\b"+
+		"\20\1\2\u00e9\u00fd\3\2\2\2\u00ea\u00eb\7\5\2\2\u00eb\u00ec\7\33\2\2\u00ec"+
+		"\u00ed\5\36\20\b\u00ed\u00ee\b\20\1\2\u00ee\u00fd\3\2\2\2\u00ef\u00f0"+
+		"\7\t\2\2\u00f0\u00f1\5\36\20\2\u00f1\u00f2\7\n\2\2\u00f2\u00f3\b\20\1"+
+		"\2\u00f3\u00fd\3\2\2\2\u00f4\u00f5\7\5\2\2\u00f5\u00fd\b\20\1\2\u00f6"+
+		"\u00f7\7\7\2\2\u00f7\u00fd\b\20\1\2\u00f8\u00f9\7\b\2\2\u00f9\u00fd\b"+
+		"\20\1\2\u00fa\u00fb\7\6\2\2\u00fb\u00fd\b\20\1\2\u00fc\u00b2\3\2\2\2\u00fc"+
+		"\u00b9\3\2\2\2\u00fc\u00c2\3\2\2\2\u00fc\u00c9\3\2\2\2\u00fc\u00ce\3\2"+
+		"\2\2\u00fc\u00d4\3\2\2\2\u00fc\u00db\3\2\2\2\u00fc\u00de\3\2\2\2\u00fc"+
+		"\u00e2\3\2\2\2\u00fc\u00e6\3\2\2\2\u00fc\u00ea\3\2\2\2\u00fc\u00ef\3\2"+
+		"\2\2\u00fc\u00f4\3\2\2\2\u00fc\u00f6\3\2\2\2\u00fc\u00f8\3\2\2\2\u00fc"+
+		"\u00fa\3\2\2\2\u00fd\u0135\3\2\2\2\u00fe\u00ff\f\20\2\2\u00ff\u0100\7"+
+		"\21\2\2\u0100\u0101\5\36\20\21\u0101\u0102\b\20\1\2\u0102\u0134\3\2\2"+
+		"\2\u0103\u0104\f\17\2\2\u0104\u0105\7\22\2\2\u0105\u0106\5\36\20\20\u0106"+
+		"\u0107\b\20\1\2\u0107\u0134\3\2\2\2\u0108\u0109\f\16\2\2\u0109\u010a\7"+
+		"\17\2\2\u010a\u010b\5\36\20\17\u010b\u010c\b\20\1\2\u010c\u0134\3\2\2"+
+		"\2\u010d\u010e\f\r\2\2\u010e\u010f\7\20\2\2\u010f\u0110\5\36\20\16\u0110"+
+		"\u0111\b\20\1\2\u0111\u0134\3\2\2\2\u0112\u0113\f\f\2\2\u0113\u0114\7"+
+		"\32\2\2\u0114\u0115\5\36\20\r\u0115\u0116\b\20\1\2\u0116\u0134\3\2\2\2"+
+		"\u0117\u0118\f\13\2\2\u0118\u0119\7\24\2\2\u0119\u011a\5\36\20\f\u011a"+
+		"\u011b\b\20\1\2\u011b\u0134\3\2\2\2\u011c\u011d\f\n\2\2\u011d\u011e\7"+
+		"\25\2\2\u011e\u011f\5\36\20\13\u011f\u0120\b\20\1\2\u0120\u0134\3\2\2"+
+		"\2\u0121\u0122\f\33\2\2\u0122\u0123\7\30\2\2\u0123\u0124\7\5\2\2\u0124"+
+		"\u0125\7\t\2\2\u0125\u0126\5\34\17\2\u0126\u0127\7\n\2\2\u0127\u0128\b"+
+		"\20\1\2\u0128\u0134\3\2\2\2\u0129\u012a\f\32\2\2\u012a\u012b\7\f\2\2\u012b"+
+		"\u012c\7\4\2\2\u012c\u012d\7\30\2\2\u012d\u012e\7\5\2\2\u012e\u012f\7"+
+		"\t\2\2\u012f\u0130\5\34\17\2\u0130\u0131\7\n\2\2\u0131\u0132\b\20\1\2"+
+		"\u0132\u0134\3\2\2\2\u0133\u00fe\3\2\2\2\u0133\u0103\3\2\2\2\u0133\u0108"+
+		"\3\2\2\2\u0133\u010d\3\2\2\2\u0133\u0112\3\2\2\2\u0133\u0117\3\2\2\2\u0133"+
+		"\u011c\3\2\2\2\u0133\u0121\3\2\2\2\u0133\u0129\3\2\2\2\u0134\u0137\3\2"+
+		"\2\2\u0135\u0133\3\2\2\2\u0135\u0136\3\2\2\2\u0136\37\3\2\2\2\u0137\u0135"+
+		"\3\2\2\2\21*<DMdn|\u0086\u0094\u00a3\u00ad\u00b0\u00fc\u0133\u0135";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
