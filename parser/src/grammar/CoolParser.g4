@@ -213,130 +213,58 @@ expression_list	returns [ArrayList<AST.expression> value]
 // Expression rules
 // Going from bottom-up in the grammar in the book
 expression	returns [AST.expression value]:
-		// bool_const = true | false (with case-insensitivity)
-		bool = BOOL_CONST
+
+		// Here we consider the precedence rules.
+		// '.' greater than '@' greater than `~` greater than 'is void' greater than 'MDAS (Arithmetic)' greater than 
+		// 'Comp(LE, LT, EQ)' greater than 'not' greater than 'assignment'
+		
+		// First in precedence is DISPATCH
+		// function call expression / dispatch from an object :: expr DOT OBJECTID LPAREN expr_list RPAREN
+		expr = expression DOT object_id = OBJECTID LPAREN expr_list = expression_list RPAREN
 		{
-			boolName	= ($bool.getText());
-			curLineNo	= $bool.getLine();
-			if(boolName.charAt(0) == 't')
-			{
-				$value = new AST.bool_const(true, curLineNo);
-			}
-			else
-			{
-				$value = new AST.bool_const(false, curLineNo);
-			}
+			objectName	= ($object_id.getText());
+			curLineNo	= $expr.value.lineNo;
+			$value		= new AST.dispatch($expr.value, objectName, $expr_list.value, curLineNo);
 		}
 
-		// string_const = str_const (string literals)
-		| string_literal = STR_CONST
+		// Next is '@'
+		// function call expression / dynamic dispatch from an object :: expr ATSYM TYPEID DOT OBJECTID LPAREN expr_list RPAREN
+		| expr = expression ATSYM type = TYPEID DOT object_id = OBJECTID LPAREN expr_list = expression_list RPAREN
 		{
-			stringContent	= ($string_literal.getText());
-			curLineNo	= $string_literal.getLine();
-			$value 		= new AST.string_const(stringContent, curLineNo);
+			objectName	= ($object_id.getText());
+			typeName	= ($type.getText());
+			curLineNo	= $expr.value.lineNo;
+			$value 		= new AST.static_dispatch($expr.value, typeName, objectName, $expr_list.value, curLineNo);
 		}
 
-		// integer_const = int_const (integer constants)
-		| integer = INT_CONST
-		{
-			integerString	= ($integer.getText());
-			integerVal	= Integer.parseInt(integerString);
-			curLineNo	= $integer.getLine();
-			$value		= new AST.int_const(integerVal, curLineNo);
-		}
-
-		// object = OBJECTID (objects)
-		| object_id = OBJECTID
+		// function call expression / dispatch expression :: OBJECTID LPAREN expr_list RPAREN
+		// By definition: expr_list can be empty
+		| object_id = OBJECTID LPAREN expr_list = expression_list RPAREN
 		{
 			objectName	= ($object_id.getText());
 			curLineNo	= $object_id.getLine();
-			$value		= new AST.object(objectName, curLineNo);
+			$value		= new AST.dispatch(new AST.object("self", curLineNo), objectName, $expr_list.value, curLineNo);
 		}
 
-		// parenthesized expression have the same value as non parenthesized expression. That is why the value is passed on.
-		| LPAREN expr = expression RPAREN
+		// if expressions :: IF expression THEN expression ELSE expression FI
+		| if_cond = IF expr1 = expression THEN expr2 = expression ELSE expr3 = expression FI
 		{
-			$value		= $expr.value;
+			curLineNo	= $if_cond.getLine();
+			$value		= new AST.cond($expr1.value, $expr2.value, $expr3.value, curLineNo);
+		}
+		
+		// while expressions :: WHILE expression LOOP expression POOL
+		| whl = WHILE expr1 = expression LOOP expr2 = expression POOL
+		{
+			curLineNo	= $whl.getLine();
+			$value		= new AST.loop($expr1.value, $expr2.value, curLineNo);
 		}
 
-		// NOT expression
-		| nt = NOT expr = expression
+		// Nested expressions :: LBRACE blocked_expr RBRACE
+		| lb = LBRACE nested_exprs = blocked_expr RBRACE
 		{
-			curLineNo	= $nt.getLine();
-			$value		= new AST.neg($expr.value, curLineNo);
-		}
-
-		// equality of expressions(integers, bools, strings) :: expression EQUALS expression
-		| expr1 = expression EQUALS expr2 = expression
-		{
-			curLineNo	= $expr1.value.lineNo;
-			$value		= new AST.eq($expr1.value, $expr2.value, curLineNo);
-		}
-
-		// Less than or equal to comparison of expressions(integers) :: expression LE expression
-		| expr1 = expression LE expr2 = expression
-		{
-			curLineNo	= $expr1.value.lineNo;
-			$value		= new AST.leq($expr1.value, $expr2.value, curLineNo);
-		}
-
-		// Less than comparison of expressions(integers) :: expression LT expression
-		| expr1 = expression LT expr2 = expression
-		{
-			curLineNo	= $expr1.value.lineNo;
-			$value		= new AST.lt($expr1.value, $expr2.value, curLineNo);
-		}
-
-		// Complement of expression(integers) :: TILDE expression
-		| tld = TILDE expr = expression
-		{
-			curLineNo	= $tld.getLine();
-			$value		= new AST.comp($expr.value, curLineNo);
-		}
-
-		// Arithmetic rules follow ::
-		// expression / or * or - or +
-		| expr1 = expression SLASH expr2 = expression
-		{
-			curLineNo	= $expr1.value.lineNo;
-			$value		= new AST.divide($expr1.value, $expr2.value, curLineNo);
-		}
-		| expr1 = expression STAR expr2 = expression
-		{
-			curLineNo	= $expr1.value.lineNo;
-			$value		= new AST.mul($expr1.value, $expr2.value, curLineNo);
-		}
-		| expr1 = expression MINUS expr2 = expression
-		{
-			curLineNo	= $expr1.value.lineNo;
-			$value		= new AST.sub($expr1.value, $expr2.value, curLineNo);
-		}
-		| expr1 = expression PLUS expr2 = expression
-		{
-			curLineNo	= $expr1.value.lineNo;
-			$value		= new AST.plus($expr1.value, $expr2.value, curLineNo);
-		}
-
-		// ISVOID checking with expression :: ISVOID expression
-		| ivd = ISVOID expr = expression
-		{
-			curLineNo	= $ivd.getLine();
-			$value		= new AST.isvoid($expr.value, curLineNo);
-		}
-
-		// Creating new object :: NEW TYPEID
-		| nw = NEW type = TYPEID
-		{
-			typeName	= ($type.getText());
-			curLineNo	= $nw.getLine();
-			$value		= new AST.new_(typeName, curLineNo);
-		}
-
-		// Case expressions :: CASE expression OF branch_list (defined above) ESAC
-		| cse = CASE expr = expression OF branches = branch_list ESAC
-		{
-			curLineNo	= $cse.getLine();
-			$value		= new AST.typcase($expr.value, $branches.value, curLineNo);
+			curLineNo	= $lb.getLine();
+			$value		= new AST.block($nested_exprs.value, curLineNo);
 		}
 
 		// Let expressions :: LET attr_list (defined above) IN expression
@@ -355,58 +283,143 @@ expression	returns [AST.expression value]:
 			}
 		}			
 
-		// Nested expressions :: LBRACE blocked_expr RBRACE
-		| lb = LBRACE nested_exprs = blocked_expr RBRACE
+		// Case expressions :: CASE expression OF branch_list (defined above) ESAC
+		| cse = CASE expr = expression OF branches = branch_list ESAC
 		{
-			curLineNo	= $lb.getLine();
-			$value		= new AST.block($nested_exprs.value, curLineNo);
+			curLineNo	= $cse.getLine();
+			$value		= new AST.typcase($expr.value, $branches.value, curLineNo);
 		}
 
-		// while expressions :: WHILE expression LOOP expression POOL
-		| whl = WHILE expr1 = expression LOOP expr2 = expression POOL
+		// Creating new object :: NEW TYPEID
+		| nw = NEW type = TYPEID
 		{
-			curLineNo	= $whl.getLine();
-			$value		= new AST.loop($expr1.value, $expr2.value, curLineNo);
-		}
-
-		// if expressions :: IF expression THEN expression ELSE expression FI
-		| if_cond = IF expr1 = expression THEN expr2 = expression ELSE expr3 = expression FI
-		{
-			curLineNo	= $if_cond.getLine();
-			$value		= new AST.cond($expr1.value, $expr2.value, $expr3.value, curLineNo);
-		}
-
-		// function call expression / dispatch expression :: OBJECTID LPAREN expr_list RPAREN
-		// By definition: expr_list can be empty
-		| object_id = OBJECTID LPAREN expr_list = expression_list RPAREN
-		{
-			objectName	= ($object_id.getText());
-			curLineNo	= $object_id.getLine();
-			$value		= new AST.dispatch(new AST.object("self", curLineNo), objectName, $expr_list.value, curLineNo);
-		}
-
-		// function call expression / dispatch from an object :: expr DOT OBJECTID LPAREN expr_list RPAREN
-		| expr = expression DOT object_id = OBJECTID LPAREN expr_list = expression_list RPAREN
-		{
-			objectName	= ($object_id.getText());
-			curLineNo	= $expr.value.lineNo;
-			$value		= new AST.dispatch($expr.value, objectName, $expr_list.value, curLineNo);
-		}
-
-		// function call expression / dynamic dispatch from an object :: expr ATSYM TYPEID DOT OBJECTID LPAREN expr_list RPAREN
-		| expr = expression ATSYM type = TYPEID DOT object_id = OBJECTID LPAREN expr_list = expression_list RPAREN
-		{
-			objectName	= ($object_id.getText());
 			typeName	= ($type.getText());
-			curLineNo	= $expr.value.lineNo;
-			$value 		= new AST.static_dispatch($expr.value, typeName, objectName, $expr_list.value, curLineNo);
+			curLineNo	= $nw.getLine();
+			$value		= new AST.new_(typeName, curLineNo);
 		}
 
+		// Next is '~'
+		// Complement of expression(integers) :: TILDE expression
+		| tld = TILDE expr = expression
+		{
+			curLineNo	= $tld.getLine();
+			$value		= new AST.comp($expr.value, curLineNo);
+		}
+
+		// Next is 'isvoid'
+		// ISVOID checking with expression :: ISVOID expression
+		| ivd = ISVOID expr = expression
+		{
+			curLineNo	= $ivd.getLine();
+			$value		= new AST.isvoid($expr.value, curLineNo);
+		}
+
+		// MDAS -> Multiplication, Division, Addition, Subtraction
+		// Arithmetic rules follow ::
+		// expression * or / or + or -
+		| expr1 = expression STAR expr2 = expression
+		{
+			curLineNo	= $expr1.value.lineNo;
+			$value		= new AST.mul($expr1.value, $expr2.value, curLineNo);
+		}
+		| expr1 = expression SLASH expr2 = expression
+		{
+			curLineNo	= $expr1.value.lineNo;
+			$value		= new AST.divide($expr1.value, $expr2.value, curLineNo);
+		}
+		| expr1 = expression PLUS expr2 = expression
+		{
+			curLineNo	= $expr1.value.lineNo;
+			$value		= new AST.plus($expr1.value, $expr2.value, curLineNo);
+		}
+		| expr1 = expression MINUS expr2 = expression
+		{
+			curLineNo	= $expr1.value.lineNo;
+			$value		= new AST.sub($expr1.value, $expr2.value, curLineNo);
+		}
+
+		// Next in precedence is Comparison: <=, <, =
+		// Less than or equal to comparison of expressions(integers) :: expression LE expression
+		| expr1 = expression LE expr2 = expression
+		{
+			curLineNo	= $expr1.value.lineNo;
+			$value		= new AST.leq($expr1.value, $expr2.value, curLineNo);
+		}
+
+		// Less than comparison of expressions(integers) :: expression LT expression
+		| expr1 = expression LT expr2 = expression
+		{
+			curLineNo	= $expr1.value.lineNo;
+			$value		= new AST.lt($expr1.value, $expr2.value, curLineNo);
+		}
+
+		// equality of expressions(integers, bools, strings) :: expression EQUALS expression
+		| expr1 = expression EQUALS expr2 = expression
+		{
+			curLineNo	= $expr1.value.lineNo;
+			$value		= new AST.eq($expr1.value, $expr2.value, curLineNo);
+		}
+
+		// Next is NOT operator
+		// NOT expression
+		| nt = NOT expr = expression
+		{
+			curLineNo	= $nt.getLine();
+			$value		= new AST.neg($expr.value, curLineNo);
+		}
+
+		// Then comes assignment
 		// assignment expression :: OBJECTID ASSIGN expression
-		| object_id = OBJECTID<assoc=right> ASSIGN expr1 = expression
+		|<assoc=right> object_id = OBJECTID ASSIGN expr1 = expression
 		{
 			objectName	= ($object_id.getText());
 			curLineNo	= $expr1.value.lineNo;
 			$value		= new AST.assign(objectName, $expr1.value, curLineNo);
+		}
+		
+		// parenthesized expression have the same value as non parenthesized expression. That is why the value is passed on.
+		| LPAREN expr = expression RPAREN
+		{
+			$value		= $expr.value;
+		}
+
+		// object = OBJECTID (objects)
+		| object_id = OBJECTID
+		{
+			objectName	= ($object_id.getText());
+			curLineNo	= $object_id.getLine();
+			$value		= new AST.object(objectName, curLineNo);
+		}
+
+		// integer_const = int_const (integer constants)
+		| integer = INT_CONST
+		{
+			integerString	= ($integer.getText());
+			integerVal	= Integer.parseInt(integerString);
+			curLineNo	= $integer.getLine();
+			$value		= new AST.int_const(integerVal, curLineNo);
+		}
+
+		// string_const = str_const (string literals)
+		| string_literal = STR_CONST
+		{
+			stringContent	= ($string_literal.getText());
+			curLineNo	= $string_literal.getLine();
+			$value 		= new AST.string_const(stringContent, curLineNo);
+		}
+
+		// bool_const = true | false (with case-insensitivity)
+		| bool = BOOL_CONST
+		{
+			boolName	= ($bool.getText());
+			curLineNo	= $bool.getLine();
+			if(boolName.charAt(0) == 't')
+			{
+				$value = new AST.bool_const(true, curLineNo);
+			}
+			else
+			{
+				$value = new AST.bool_const(false, curLineNo);
+			}
 		}
 		;

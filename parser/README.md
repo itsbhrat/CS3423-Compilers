@@ -3,6 +3,8 @@
 
 * The grammar of COOL presented after the section 10 in the COOL Manual (refer to page number 16)
 
+* The precedence and associativity of operators presented in section 10 in the COOL Manual (refer to page number 17)
+
 ### Design/pipeline of the parser: ###
 * __The Grammar__
 
@@ -15,6 +17,8 @@
 	Every grammar rule returns an AST Node, with some value. This value is determined by the token stream that occur on the right-hand-side of the grammar rule. For example: the node for a boolean constant i.e., `true` or `false` is given by `bool_const(<truth_value>, line_\number)`. The truth value and the line number is determined by examining the token content which is emitted by the lexer using the functions `getText()` and `getLine()`. 
 	
 	If a rule requires some variables to be used in the rules defined for a given node, then we use the `@init` section for declarations. We make use of it in a few places such as in `expression_list`, `branch_list` and `formal_list`, where we deem it necessary. These declarations help us modulate our code to make it look better and isolate errors if any in an easier manner.
+	
+	To take care of precedence, we realized that the ANTLR API makes sure that the first rule that matches a given string of terminals ( + non-terminals ) is taken first. This allows us to write the COOL Grammar rules in such a way as to maintain the Syntactical precedence. The syntactical precedence of certain operators in COOL is mentioned in the manual, and we have taken care of it by placing the rules with a higher precedence operator on top of a rule with a lower precedence operator.
 	
 * __Syntactical Correctness__
 
