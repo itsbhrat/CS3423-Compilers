@@ -5,10 +5,10 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 
-ASN_NO=2
+ASN_NO=3
 ROLL_NO=$(tr '[:lower:]' '[:upper:]' <<< "$1")
 
-FILES="*.png README.md src/grammar/CoolParser.g4 src/java/cool/AST.java src/test_cases/*.cl"
+FILES="README.md src/java/cool/AST.java src/test_cases/*.cl src/java/cool/Semantic.java"
 
 FILE_NAME="Asn$ASN_NO$ROLL_NO.tar.gz"
 
