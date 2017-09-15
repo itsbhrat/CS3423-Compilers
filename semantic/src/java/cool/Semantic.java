@@ -67,6 +67,9 @@ public class Semantic{
 		else if(expr instanceof AST.new_) {
 			NodeVisit((AST.new_)expr)
 		}
+		else if(expr instanceof AST.typcase) {
+			NodeVisit((AST.typcase)expr)
+		}
 		else if(expr instanceof AST.block) {
 			NodeVisit((AST.block)expr)
 		}
@@ -207,8 +210,8 @@ public class Semantic{
 	public void NodeVisit(AST.new_ new_object) {
 		// FLAG
 		// new can be used only for pre-existing classes. Hence we will need to check if the new_ typeid exists
-		// need to define a function check_class
-		return_val	= check_class(new_.typeid)
+		// Call a table of classes class_table
+		return_val	= class_table.get(new_.typeid)
 		if return_val == null {
 			reportError(filename, new_object.lineNo, new_.typeid + " does not exist");
 			new_object.type	= "object"
@@ -217,6 +220,50 @@ public class Semantic{
 			new_object.type	= new_object.typeid
 		}
 	}	
+	
+	public void NodeVisit(AST.typcase cases) {
+		NodeVisit(cases.predicate);
+		pred_type	= cases.predicate.type;
+		if(pred_type.equals("boolean") == true) {
+			List<AST.branch> brnch_list	= cases.branches;
+			for(AST.branch sing_brnch_1 : brnch_list) {
+				for(AST.branch sing_brnch_2 : brnch_list) {
+					if(sing_brnch_1.type.equals(sing_brnch_2.type)) {
+						reportError(filename, sing_brnch_1.lineNo, "Non-distinct variable types in branches of case statement");
+					}
+				}
+			}
+			
+			for(AST.branch sng_brnch : brnch_list) {
+				scp_tbl.enterScope();
+				// FLAG
+				// Need to refer to a table consisting of all classes.
+				// Call that table class_table
+				ret_val		= class_table.get(sng_brnch.type);
+				ins_type	= "Object";
+				if ret_val == null {
+					reportError(filename, sng_brnch.lineNo, "Class " + sng_brnch.type + " in case branch is undefined");
+					ins_type	= "Object"
+				}
+				else {
+					ins_type	= sng_brnch.type
+				}
+				scp_tbl.insert(sing_brnch.name, new AST.attr(sng_brnch.name, ins_type, sng_brnch.value, sng_brnch.lineNo));
+				NodeVisit(sng_brnch.value);
+				scp_tbl.exitScope();
+			}
+			
+			ret_val		= cases.branches.get(0).type;
+			brnch_list	= cases.branches.subList(1, cases.branches.size());
+			for(AST.branch sng_brnch : brnch_list ) {
+				ret_val	= lca(ret_val, sng_brnch.value.type)
+			}
+			cases.type	= ret_val
+		
+		} else {
+			reportError(filename, cases.lineNo, "Non-boolean predicate for case statement");
+		}
+	}
 	
 	public void NodeVisit(AST.block block_expr) {
 		List<AST.expression> expr_list	= ((AST.block)expr).l1;
@@ -231,7 +278,7 @@ public class Semantic{
 		NodeVisit(loop_structure.predicate);
 		NodeVisit(loop_structure.body);
 		pred_type	= loop_structure.predicate.type;
-		if pred_type.equals("boolean") == false {
+		if(pred_type.equals("boolean") == false) {
 			reportError(filename, loop_structure.lineNo, "Non-boolean predicate for loop");
 		}
 		loop.type	= "object";
