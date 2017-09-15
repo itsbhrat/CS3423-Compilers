@@ -1,7 +1,9 @@
 package cool;
 
 public class Semantic{
-	private boolean errorFlag = false;
+	private boolean errorFlag		= false;
+	private ScopeTable<AST.attr> scp_tbl	= new ScopeTable<AST.attr>(); 
+	
 	public void reportError(String filename, int lineNo, String error){
 		errorFlag = true;
 		System.err.println(filename+":"+lineNo+": "+error);
@@ -16,45 +18,103 @@ public class Semantic{
 	public Semantic(AST.program program){
 		//Write Semantic analyzer code here
 	}
+	
+	public void low_com_anc(
+	
+	public void NodeVisit(AST.expression expr) {
+		if(expr instanceof AST.bool_const) {
+			NodeVisit((AST.bool_const)expr)
+		}
+		else if(expr instanceof AST.str_const) {
+			NodeVisit((AST.str_const)expr)
+		}
+		else if(expr instanceof AST.int_const) {
+			NodeVisit((AST.int_const)expr)
+		}
+		else if(expr instanceof AST.object) {
+			NodeVisit((AST.object)expr)
+		}
+		else if(expr instanceof AST.comp) {
+			NodeVisit((AST.comp)expr)
+		}
+		else if(expr instanceof AST.eq) {
+			NodeVisit((AST.eq)expr)
+		}
+		else if(expr instanceof AST.leq) {
+			NodeVisit((AST.leq)expr)
+		}
+		else if(expr instanceof AST.lt) {
+			NodeVisit((AST.lt)expr) 
+		}
+		else if(expr instanceof AST.neg) {
+			NodeVisit((AST.neg)expr)
+		}
+		else if(expr instanceof AST.divide) {
+			NodeVisit((AST.divide)expr)
+		}
+		else if(expr instanceof AST.mul) {
+			NodeVisit((AST.mul)expr)
+		}
+		else if(expr instanceof AST.sub) {
+			NodeVisit((AST.sub)expr)
+		}
+		else if(expr instanceof AST.plus) {
+			NodeVisit((AST.plus)expr)
+		}
+		else if(expr instanceof AST.isvoid) {
+			NodeVisit((AST.isvoid)expr)
+		}
+		else if(expr instanceof AST.new_) {
+			NodeVisit((AST.new_)expr)
+		}
+		else if(expr instanceof AST.block) {
+			NodeVisit((AST.block)expr)
+		}
+		else if(expr instanceof AST.loop) {
+			NodeVisit((AST.loop)expr)
+		}
+		else if(expr instanceof AST.cond) {
+			NodeVisit((AST.cond)expr)
+		}
+	}
 
 	public void NodeVisit(AST.bool_const bool) {
-		bool.type = "boolean";
+		bool.type	= "boolean";
 	}
 
 	public void NodeVisit(AST.str_const string) {
-		string.type = "string";
+		string.type	= "string";
 	}
 
 	public void NodeVisit(AST.int_const integer) {
-		integer.type = "integer";
+		integer.type	= "integer";
 	}
 
 	public void NodeVisit(AST.object obj) {
-		// Check for scope here
-		// If not in scope, meaning lookUpGlobal() returns null, then report error
-		// scopeTable not defined yet, and so is return_val
-		return_val	= scopeTable.lookUpGlobal(obj.name);
+		return_val	= scp_tbl.lookUpGlobal(obj.name);
 		if return_val == null {
 			reportError(filename, obj.lineNo, "Identifier " + obj.name + " not present in scope");
-			obj.type = "Object";
+			obj.type	= "Object";
 		}
-		// Else do something, I don't know what yet.
+		else {
+			obj.type	= return_val.typeid;
+		}
 	}
 
 	public void NodeVisit(AST.comp complement) {
 		NodeVisit(complement.e1);
-		String e1_type = complement.e1.type;
+		String e1_type	= complement.e1.type;
 		if e1_type.equals("boolean") == false {
 			reportError(filename, complement.lineNo, "Incompatible type for complement");
 		}
-		complement.type = "boolean";
+		complement.type	= "boolean";
 	}
 
 	public void NodeVisit(AST.eq equality) {
 		NodeVisit(equality.e1);
 		NodeVisit(equality.e2);
-		String e1_type = equality.e1.type;
-		String e2_type = equality.e2.type;
+		String e1_type	= equality.e1.type;
+		String e2_type	= equality.e2.type;
 		if (e1_type.equals("boolean") || e1_type.equals("integer") || e1_type.equals("string")) 
 			|| 
 		   (e2_type.equals("boolean") || e2_type.equals("integer") || e2_type.equals("string")) {
@@ -62,7 +122,7 @@ public class Semantic{
 				reportError(filename, equality.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for equality");
 			}
 		}
-		equality.type = "boolean";
+		equality.type	= "boolean";
 	}
 
 	public void NodeVisit(AST.leq less_equal) {
@@ -145,6 +205,7 @@ public class Semantic{
 	}
 
 	public void NodeVisit(AST.new_ new_object) {
+		// FLAG
 		// new can be used only for pre-existing classes. Hence we will need to check if the new_ typeid exists
 		// need to define a function check_class
 		return_val	= check_class(new_.typeid)
@@ -156,6 +217,15 @@ public class Semantic{
 			new_object.type	= new_object.typeid
 		}
 	}	
+	
+	public void NodeVisit(AST.block block_expr) {
+		List<AST.expression> expr_list	= ((AST.block)expr).l1;
+		AST.expression sing_expr	= new AST.expression;
+		for(sing_expr : expr_list) {
+			NodeVisit(sing_expr)
+		}
+		block.type	= sing_expr.type	// Last iterate's type
+	}
 
 	public void NodeVisit(AST.loop loop_structure) {
 		NodeVisit(loop_structure.predicate);
@@ -175,6 +245,6 @@ public class Semantic{
 		if pred_type.equals("boolean") == false {
 			reportError(filename, condition.lineNo, "Non-boolean predicate for if clause");
 		}
-		condition.type = //do something ;
+		condition.type = lca(condition.ifbody.type, condition.elsebody.type)
 	}
 }
