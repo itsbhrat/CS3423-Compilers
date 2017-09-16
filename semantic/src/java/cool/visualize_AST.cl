@@ -1,24 +1,38 @@
 
-Class Func { 
+Class A inherits C{ 
 	a : Int;
-	abc(a : Int ,b : String) : Object {
-	   {
-			a <- 4;
-	   }
-	};
 };
 
-Class Main inherits Func{ 
+Class B inherits A{ 
+	c : Int;
+};
 
-	abc(a : String ,d: Int) : Object {
-	   {
-			a <- 5;
-	   }
-	};
+Class C inherits B{ 
+	c : Int;
+};
 
-	main() : Object {
+Class H inherits C{ 
+	h : Int;
+};
+ 
+
+class HHH inherits R {
+	w : Int;
+};
+
+
+class R inherits A {
+	r : Int;
+};
+
+ 
+
+
+Class Main inherits B{ 
+	b : Int;
+	main() : Int {
 	   {				
-	   		a <- 1;
+	   		b <- 1;
 	   }
 	};
 };
