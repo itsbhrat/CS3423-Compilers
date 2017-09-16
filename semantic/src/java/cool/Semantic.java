@@ -42,6 +42,17 @@ public class Semantic {
 		//Write Semantic analyzer code here
 		define_built_in_classes();
 		process_graph(program.classes);
+
+		for (AST.class_ e : program.classes) {
+			filename = e.filename;				// filename for each class
+			//scopeTable.enterScope();			// enter new scope for a class
+			//scopeTable.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));		// self is available as attribute within the class
+			//scopeTable.insertAll(classTable.getAttrs(e.name));		// insert all inherited and other declared attributes within the class into the scope
+			NodeVisit(e);
+			////System.out.println("###Finished processing class " +  e.name);
+			//scopeTable.exitScope();				// once class is processed, exit the scope.
+		}
+
 	}
 
 	private void process_graph(List<AST.class_> classes) {
@@ -90,7 +101,7 @@ public class Semantic {
 				reportError(c.filename, c.lineNo, "Class " + c.name + " does not inherit from any class.");
 				ok = false;
 			}
-			if (!(class_int.containsKey(c.parent))) {
+			if (!class_int.containsKey(c.parent)) {
 				reportError(c.filename, c.lineNo, "Class " + c.name + " inherits from an undefined class " + c.parent + ".");
 				ok = false;
 			}
@@ -114,6 +125,7 @@ public class Semantic {
 			node = q.remove();
 			for (Integer i : adjacency_list.get(node)) {
 				if (!visited.get(i)) {
+					q.add(i);
 					visited.set(i, true);
 					if (i > 1) {		// dont add Object & IO class
 						insert_class(class_node.get(i));
@@ -121,10 +133,15 @@ public class Semantic {
 				}
 			}
 		}
+
+		if (!classList.containsKey("Main"))		//check the existence of Main class
+			reportError(filename, 1, "Program does not contain class 'Main'");
+		else if (classList.get("Main").methods.containsKey("main") == false)		//check the existence of main method in Main class
+			reportError(filename, 1, "'Main' class does not contain 'main' method");
 	}
 
 	private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, Integer v, List<Boolean> visited, List<Boolean> recursion_Stack) {
-		if (visited.get(v) == false) {
+		if (visited.get(v)) {
 			// Mark the current node as visited and part of recursion stack
 			visited.set(v, true);
 			recursion_Stack.set(v, true);
@@ -152,7 +169,7 @@ public class Semantic {
 		Boolean ok = true;
 		for (int i = 0; i < no_nodes_in_graph; i++) {
 
-			if (visited.get(i) == false) {
+			if (!visited.get(i)) {
 				Integer node = isCyclicUtil(adjacency_list, i, visited, recursion_Stack);
 				if (node != -1) {
 					ok = false;
@@ -175,6 +192,7 @@ public class Semantic {
 			node = q.remove();
 			for (Integer i : adjacency_list.get(node)) {
 				if (!visited.get(i)) {
+					q.add(i);
 					visited.set(i, true);
 					reportError(class_node.get(i).filename, class_node.get(i).lineNo, " Class " + class_node.get(i).name + ", or an ancestor of " + class_node.get(i).name + ", is involved in an inheritance cycle.");
 				}
@@ -307,13 +325,13 @@ public class Semantic {
 						ok = false;
 					}
 					// checking return type
-					if (!(pr_met.typeid.equals(me.typeid))) {
+					if (!pr_met.typeid.equals(me.typeid)) {
 						reportError(user.filename, me.lineNo, "In redefined method " + me.name + " in class " + user.name + ", return type " + me.typeid + " is different from original return type " + pr_met.typeid + ".");
 						ok = false;
 					}
 					// checking parameter types
 					for (int i = 0; i < me.formals.size(); i++) {
-						if (!(pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid))) {
+						if (!pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid)) {
 							reportError(user.filename, me.lineNo, "In redefined method " + me.name + " in class " + user.name + ", parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
 							ok = false;
 						}
