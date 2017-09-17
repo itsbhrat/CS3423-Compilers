@@ -22,7 +22,7 @@ class ClassNode
 
 public class Semantic
 {
-	private boolean errorFlag = false;
+	private Boolean errorFlag = false;
 
 	public void reportError(String filename, int lineNo, String error)
 	{
@@ -30,7 +30,7 @@ public class Semantic
 		System.err.println(filename + ":" + lineNo + ": " + error);
 	}
 
-	public boolean getErrorFlag()
+	public Boolean getErrorFlag()
 	{
 		return errorFlag;
 	}
@@ -87,23 +87,23 @@ public class Semantic
 		for (AST.class_ c : classes)
 		{
 			//checking if user class is one of cool basic class
-			boolean cond_name = (c.name.equals("Object") || c.name.equals("IO") || c.name.equals("Int") || c.name.equals("String") || c.name.equals("Bool"));
+			Boolean cond_name = (c.name.equals("Object") || c.name.equals("IO") || c.name.equals("Int") || c.name.equals("String") || c.name.equals("Bool"));
 			if (cond_name == true)
 			{
-				reportError(c.filename, c.lineNo, "Redefinition of basic class " + c.name);
+				reportError(c.filename, c.lineNo, "Redefinition of basic class " + c.name + ".");
 				ok = false;
 			}
-			
-			boolean cond_parent = (c.parent.equals("Int") || c.parent.equals("String") || c.parent.equals("Bool"));
+			//checking if user class inherits from one of the non-inheritable classes
+			Boolean cond_parent = (c.parent.equals("Int") || c.parent.equals("String") || c.parent.equals("Bool"));
 			if (cond_parent == true)
 			{
-				reportError(c.filename, c.lineNo, "Class " + c.name + "cannot inherit basic class " + c.parent);
+				reportError(c.filename, c.lineNo, "Class " + c.name + " cannot inherit basic class " + c.parent + ".");
 				ok = false;
 			}
-			
+			//checking if user class is redefined
 			if (class_int.containsKey(c.name))
 			{
-				reportError(c.filename, c.lineNo, "Class " + c.name + "was previously defined");
+				reportError(c.filename, c.lineNo, "Class " + c.name + " was previously defined.");
 				ok = false;
 			}
 						
@@ -119,16 +119,16 @@ public class Semantic
 		//adding the edges among the classes
 		for (AST.class_ c : classes)
 		{
-			boolean cond_parent = (c.parent == null || c.parent.equals(""));
+			Boolean cond_parent = (c.parent == null || c.parent.equals(""));
 			if (cond_parent == true)
 			{
-				reportError(c.filename, c.lineNo, "Class " + c.name + " does not inherit from any class");
+				reportError(c.filename, c.lineNo, "Class " + c.name + " does not inherit from any class.");
 				ok = false;
 			}
 
 			if (class_int.containsKey(c.parent) == false)
 			{
-				reportError(c.filename, c.lineNo, "Class " + c.name + " inherits from an undefined class " + c.parent);
+				reportError(c.filename, c.lineNo, "Class " + c.name + " inherits from an undefined class " + c.parent + ".");
 				ok = false;
 			}
 
@@ -471,8 +471,8 @@ public class Semantic
 		// Refer to page 6 of the COOL Manual for the definition of conformance of two types
 		// Refer to page 8 for conformance of types in methods
 		String LCA_body_typeid = lowest_common_ancestor(the_method.body.type, the_method.typeid);
-		boolean cond_conform_1 = (LCA_body_typeid.equals(the_method.typeid));
-		boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
+		Boolean cond_conform_1 = (LCA_body_typeid.equals(the_method.typeid));
+		Boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
 		if (cond_conform_1 && cond_conform_2 == false)
 		{
 			reportError(filename, the_method.lineNo, "Non-conformance of types " + the_method.body.type + " & " + the_method.typeid);
@@ -486,13 +486,13 @@ public class Semantic
 		// Visiting nodes further if they are not of no_expr type
 		if (the_attribute.value instanceof AST.no_expr == false)
 		{
-			NodeVisit(the_attribute.value)
+			NodeVisit(the_attribute.value);
 			
 			// Refer to page 6 of the COOL Manual for the definition of conformance of two types
 			// Refer to page 8 for conformance of types in attributes
 			String LCA_value_typeid = lowest_common_ancestor(the_attribute.value.type, the_attribute.typeid);
-			boolean cond_conform_1 = (LCA_value_typeid.equals(the_attribute.typeid));
-			boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
+			Boolean cond_conform_1 = (LCA_value_typeid.equals(the_attribute.typeid));
+			Boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
 			if (cond_conform_1 && cond_conform_2 == false)
 			{
 				reportError(filename, the_method.lineNo, "Non-conformance of types " + the_attribute.value.type + " & " + the_attribute.typeid);
@@ -560,8 +560,8 @@ public class Semantic
 			String e2_type = the_equality.e2.type;
 			
 			// Refer to Page 21 of the COOL Manual for equality type checking
-			boolean cond_e1_type = (e1_type.equals("Int") || e1_type.equals("String") || e1_type.equals("Bool"));
-			boolean cond_e2_type = (e2_type.equals("Int") || e2_type.equals("String") || e2_type.equals("Bool"));
+			Boolean cond_e1_type = (e1_type.equals("Int") || e1_type.equals("String") || e1_type.equals("Bool"));
+			Boolean cond_e2_type = (e2_type.equals("Int") || e2_type.equals("String") || e2_type.equals("Bool"));
 			if ((cond_e1_type || cond_e2_type) == true)
 			{
 				if (e1_type.equals(e2_type))
@@ -581,7 +581,7 @@ public class Semantic
 			String e2_type = the_less_equal.e2.type;
 			
 			// Refer to Page 21 of the COOL Manual for less than or equal to type checking
-			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			Boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
 			if (condition == false)
 			{
 				reportError(filename, the_less_equal.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for making less than or equal to comparison");
@@ -598,7 +598,7 @@ public class Semantic
 			String e2_type = the_less.e2.type;
 			
 			// Refer to Page 21 of the COOL Manual for less than type checking
-			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			Boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
 			if (condition == false)
 			{
 				reportError(filename, the_less.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for making less than comparison");
@@ -613,7 +613,7 @@ public class Semantic
 			String e1_type = the_negation.e1.type;
 			
 			// Refer to Page 21 of the COOL Manual for negation type checking
-			boolean condition = (e1_type.equals("Int"));
+			Boolean condition = (e1_type.equals("Int"));
 			if (condition == false)
 			{
 				reportError(filename, the_negation.lineNo, "Non-int argument (type = " + e1_type + ") for negation"); 
@@ -630,7 +630,7 @@ public class Semantic
 			String e2_type = the_arith.e2.type;
 			
 			// Refer to Page 21 of the COOL Manual for division type checking
-			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			Boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
 			if (condition == false)
 			{
 				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing division");
@@ -647,7 +647,7 @@ public class Semantic
 			String e2_type = the_arith.e2.type;
 			
 			// Refer to Page 21 of the COOL Manual for multiplication type checking
-			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			Boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
 			if (condition == false)
 			{
 				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing multiplication");
@@ -664,7 +664,7 @@ public class Semantic
 			String e2_type = the_arith.e2.type;
 			
 			// Refer to Page 21 of the COOL Manual for subtraction type checking
-			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			Boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
 			if (condition == false)
 			{
 				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing subtraction");
@@ -681,7 +681,7 @@ public class Semantic
 			String e2_type = the_arith.e2.type;
 			
 			// Refer to Page 21 of the COOL Manual for addition type checking
-			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			Boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
 			if (condition == false)
 			{
 				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing addition");
@@ -729,7 +729,7 @@ public class Semantic
 			NodeVisit(the_loop.predicate);
 			NodeVisit(the_loop.body);
 			String predicate_type = the_loop.predicate.type;
-			boolean condition = predicate_type.equals("Bool");
+			Boolean condition = predicate_type.equals("Bool");
 
 			// Refer to Page 20 of the COOL Manual for loop statement type checking
 			if (condition == false)
@@ -746,7 +746,7 @@ public class Semantic
 			NodeVisit(the_if_else.ifbody);
 			NodeVisit(the_if_else.elsebody);
 			String predicate_type = the_if_else.predicate.type;
-			boolean cond_pred = predicate_type.equals("Bool");
+			Boolean cond_pred = predicate_type.equals("Bool");
 			
 			// Refer to Page 20 of the COOL Manual for if-else statement type checking
 			if (cond_pred == false)
@@ -761,7 +761,7 @@ public class Semantic
 	{
 		NodeVisit(cases.predicate);
 		String predicate_type = cases.predicate.type;
-		boolean cond_pred = predicate_type.equals("Bool");
+		Boolean cond_pred = predicate_type.equals("Bool");
 		
 		// Refer to Page 21 of the COOL Manual for case statement type checking
 		if (cond_pred == true)
@@ -773,7 +773,7 @@ public class Semantic
 				{
 					AST.branch branch_1 = branch_list.get(i);
 					AST.branch branch_2 = branch_list.get(j);
-					boolean cond_brnch = branch_1.type.equals(branch_2.type);
+					Boolean cond_brnch = branch_1.type.equals(branch_2.type);
 					if (cond_brnch == true)
 					{
 						reportError(filename, branch_1.lineNo, "Non-distinct branch types in case statement");
@@ -807,7 +807,7 @@ public class Semantic
 				{
 					String b1_type = branch_list.get(i).type;
 					String b2_type = branch_list.get(j).type;
-					boolean cond_brnch = b1_type.equals(b2_type);
+					Boolean cond_brnch = b1_type.equals(b2_type);
 					if (cond_brnch == true)
 					{
 						reportError(filename, branch_list.get(i).lineNo, "Non-distinct branch types in case expression");
@@ -828,7 +828,7 @@ public class Semantic
 		// If the predicate is not Bool, then we assign the type of the case as the type of the predicate itself
 		else
 		{
-			reportError(filename, cases.lineNo, "Non-boolean predicate for case statement");
+			reportError(filename, cases.lineNo, "Non-Boolean predicate for case statement");
 			cases.type = predicate_type;
 		}
 	}
