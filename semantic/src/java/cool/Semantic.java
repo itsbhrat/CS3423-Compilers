@@ -2,14 +2,16 @@ package cool;
 
 import java.util.*;
 
-class ClassNode {
+class ClassNode
+{
 	public String name;
 	public String parent;
 	public int height;
 	public HashMap<String, AST.attr> attributes;
 	public HashMap<String, AST.method> methods;
 
-	ClassNode(String class_name, String class_parent, int class_height, HashMap<String, AST.attr> class_atributes, HashMap<String, AST.method> class_methods) {
+	ClassNode(String class_name, String class_parent, int class_height, HashMap<String, AST.attr> class_atributes, HashMap<String, AST.method> class_methods)
+	{
 		name = class_name;
 		parent = class_parent;
 		height = class_height;
@@ -18,14 +20,18 @@ class ClassNode {
 	}
 }
 
-public class Semantic {
+public class Semantic
+{
 	private boolean errorFlag = false;
 
-	public void reportError(String filename, int lineNo, String error) {
+	public void reportError(String filename, int lineNo, String error)
+	{
 		errorFlag = true;
 		System.err.println(filename + ":" + lineNo + ": " + error);
 	}
-	public boolean getErrorFlag() {
+
+	public boolean getErrorFlag()
+	{
 		return errorFlag;
 	}
 
@@ -33,17 +39,20 @@ public class Semantic {
 		Don't change code above this line
 	*/
 
-	private ScopeTable<AST.attr> scp_tbl = new ScopeTable<AST.attr>();
-
+	// Data Structure sections
+	private ScopeTable<AST.attr> the_scope_table = new ScopeTable<AST.attr>();
 	public HashMap<String, ClassNode> classList;
 	private String filename;
-
-	public Semantic(AST.program program) {
+	
+	// Functions
+	public Semantic(AST.program program)
+	{
 		//Write Semantic analyzer code here
 		define_built_in_classes();
 		process_graph(program.classes);
 
-		for (AST.class_ e : program.classes) {
+		for (AST.class_ e : program.classes)
+		{
 			filename = e.filename;				// filename for each class
 			//scopeTable.enterScope();			// enter new scope for a class
 			//scopeTable.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));		// self is available as attribute within the class
@@ -55,7 +64,8 @@ public class Semantic {
 
 	}
 
-	private void process_graph(List<AST.class_> classes) {
+	private void process_graph(List<AST.class_> classes)
+	{
 
 		HashMap<String, Integer> class_int = new HashMap<String, Integer>();
 		ArrayList<AST.class_> class_node = new ArrayList<AST.class_>();
@@ -72,21 +82,33 @@ public class Semantic {
 		adjacency_list.add(new ArrayList<Integer>());	//adding IO to graph
 
 		Boolean ok = true;
+
 		//adding the classes to the graph
-		for (AST.class_ c : classes) {
+		for (AST.class_ c : classes)
+		{
 			//checking if user class is one of cool basic class
-			if (c.name == "Object" || c.name == "IO" || c.name == "Int" || c.name == "String" || c.name == "Bool") {
-				reportError(c.filename, c.lineNo, "Redefinition of basic class " + c.name + ".");
+			boolean cond_name = (c.name.equals("Object") || c.name.equals("IO") || c.name.equals("Int") || c.name.equals("String") || c.name.equals("Bool"));
+			if (cond_name == true)
+			{
+				reportError(c.filename, c.lineNo, "Redefinition of basic class " + c.name);
 				ok = false;
 			}
-			if (c.parent == "Int" || c.parent == "String" || c.parent == "Bool") {
-				reportError(c.filename, c.lineNo, "Class " + c.name + "cannot inherit basic class " + c.parent + ".");
+			
+			boolean cond_parent = (c.parent.equals("Int") || c.parent.equals("String") || c.parent.equals("Bool"));
+			if (cond_parent == true)
+			{
+				reportError(c.filename, c.lineNo, "Class " + c.name + "cannot inherit basic class " + c.parent);
 				ok = false;
 			}
-			if (class_int.containsKey(c.name)) {
-				reportError(c.filename, c.lineNo, "Class " + c.name + "was previously defined.");
+			
+			if (class_int.containsKey(c.name))
+			{
+				reportError(c.filename, c.lineNo, "Class " + c.name + "was previously defined");
 				ok = false;
-			} else {
+			}
+						
+			else
+			{
 				class_int.put(c.name, no_nodes_in_graph);
 				class_node.add(c);
 				no_nodes_in_graph++;
@@ -95,22 +117,29 @@ public class Semantic {
 		}
 
 		//adding the edges among the classes
-		for (AST.class_ c : classes) {
+		for (AST.class_ c : classes)
+		{
+			boolean cond_parent = (c.parent == null || c.parent.equals(""));
+			if (cond_parent == true)
+			{
+				reportError(c.filename, c.lineNo, "Class " + c.name + " does not inherit from any class");
+				ok = false;
+			}
 
-			if (c.parent == null || c.parent == "") {
-				reportError(c.filename, c.lineNo, "Class " + c.name + " does not inherit from any class.");
+			if (class_int.containsKey(c.parent) == false)
+			{
+				reportError(c.filename, c.lineNo, "Class " + c.name + " inherits from an undefined class " + c.parent);
 				ok = false;
 			}
-			if (!class_int.containsKey(c.parent)) {
-				reportError(c.filename, c.lineNo, "Class " + c.name + " inherits from an undefined class " + c.parent + ".");
-				ok = false;
-			}
-			if (ok) {
+
+			if (ok)
+			{
 				adjacency_list.get(class_int.get(c.parent)).add(class_int.get(c.name));		//adding the inheritance edge
 			}
 		}
 
-		if (!ok || isCyclic(adjacency_list, class_node, no_nodes_in_graph)) {
+		if (ok == false || isCyclic(adjacency_list, class_node, no_nodes_in_graph))
+		{
 			System.exit(0);
 		}
 
@@ -121,57 +150,78 @@ public class Semantic {
 		q.add(0);
 		visited.set(0, true);
 		//add classes in a BFS manner to allow inheritance from parent classes
-		while (!q.isEmpty()) {
+		while (!q.isEmpty())
+		{
 			node = q.remove();
-			for (Integer i : adjacency_list.get(node)) {
-				if (!visited.get(i)) {
+			for (Integer i : adjacency_list.get(node))
+			{
+				if (!visited.get(i))
+				{
 					q.add(i);
 					visited.set(i, true);
-					if (i > 1) {		// dont add Object & IO class
+					if (i > 1)
+					{		// dont add Object & IO class
 						insert_class(class_node.get(i));
 					}
 				}
 			}
 		}
 
-		if (!classList.containsKey("Main"))		//check the existence of Main class
+		if (classList.containsKey("Main") == false)		//check the existence of Main class
+		{
 			reportError(filename, 1, "Program does not contain class 'Main'");
+		}
 		else if (classList.get("Main").methods.containsKey("main") == false)		//check the existence of main method in Main class
+		{
 			reportError(filename, 1, "'Main' class does not contain 'main' method");
+		}
 	}
 
-	private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, Integer v, List<Boolean> visited, List<Boolean> recursion_Stack) {
-		if (visited.get(v)) {
+	private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, Integer v, List<Boolean> visited, List<Boolean> recursion_stack)
+	{
+		if (visited.get(v))
+		{
 			// Mark the current node as visited and part of recursion stack
 			visited.set(v, true);
-			recursion_Stack.set(v, true);
+			recursion_stack.set(v, true);
 
 			// Recur for all the vertices adjacent to this vertex
-			for (Integer i : adjacency_list.get(v)) {
-				if (!visited.get(i)) {
-					Integer dfs = isCyclicUtil(adjacency_list, i, visited, recursion_Stack);
+			for (Integer i : adjacency_list.get(v))
+			{
+				if (visited.get(i) == false)
+				{
+					Integer dfs = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
 					if (dfs != -1)
+					{
 						return dfs;
-				} else if (recursion_Stack.get(i))
+					}	
+				}
+				
+				else if (recursion_stack.get(i))
+				{
 					return i;
+				}
 			}
 		}
-		recursion_Stack.set(v, false);  // remove the vertex from recursion stack
+		recursion_stack.set(v, false);  // remove the vertex from recursion stack
 		return -1;
 	}
 
-	private Boolean isCyclic(ArrayList<ArrayList<Integer>> adjacency_list, ArrayList<AST.class_> class_node, int no_nodes_in_graph) {
+	private Boolean isCyclic(ArrayList<ArrayList<Integer>> adjacency_list, ArrayList<AST.class_> class_node, int no_nodes_in_graph)
+	{
 		// Mark all the vertices as not visited and not part of recursion stack
 		List<Boolean> visited = new ArrayList<Boolean>(Collections.nCopies(no_nodes_in_graph, false));
-		List<Boolean> recursion_Stack = new ArrayList<Boolean>(Collections.nCopies(no_nodes_in_graph, false));
+		List<Boolean> recursion_stack = new ArrayList<Boolean>(Collections.nCopies(no_nodes_in_graph, false));
 
 		// Call the recursive helper function to detect cycle in different
 		Boolean ok = true;
-		for (int i = 0; i < no_nodes_in_graph; i++) {
-
-			if (!visited.get(i)) {
-				Integer node = isCyclicUtil(adjacency_list, i, visited, recursion_Stack);
-				if (node != -1) {
+		for (int i = 0; i < no_nodes_in_graph; i++)
+		{
+			if (visited.get(i) == false)
+			{
+				Integer node = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
+				if (node != -1)
+				{
 					ok = false;
 					printCycle(adjacency_list, class_node, node, no_nodes_in_graph);
 				}
@@ -188,19 +238,23 @@ public class Semantic {
 		q.add(node);
 		visited.set(node, true);
 
-		while (!q.isEmpty()) {
+		while (q.isEmpty() == false)
+		{
 			node = q.remove();
-			for (Integer i : adjacency_list.get(node)) {
-				if (!visited.get(i)) {
+			for (Integer i : adjacency_list.get(node))
+			{
+				if (visited.get(i) == false)
+				{
 					q.add(i);
 					visited.set(i, true);
-					reportError(class_node.get(i).filename, class_node.get(i).lineNo, " Class " + class_node.get(i).name + ", or an ancestor of " + class_node.get(i).name + ", is involved in an inheritance cycle.");
+					reportError(class_node.get(i).filename, class_node.get(i).lineNo, " Class " + class_node.get(i).name + ", or an ancestor of " + class_node.get(i).name + ", is involved in an inheritance cycle");
 				}
 			}
 		}
 	}
 
-	private void define_built_in_classes() {
+	private void define_built_in_classes()
+	{
 		/*
 			consider line number to be 0 for all built in classes
 			for functions returning SELF_TYPE , return the same class name a typeid
@@ -263,8 +317,8 @@ public class Semantic {
 		classList.put("String", new ClassNode("String", "Object", 1, new HashMap <String, AST.attr>(), String_methods));
 	}
 
-	private void insert_class(AST.class_ user) {
-
+	private void insert_class(AST.class_ user)
+	{
 		String parent = user.parent;
 
 		HashMap <String, AST.attr> user_attributes = new HashMap<String, AST.attr>();
@@ -278,70 +332,89 @@ public class Semantic {
 		ClassNode user_node = new ClassNode(user.name, parent, classList.get(parent).height + 1, parent_attributes, parent_method);	// adding the parents attribute & method list
 
 		Boolean ok = true;
-		for (AST.feature e : user.features) {
-
-			if (e.getClass() == AST.attr.class) {
-				AST.attr atr = (AST.attr) e;
+		for (AST.feature e : user.features)
+		{
+			if (e instanceof AST.attr)
+			{
+				AST.attr atr = (AST.attr)e;
 				ok = true;
 
-				if (user_attributes.containsKey(atr.name)) {		// checking for duplicate attributes within the class attributes
-					reportError(user.filename, atr.lineNo, "Attribute " + atr.name + " is defined multiply in class " + user.name + ".");
+				if (user_attributes.containsKey(atr.name) == true)		// checking for duplicate attributes within the class attributes
+				{
+					reportError(user.filename, atr.lineNo, "Attribute " + atr.name + " is defined multiply in class " + user.name);
 					ok = false;
 				}
-				if (parent_attributes.containsKey(atr.name)) {		// checking for duplicate inherited class attributes
-					reportError(user.filename, atr.lineNo, "Attribute " + atr.name + " is an attribute of inherited class " + parent + ".");
+				if (parent_attributes.containsKey(atr.name) == true)		// checking for duplicate inherited class attributes
+				{
+					reportError(user.filename, atr.lineNo, "Attribute " + atr.name + " is an attribute of inherited class " + parent);
 					ok = false;
 				}
 
-				if (ok) {
+				if (ok == true)
+				{
 					user_attributes.put(atr.name, atr);
 				}
-			} else if (e.getClass() == AST.method.class) {
-				AST.method me = (AST.method) e;
+			} 
+			
+			else if (e instanceof AST.method)
+			{
+				AST.method me = (AST.method)e;
 				ok = true;
 
 				// The identifiers used in the formal parameter list must be distinct.
 				List<String> formal_list = new ArrayList<String>();
-				for (AST.formal formal_parameters : me.formals) {
-					if (formal_list.contains(formal_parameters.name)) {
-						reportError(user.filename, me.lineNo, "Formal parameter " + formal_parameters.name + " of method " + me.name + " in class " + user.name + " is multiply defined.");
+				for (AST.formal formal_parameters : me.formals)
+				{
+					if (formal_list.contains(formal_parameters.name) == true)
+					{
+						reportError(user.filename, me.lineNo, "Formal parameter " + formal_parameters.name + " of method " + me.name + " in class " + user.name + " is multiply defined");
 						ok = false;
-					} else {
+					}
+					else
+					{
 						formal_list.add(formal_parameters.name);
 					}
 				}
 
-				if (user_method.containsKey(me.name)) {		// checking for duplicate methods definition within the class methods
-					reportError(user.filename, me.lineNo, "Method " + me.name + " is defined multiply in class " + user.name + ".");
+				if (user_method.containsKey(me.name) == true)		// checking for duplicate methods definition within the class methods
+				{
+					reportError(user.filename, me.lineNo, "Method " + me.name + " is defined multiply in class " + user.name);
 					ok = false;
 				}
 
-				if (parent_method.containsKey(me.name)) {		// checking for duplicate inherited class methods
-
+				if (parent_method.containsKey(me.name) == true)		// checking for duplicate inherited class methods
+				{
 					AST.method pr_met = parent_method.get(me.name);
 					// checking no of formal parameters
-					if (pr_met.formals.size() != me.formals.size()) {
-						reportError(user.filename, me.lineNo, "Incompatible number of formal parameters of redefined method " + me.name + " in class " + user.name + ".");
+					if (pr_met.formals.size() != me.formals.size())
+					{
+						reportError(user.filename, me.lineNo, "Incompatible number of formal parameters of redefined method " + me.name + " in class " + user.name);
 						ok = false;
 					}
 					// checking return type
-					if (!pr_met.typeid.equals(me.typeid)) {
-						reportError(user.filename, me.lineNo, "In redefined method " + me.name + " in class " + user.name + ", return type " + me.typeid + " is different from original return type " + pr_met.typeid + ".");
+					if (!pr_met.typeid.equals(me.typeid))
+					{
+						reportError(user.filename, me.lineNo, "In redefined method " + me.name + " in class " + user.name + ", return type " + me.typeid + " is different from original return type " + pr_met.typeid);
 						ok = false;
 					}
 					// checking parameter types
-					for (int i = 0; i < me.formals.size(); i++) {
-						if (!pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid)) {
+					for (int i = 0; i < me.formals.size(); i++)
+					{
+						if (pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid) == false)
+						{
 							reportError(user.filename, me.lineNo, "In redefined method " + me.name + " in class " + user.name + ", parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
 							ok = false;
 						}
 					}
 				}
 
-				if (ok) {
+				if (ok == true)
+				{
 					user_method.put(me.name, me);
 				}
-			} else {
+			}
+			else
+			{
 				reportError(user.filename, user.lineNo, "Undefined feature in class " + user.name + ".");
 			}
 		}
@@ -352,255 +425,352 @@ public class Semantic {
 		classList.put(user.name, user_node);
 	}
 
-	public void NodeVisit(AST.expression expr) {
-		if (expr instanceof AST.bool_const) {
-			NodeVisit((AST.bool_const)expr);
-		} else if (expr instanceof AST.string_const) {
-			NodeVisit((AST.string_const)expr);
-		} else if (expr instanceof AST.int_const) {
-			NodeVisit((AST.int_const)expr);
-		} else if (expr instanceof AST.object) {
-			NodeVisit((AST.object)expr);
-		} else if (expr instanceof AST.comp) {
-			NodeVisit((AST.comp)expr);
-		} else if (expr instanceof AST.eq) {
-			NodeVisit((AST.eq)expr);
-		} else if (expr instanceof AST.leq) {
-			NodeVisit((AST.leq)expr);
-		} else if (expr instanceof AST.lt) {
-			NodeVisit((AST.lt)expr);
-		} else if (expr instanceof AST.neg) {
-			NodeVisit((AST.neg)expr);
-		} else if (expr instanceof AST.divide) {
-			NodeVisit((AST.divide)expr);
-		} else if (expr instanceof AST.mul) {
-			NodeVisit((AST.mul)expr);
-		} else if (expr instanceof AST.sub) {
-			NodeVisit((AST.sub)expr);
-		} else if (expr instanceof AST.plus) {
-			NodeVisit((AST.plus)expr);
-		} else if (expr instanceof AST.isvoid) {
-			NodeVisit((AST.isvoid)expr);
-		} else if (expr instanceof AST.new_) {
-			NodeVisit((AST.new_)expr);
-		} else if (expr instanceof AST.block) {
-			NodeVisit((AST.block)expr);
-		} else if (expr instanceof AST.loop) {
-			NodeVisit((AST.loop)expr);
-		} else if (expr instanceof AST.cond) {
-			NodeVisit((AST.cond)expr);
+	// Overloaded function to now visit expression nodes in the AST
+	public void NodeVisit(AST.expression expr)
+	{
+
+		// Setting types for simple leaf-based nodes in the tree
+		if (expr instanceof AST.bool_const)
+		{
+			((AST.bool_const)expr).type = "Bool";
+		} 
+		
+		else if (expr instanceof AST.string_const)
+		{
+			((AST.string_const)expr).type = "String";
 		}
-	}
-
-	public void NodeVisit(AST.bool_const bool) {
-		bool.type = "boolean";
-	}
-
-	public void NodeVisit(AST.string_const string) {
-		string.type = "string";
-	}
-
-	public void NodeVisit(AST.int_const integer) {
-		integer.type = "integer";
-	}
-
-	public void NodeVisit(AST.object obj) {
-		return_val = scp_tbl.lookUpGlobal(obj.name);
-		if (return_val == null) {
-			reportError(filename, obj.lineNo, "Identifier " + obj.name + " not present in scope");
-			obj.type = "Object";
-		} else {
-			obj.type = return_val.typeid;
-		}
-	}
-
-	public void NodeVisit(AST.comp complement) {
-		NodeVisit(complement.e1);
-		String e1_type = complement.e1.type;
-		if (e1_type.equals("boolean") == false) {
-			reportError(filename, complement.lineNo, "Incompatible type for complement");
-		}
-		complement.type = "boolean";
-	}
-
-	public void NodeVisit(AST.eq equality) {
-		NodeVisit(equality.e1);
-		NodeVisit(equality.e2);
-		String e1_type = equality.e1.type;
-		String e2_type = equality.e2.type;
-		if ((e1_type.equals("boolean") || e1_type.equals("integer") || e1_type.equals("string"))
-		        ||
-		        (e2_type.equals("boolean") || e2_type.equals("integer") || e2_type.equals("string"))) {
-			if (e1_type.equals(e2_type) == false) {
-				reportError(filename, equality.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for equality");
+		
+		else if (expr instanceof AST.int_const)
+		{
+			((AST.int_const)expr).type = "Int";
+		} 
+		
+		else if (expr instanceof AST.object)
+		{
+			AST.object the_object = (AST.object)expr;
+			AST.attr return_val = the_scope_table.lookUpGlobal(the_object.name);
+			if (return_val == null)
+			{
+				reportError(filename, the_object.lineNo, "Identifier " + the_object.name + " not present in scope");
+				the_object.type = "Object";
+			}
+			else
+			{
+				the_object.type = return_val.typeid;	
 			}
 		}
-		equality.type = "boolean";
-	}
+		
+		// Setting types for binary/unary expressions in the tree
+		// To make the code look more readable, the "big" functions have been added as separate overloaded functions
+		// This can be evident from the only function call of NodeVisit made in the body of the else if
 
-	public void NodeVisit(AST.leq less_equal) {
-		NodeVisit(less_equal.e1);
-		NodeVisit(less_equal.e2);
-		String e1_type = less_equal.e1.type;
-		String e2_type = less_equal.e2.type;
-		if ((e1_type.equals("integer") == false || e2_type.equals("integer") == false)) {
-			reportError(filename, less_equal.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for comparison");
+		else if (expr instanceof AST.comp)
+		{
+			AST.comp the_complement = (AST.comp)expr;
+			NodeVisit(the_complement.e1);
+			String e1_type = the_complement.e1.type;
+			if (e1_type.equals("Bool") == false) 
+			{
+				reportError(filename, the_complement.lineNo, "Non-bool argument (type = " + e1_type + ") for complement");
+			}
+			the_complement.type = "Bool";	
 		}
-		less_equal.type = "boolean";
-	}
-
-	public void NodeVisit(AST.lt less_than) {
-		NodeVisit(less_than.e1);
-		NodeVisit(less_than.e2);
-		String e1_type = less_than.e1.type;
-		String e2_type = less_than.e2.type;
-		if ((e1_type.equals("integer") == false || e2_type.equals("integer") == false)) {
-			reportError(filename, less_than.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for comparison");
+		
+		else if (expr instanceof AST.eq)
+		{
+			AST.eq the_equality = (AST.eq)expr;
+			NodeVisit(the_equality.e1);
+			NodeVisit(the_equality.e2);
+			String e1_type = the_equality.e1.type;
+			String e2_type = the_equality.e2.type;
+			
+			// Refer to Page 21 of the COOL Manual for equality type checking
+			boolean cond_e1_type = (e1_type.equals("Int") || e1_type.equals("String") || e1_type.equals("Bool"));
+			boolean cond_e2_type = (e2_type.equals("Int") || e2_type.equals("String") || e2_type.equals("Bool"));
+			if ((cond_e1_type || cond_e2_type) == true)
+			{
+				if (e1_type.equals(e2_type))
+				{
+					reportError(filename, the_equality.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for equality testing");
+				}
+			}
+			the_equality.type = "Bool";
 		}
-		less_equal.type = "boolean";
-	}
-
-	public void NodeVisit(AST.neg negation) {
-		NodeVisit(negation.e1);
-		String e1_type = negation.e1.type;
-		if (e1_type.equals("integer") == false) {
-			reportError(filename, negation.lineNo, "Incompatible type " + e1_type + " for negation");
+		
+		else if (expr instanceof AST.leq)
+		{
+			AST.leq the_less_equal = (AST.leq)expr;
+			NodeVisit(the_less_equal.e1);
+			NodeVisit(the_less_equal.e2);
+			String e1_type = the_less_equal.e1.type;
+			String e2_type = the_less_equal.e2.type;
+			
+			// Refer to Page 21 of the COOL Manual for less than or equal to type checking
+			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			if (condition == false)
+			{
+				reportError(filename, the_less_equal.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for making less than or equal to comparison");
+			}
+			the_less_equal.type = "Bool";
 		}
-		negation.type = "integer";
-	}
-
-	public void NodeVisit(AST.divide division) {
-		NodeVisit(division.e1);
-		NodeVisit(division.e2);
-		String e1_type = division.e1.type;
-		String e2_type = division.e2.type;
-		if (e1_type.equals("integer") == false || e2_type.equals("integer") == false) {
-			reportError(filename, division.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for division");
+		
+		else if (expr instanceof AST.lt)
+		{
+			AST.lt the_less = (AST.lt)expr;
+			NodeVisit(the_less.e1);
+			NodeVisit(the_less.e2);
+			String e1_type = the_less.e1.type;
+			String e2_type = the_less.e2.type;
+			
+			// Refer to Page 21 of the COOL Manual for less than type checking
+			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			if (condition == false)
+			{
+				reportError(filename, the_less.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for making less than comparison");
+			}
+			the_less.type = "Bool";
 		}
-		division.type = "integer";
-	}
-
-	public void NodeVisit(AST.mul multipication) {
-		NodeVisit(multiplication.e1);
-		NodeVisit(multiplication.e2);
-		String e1_type = multiplication.e1.type;
-		String e2_type = multiplication.e2.type;
-		if (e1_type.equals("integer") == false || e2_type.equals("integer") == false) {
-			reportError(filename, multiplication.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for multiplication");
+		
+		else if (expr instanceof AST.neg)
+		{
+			AST.neg the_negation = (AST.neg)expr;
+			NodeVisit(the_negation.e1);
+			String e1_type = the_negation.e1.type;
+			
+			// Refer to Page 21 of the COOL Manual for negation type checking
+			boolean condition = (e1_type.equals("Int"));
+			if (condition == false)
+			{
+				reportError(filename, the_negation.lineNo, "Non-int argument (type = " + e1_type + ") for negation"); 
+			}
+			the_negation.type = "Int";
 		}
-		multiplication.type = "integer";
-	}
+		
+		else if (expr instanceof AST.divide)
+		{
+			AST.divide the_arith = (AST.divide)expr;
+			NodeVisit(the_arith.e1);
+			NodeVisit(the_arith.e2);
+			String e1_type = the_arith.e1.type;
+			String e2_type = the_arith.e2.type;
+			
+			// Refer to Page 21 of the COOL Manual for division type checking
+			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			if (condition == false)
+			{
+				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing division");
+			}
+			the_arith.type = "Int";
+		}		
 
-	public void NodeVisit(AST.sub subtraction) {
-		NodeVisit(subtraction.e1);
-		NodeVisit(subtraction.e2);
-		String e1_type = subtraction.e1.type;
-		String e2_type = subtraction.e2.type;
-		if (e1_type.equals("integer") == false || e2_type.equals("integer") == false) {
-			reportError(filename, subtraction.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for subtraction");
+		else if (expr instanceof AST.mul)
+		{
+			AST.mul the_arith = (AST.mul)expr;
+			NodeVisit(the_arith.e1);
+			NodeVisit(the_arith.e2);
+			String e1_type = the_arith.e1.type;
+			String e2_type = the_arith.e2.type;
+			
+			// Refer to Page 21 of the COOL Manual for multiplication type checking
+			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			if (condition == false)
+			{
+				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing multiplication");
+			}
+			the_arith.type = "Int";
+		}		
+
+		else if (expr instanceof AST.sub)
+		{
+			AST.sub the_arith = (AST.sub)expr;
+			NodeVisit(the_arith.e1);
+			NodeVisit(the_arith.e2);
+			String e1_type = the_arith.e1.type;
+			String e2_type = the_arith.e2.type;
+			
+			// Refer to Page 21 of the COOL Manual for subtraction type checking
+			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			if (condition == false)
+			{
+				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing subtraction");
+			}
+			the_arith.type = "Int";
+		}		
+
+		else if (expr instanceof AST.plus)
+		{
+			AST.plus the_arith = (AST.plus)expr;
+			NodeVisit(the_arith.e1);
+			NodeVisit(the_arith.e2);
+			String e1_type = the_arith.e1.type;
+			String e2_type = the_arith.e2.type;
+			
+			// Refer to Page 21 of the COOL Manual for addition type checking
+			boolean condition = (e1_type.equals("Int") && e2_type.equals("Int"));
+			if (condition == false)
+			{
+				reportError(filename, the_arith.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for performing addition");
+			}
+			the_arith.type = "Int";
 		}
-		subtraction.type = "integer";
-	}
-
-	public void NodeVisit(AST.plus addition) {
-		NodeVisit(addition.e1);
-		NodeVisit(addition.e2);
-		String e1_type = addition.e1.type;
-		String e2_type = addition.e2.type;
-		if (e1_type.equals("integer") == false || e2_type.equals("integer") == false) {
-			reportError(filename, addition.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for addition");
+		
+		else if (expr instanceof AST.isvoid)
+		{
+			// Refer to Page 21 of the COOL Manual for isvoid type checking
+			((AST.isvoid)expr).type = "Bool";
 		}
-		addition.type = "integer";
-	}
+		
+		else if (expr instanceof AST.new_)
+		{
+			AST.new_ the_new = (AST.new_)expr;
+			
+			// Refer to Page 19 of the COOL Manual for new object type checking
+			if (classList.containsKey(the_new.typeid) == false)
+			{
+				reportError(filename, the_new.lineNo, "Cannot create object with undefined class " + the_new.typeid);
+				the_new.type = "Object";
+			}
+			else
+			{
+				the_new.type = the_new.typeid;
+			}
+		}
+		
+		else if (expr instanceof AST.block)
+		{
+			AST.block the_block = (AST.block)expr;
+			for (AST.expression cur_expr : the_block.l1)
+			{
+				NodeVisit(cur_expr);
+			}
 
-	public void NodeVisit(AST.isvoid voidcheck) {
-		voidcheck.type = "boolean";
-	}
+			// Refer to Page 17 of the COOL Manual for block statement type checking
+			the_block.type = the_block.l1.get(the_block.l1.size() - 1).type;
+		}
+		
+		else if (expr instanceof AST.loop)
+		{
+			AST.loop the_loop = (AST.loop)expr;
+			NodeVisit(the_loop.predicate);
+			NodeVisit(the_loop.body);
+			String predicate_type = the_loop.predicate.type;
+			boolean condition = predicate_type.equals("Bool");
 
-	public void NodeVisit(AST.new_ new_object) {
-		// FLAG
-		// new can be used only for pre-existing classes. Hence we will need to check if the new_ typeid exists
-		// need to define a function check_class
-		// Call a table of classes class_table
-		return_val = check_class(new_.typeid);
-		if (return_val == null) {
-			reportError(filename, new_object.lineNo, new_.typeid + " does not exist");
-			new_object.type = "object";
-		} else {
-			new_object.type = new_object.typeid;
+			// Refer to Page 20 of the COOL Manual for loop statement type checking
+			if (condition == false)
+			{
+				reportError(filename, the_loop.predicate.lineNo, "Loop predicate must have type Bool instead of " + predicate_type);
+			}
+			the_loop.type = "Object";
+		}
+		
+		else if (expr instanceof AST.cond)
+		{
+			AST.cond the_if_else = (AST.cond)expr;
+			NodeVisit(the_if_else.predicate);
+			NodeVisit(the_if_else.ifbody);
+			NodeVisit(the_if_else.elsebody);
+			String predicate_type = the_if_else.predicate.type;
+			boolean cond_pred = predicate_type.equals("Bool");
+			
+			// Refer to Page 20 of the COOL Manual for if-else statement type checking
+			if (cond_pred == false)
+			{
+				reportError(filename, the_if_else.predicate.lineNo, "If-else predicate must have type Bool instead of " + predicate_type);
+			}
+			the_if_else.type = lowest_common_ancestor(the_if_else.ifbody.type, the_if_else.elsebody.type);
 		}
 	}
 
-	public void NodeVisit(AST.typcase cases) {
+	public void NodeVisit(AST.typcase cases)
+	{
 		NodeVisit(cases.predicate);
-		pred_type = cases.predicate.type;
-		if (pred_type.equals("boolean") == true) {
-			List<AST.branch> brnch_list = cases.branches;
-			for (AST.branch sing_brnch_1 : brnch_list) {
-				for (AST.branch sing_brnch_2 : brnch_list) {
-					if (sing_brnch_1.type.equals(sing_brnch_2.type)) {
-						reportError(filename, sing_brnch_1.lineNo, "Non-distinct variable types in branches of case statement");
+		String predicate_type = cases.predicate.type;
+		boolean cond_pred = predicate_type.equals("Bool");
+		
+		// Refer to Page 21 of the COOL Manual for case statement type checking
+		if (cond_pred == true)
+		{
+			List<AST.branch> branch_list = cases.branches;
+			for (int i = 0; i < branch_list.size(); i++)
+			{
+				for (int j = i + 1; i < branch_list.size(); j++)
+				{
+					AST.branch branch_1 = branch_list.get(i);
+					AST.branch branch_2 = branch_list.get(j);
+					boolean cond_brnch = branch_1.type.equals(branch_2.type);
+					if (cond_brnch == true)
+					{
+						reportError(filename, branch_1.lineNo, "Non-distinct branch types in case statement");
 					}
 				}
 			}
-
-			for (AST.branch sng_brnch : brnch_list) {
-				scp_tbl.enterScope();
-				// FLAG
-				// Need to refer to a table consisting of all classes.
-				// Call that table class_table
-				ret_val	 = class_table.get(sng_brnch.type);
-				ins_type = "Object";
-				if (ret_val == null) {
-					reportError(filename, sng_brnch.lineNo, "Class " + sng_brnch.type + " in case branch is undefined");
-					ins_type = "Object";
-				} else {
-					ins_type = sng_brnch.type;
+			
+			for (AST.branch single_branch : branch_list )
+			{
+				the_scope_table.enterScope();
+				String ins_type = "Object";
+				if (classList.containsKey(single_branch.type))
+				{
+					reportError(filename, single_branch.lineNo, "Class " + single_branch.type + " is undefined");
 				}
-				scp_tbl.insert(sing_brnch.name, new AST.attr(sng_brnch.name, ins_type, sng_brnch.value, sng_brnch.lineNo));
-				NodeVisit(sng_brnch.value);
-				scp_tbl.exitScope();
+				else
+				{
+					ins_type = single_branch.type;
+				}
+				the_scope_table.insert(single_branch.name, new AST.attr(single_branch.name, ins_type, single_branch.value, single_branch.lineNo));
+				NodeVisit(single_branch.value);
+				the_scope_table.exitScope();
 			}
-
-			ret_val	 = cases.branches.get(0).type;
-			brnch_list = cases.branches.subList(1, cases.branches.size());
-			for (AST.branch sng_brnch : brnch_list ) {
-				ret_val = lca(ret_val, sng_brnch.value.type);
+			
+			// Performing LCA pair-wise to obtain the join as mentioned in Page 20 of the COOL Manual for case type checking
+			
+			String the_case_type;
+			for (int i = 0; i < branch_list.size(); i++)
+			{
+				for (int j = i + 1; j < branch_list.size(); i++)
+				{
+					String b1_type = branch_list.get(i).type;
+					String b2_type = branch_list.get(j).type;
+					boolean cond_brnch = b1_type.equals(b2_type);
+					if (cond_brnch == true)
+					{
+						reportError(filename, branch_list.get(i).lineNo, "Non-distinct branch types in case expression");
+					}
+				}
+				if (i == 0)
+				{
+					the_case_type = branch_list.get(i).value.type;
+				}
+				else
+				{
+					the_case_type = lowest_common_ancestor(the_case_type, branch_list.get(i).value.type);
+				}
 			}
-			cases.type = ret_val;
-
-		} else {
+			cases.type = the_case_type;
+		}
+	
+		// If the predicate is not Bool, then we assign the type of the case as the type of the predicate itself
+		else
+		{
 			reportError(filename, cases.lineNo, "Non-boolean predicate for case statement");
+			cases.type = predicate_type;
 		}
 	}
-
-	public void NodeVisit(AST.block block_expr) {
-		List<AST.expression> expr_list = ((AST.block)expr).l1;
-		AST.expression sing_expr = new AST.expression();
-		for (AST.expression sing_expr : expr_list) {
-			NodeVisit(sing_expr);
+	
+	public String lowest_common_ancestor(String type_1, String type_2)
+	{
+		if (type_1.equals(type_2))
+		{
+			return type_1;
 		}
-		block.type = sing_expr.type;	// Last iterate's type
-	}
-
-	public void NodeVisit(AST.loop loop_structure) {
-		NodeVisit(loop_structure.predicate);
-		NodeVisit(loop_structure.body);
-		pred_type = loop_structure.predicate.type;
-		if (pred_type.equals("boolean") == false) {
-			reportError(filename, loop_structure.lineNo, "Non-boolean predicate for loop");
+		else if (classList.get(type_1).height < classList.get(type_2).height)
+		{
+			return lowest_common_ancestor(type_2, type_1);
 		}
-		loop.type = "object";
-	}
-
-	public void NodeVisit(AST.cond condition) {
-		NodeVisit(condition.predicate);
-		NodeVisit(condition.ifbody);
-		NodeVisit(condition.elsebody);
-		pred_type = loop_structure.predicate.type;
-		if (pred_type.equals("boolean") == false) {
-			reportError(filename, condition.lineNo, "Non-boolean predicate for if clause");
+		else
+		{
+			return lowest_common_ancestor(classList.get(type_1).parent, type_2);
 		}
-		condition.type = lca(condition.ifbody.type, condition.elsebody.type);
 	}
 }
