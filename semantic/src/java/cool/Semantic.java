@@ -457,7 +457,7 @@ public class Semantic
 			// foo(a : Int, b : String, a : Bool), then we flag it.
 			// Essentially, we check the local scope for pre-existing variable names and then if the name is not there, then
 			// we add it
-			if (the_scope_table.lookUpLocal(cur_normal.name) == null)
+			if (the_scope_table.lookUpLocal(cur_formal.name) == null)
 			{
 				the_scope_table.insert(cur_formal.name, new AST.attr(cur_formal.name, cur_formal.typeid, new AST.no_expr(cur_formal.lineNo), cur_formal.lineNo));
 			}
@@ -468,12 +468,8 @@ public class Semantic
 		}
 		NodeVisit(the_method.body);
 
-		// Refer to page 6 of the COOL Manual for the definition of conformance of two types
 		// Refer to page 8 for conformance of types in methods
-		String LCA_body_typeid = lowest_common_ancestor(the_method.body.type, the_method.typeid);
-		boolean cond_conform_1 = (LCA_body_typeid.equals(the_method.typeid));
-		boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
-		if (cond_conform_1 && cond_conform_2 == false)
+		if (conformance_check(the_method.body.type, the_method.typeid) == false)
 		{
 			reportError(filename, the_method.lineNo, "Non-conformance of types " + the_method.body.type + " & " + the_method.typeid);
 		}
@@ -486,16 +482,12 @@ public class Semantic
 		// Visiting nodes further if they are not of no_expr type
 		if (the_attribute.value instanceof AST.no_expr == false)
 		{
-			NodeVisit(the_attribute.value)
+			NodeVisit(the_attribute.value);
 			
-			// Refer to page 6 of the COOL Manual for the definition of conformance of two types
 			// Refer to page 8 for conformance of types in attributes
-			String LCA_value_typeid = lowest_common_ancestor(the_attribute.value.type, the_attribute.typeid);
-			boolean cond_conform_1 = (LCA_value_typeid.equals(the_attribute.typeid));
-			boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
-			if (cond_conform_1 && cond_conform_2 == false)
+			if (conformance_check(the_attribute.value.type, the_attribute.typeid) == false)
 			{
-				reportError(filename, the_method.lineNo, "Non-conformance of types " + the_attribute.value.type + " & " + the_attribute.typeid);
+				reportError(filename, the_attribute.lineNo, "Non-conformance of types " + the_attribute.value.type + " & " + the_attribute.typeid);
 			}
 		}
 	}
@@ -757,6 +749,7 @@ public class Semantic
 		}
 	}
 
+	// The "big" function to check case expressions
 	public void NodeVisit(AST.typcase cases)
 	{
 		NodeVisit(cases.predicate);
@@ -781,7 +774,7 @@ public class Semantic
 				}
 			}
 			
-			for (AST.branch single_branch : branch_list )
+			for (AST.branch single_branch : branch_list)
 			{
 				the_scope_table.enterScope();
 				String ins_type = "Object";
@@ -800,7 +793,7 @@ public class Semantic
 			
 			// Performing LCA pair-wise to obtain the join as mentioned in Page 20 of the COOL Manual for case type checking
 			
-			String the_case_type;
+			String the_case_type = null;
 			for (int i = 0; i < branch_list.size(); i++)
 			{
 				for (int j = i + 1; j < branch_list.size(); i++)
@@ -833,6 +826,47 @@ public class Semantic
 		}
 	}
 	
+	// Another "big" function to check let expressions
+	public void NodeVisit(AST.let the_let)
+	{
+		the_scope_table.enterScope();
+		// Checking if the object are from valid classes
+		if (classList.containsKey(the_let.typeid) == false)
+		{
+			reportError(filename, the_let.lineNo, "Class of let expression in undefined");
+		}
+
+		// If let with no initialization, then there is no need to check for conformance
+		// In that case, the value of the_let will be no_expr
+		if (the_let.value instanceof AST.no_expr == false)
+		{
+			NodeVisit(the_let.value);
+			
+			if (conformance_check(the_let.value.type, the_let.typeid) == false)
+			{
+				reportError(filename, the_let.lineNo, "Non-conformance of types " + the_let.value.type + " & " + the_let.typeid);
+			}
+		}
+		the_scope_table.insert(the_let.name, new AST.attr(the_let.name, the_let.typeid, the_let.value, the_let.lineNo));
+		NodeVisit(the_let.body);
+		the_let.type	= the_let.body.type;
+		
+		the_scope_table.exitScope();
+	}
+	
+	// Another "big" function to check dispatches
+	public void NodeVisit(AST.dispatch the_dispatch)
+	{
+		//TODO: Finish this
+	}
+	
+	public void NodeVisit(AST.static_dispatch the_static_dispatch)
+	{
+		//TODO: Finish this too
+	}
+	
+	// Function to get the lowest common ancestor of two types
+	// This is used to compute the join of two types
 	public String lowest_common_ancestor(String type_1, String type_2)
 	{
 		if (type_1.equals(type_2))
@@ -847,5 +881,15 @@ public class Semantic
 		{
 			return lowest_common_ancestor(classList.get(type_1).parent, type_2);
 		}
+	}
+	
+	// Function used to check conformance generally between an inferred type and declared type
+	// Refer to page 6 for the definition of conformance of two types
+	public boolean conformance_check(String inferred_type, String declared_type)
+	{
+		String LCA_infer_decl = lowest_common_ancestor(inferred_type, declared_type);
+		boolean confrm_cond_1 = LCA_infer_decl.equals(declared_type);
+		boolean confrm_cond_2 = (classList.get(inferred_type).height >= classList.get(declared_type).height);
+		return (confrm_cond_1 && confrm_cond_2);
 	}
 }
