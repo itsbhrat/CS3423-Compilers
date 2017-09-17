@@ -424,6 +424,81 @@ public class Semantic
 
 		classList.put(user.name, user_node);
 	}
+	
+	// Overloaded function to visit the class node in the AST
+	public void NodeVisit(AST.class_ the_class)
+	{
+		List<AST.feature> feature_list = the_class.features;
+		for (int i = 0; i < feature_list.size(); i++)
+		{
+			AST.feature cur_feature = feature_list.get(i);
+			if (cur_feature instanceof AST.method)
+			{
+				NodeVisit((AST.method)cur_feature);
+			}
+			else if(cur_feature instanceof AST.attr)
+			{
+				NodeVisit((AST.attr)cur_feature);
+			}
+		}
+	}
+	
+	// Overloaded function to now visit the method nodes in the AST
+	public void NodeVisit(AST.method the_method)
+	{
+		// Entering the scope of the method
+		the_scope_table.enterScope();
+		List<AST.formal> formal_list = the_method.formals;
+		for (int i = 0; i < formal_list.size(); i++)
+		{
+			AST.formal cur_formal = formal_list.get(i);
+			
+			// Suppose we had something like this:
+			// foo(a : Int, b : String, a : Bool), then we flag it.
+			// Essentially, we check the local scope for pre-existing variable names and then if the name is not there, then
+			// we add it
+			if (the_scope_table.lookUpLocal(cur_normal.name) == null)
+			{
+				the_scope_table.insert(cur_formal.name, new AST.attr(cur_formal.name, cur_formal.typeid, new AST.no_expr(cur_formal.lineNo), cur_formal.lineNo));
+			}
+			else
+			{
+				reportError(filename, cur_formal.lineNo, "Multiple declarations for formal parameters");
+			}
+		}
+		NodeVisit(the_method.body);
+
+		// Refer to page 6 of the COOL Manual for the definition of conformance of two types
+		// Refer to page 8 for conformance of types in methods
+		String LCA_body_typeid = lowest_common_ancestor(the_method.body.type, the_method.typeid);
+		boolean cond_conform_1 = (LCA_body_typeid.equals(the_method.typeid));
+		boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
+		if (cond_conform_1 && cond_conform_2 == false)
+		{
+			reportError(filename, the_method.lineNo, "Non-conformance of types " + the_method.body.type + " & " + the_method.typeid);
+		}
+		the_scope_table.exitScope();
+	}
+	
+	// Overloaded function to now visit attr nodes in the AST
+	public void NodeVisit(AST.attr the_attribute)
+	{
+		// Visiting nodes further if they are not of no_expr type
+		if (the_attribute.value instanceof AST.no_expr == false)
+		{
+			NodeVisit(the_attribute.value)
+			
+			// Refer to page 6 of the COOL Manual for the definition of conformance of two types
+			// Refer to page 8 for conformance of types in attributes
+			String LCA_value_typeid = lowest_common_ancestor(the_attribute.value.type, the_attribute.typeid);
+			boolean cond_conform_1 = (LCA_value_typeid.equals(the_attribute.typeid));
+			boolean cond_conform_2 = (classList.get(LCA_body_typeid).height >= classList.get(the_method.typeid));
+			if (cond_conform_1 && cond_conform_2 == false)
+			{
+				reportError(filename, the_method.lineNo, "Non-conformance of types " + the_attribute.value.type + " & " + the_attribute.typeid);
+			}
+		}
+	}
 
 	// Overloaded function to now visit expression nodes in the AST
 	public void NodeVisit(AST.expression expr)
