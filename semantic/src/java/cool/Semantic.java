@@ -426,7 +426,7 @@ public class Semantic
 	}
 	
 	// Overloaded function to visit the class node in the AST
-	public void NodeVisit(AST.class_ the_class)
+	private void NodeVisit(AST.class_ the_class)
 	{
 		List<AST.feature> feature_list = the_class.features;
 		for (int i = 0; i < feature_list.size(); i++)
@@ -444,7 +444,7 @@ public class Semantic
 	}
 	
 	// Overloaded function to now visit the method nodes in the AST
-	public void NodeVisit(AST.method the_method)
+	private void NodeVisit(AST.method the_method)
 	{
 		// Entering the scope of the method
 		the_scope_table.enterScope();
@@ -477,7 +477,7 @@ public class Semantic
 	}
 	
 	// Overloaded function to now visit attr nodes in the AST
-	public void NodeVisit(AST.attr the_attribute)
+	private void NodeVisit(AST.attr the_attribute)
 	{
 		// Visiting nodes further if they are not of no_expr type
 		if (the_attribute.value instanceof AST.no_expr == false)
@@ -493,7 +493,7 @@ public class Semantic
 	}
 
 	// Overloaded function to now visit expression nodes in the AST
-	public void NodeVisit(AST.expression expr)
+	private void NodeVisit(AST.expression expr)
 	{
 
 		// Setting types for simple leaf-based nodes in the tree
@@ -750,7 +750,7 @@ public class Semantic
 	}
 
 	// The "big" function to check case expressions
-	public void NodeVisit(AST.typcase cases)
+	private void NodeVisit(AST.typcase cases)
 	{
 		NodeVisit(cases.predicate);
 		String predicate_type = cases.predicate.type;
@@ -827,7 +827,7 @@ public class Semantic
 	}
 	
 	// Another "big" function to check let expressions
-	public void NodeVisit(AST.let the_let)
+	private void NodeVisit(AST.let the_let)
 	{
 		the_scope_table.enterScope();
 		// Checking if the object are from valid classes
@@ -855,7 +855,7 @@ public class Semantic
 	}
 	
 	// Another "big" function to check dispatches
-	public void NodeVisit(AST.dispatch the_dispatch)
+	private void NodeVisit(AST.dispatch the_dispatch)
 	{
 		boolean return_true_type = true;
 		String true_type = null;
@@ -922,7 +922,7 @@ public class Semantic
 	}
 	
 	// Another "big" function to check static_dispatches
-	public void NodeVisit(AST.static_dispatch the_static_dispatch)
+	private void NodeVisit(AST.static_dispatch the_static_dispatch)
 	{
 		boolean return_true_type = true;
 		String true_type = null;
@@ -992,7 +992,7 @@ public class Semantic
 	
 	// Function to get the lowest common ancestor of two types
 	// This is used to compute the join of two types
-	public String lowest_common_ancestor(String type_1, String type_2)
+	private String lowest_common_ancestor(String type_1, String type_2)
 	{
 		if (type_1.equals(type_2))
 		{
@@ -1010,7 +1010,7 @@ public class Semantic
 	
 	// Function used to check conformance generally between an inferred type and declared type
 	// Refer to page 6 for the definition of conformance of two types
-	public boolean conformance_check(String inferred_type, String declared_type)
+	private boolean conformance_check(String inferred_type, String declared_type)
 	{
 		String LCA_infer_decl = lowest_common_ancestor(inferred_type, declared_type);
 		boolean confrm_cond_1 = LCA_infer_decl.equals(declared_type);
