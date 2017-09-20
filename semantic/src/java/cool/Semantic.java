@@ -857,6 +857,9 @@ public class Semantic
 	// Another "big" function to check dispatches
 	public void NodeVisit(AST.dispatch the_dispatch)
 	{
+		boolean return_true_type = true;
+		String true_type = null;
+		
 		NodeVisit(the_dispatch.caller);
 		List<AST.expression> the_actuals = the_dispatch.actuals;
 		for (int i=0; i < the_actuals.size(); i++)
@@ -864,46 +867,127 @@ public class Semantic
 			NodeVisit(the_actuals.get(i));
 		}
 
+		// Checking if caller's type is a valid type
 		String caller_ret_type = the_dispatch.caller.type;
 		if (classList.containsKey(caller_ret_type) == false)
 		{
 			reportError(filename, the_dispatch.caller.lineNo, "Class " + caller_ret_type + " not found");
-			the_dispatch.type = "Object";
+			return_true_type = return_true_type && false;
 		}
 		else
 		{
+			// Checking if the caller's type contains the function that is being called
 			if (classList.get(caller_ret_type).methods.containsKey(the_dispatch.name) == false)
 			{
 				reportError(filename, the_dispatch.lineNo, "Method " + the_dispatch.name + " is undefined");
-				the_dispatch.type = "Object";
+				return_true_type = return_true_type && false;
 			}
 			else
 			{
-				the_method = classList.get(caller_ret_type).methods.get(the_dispatch.name);
+				AST.method the_method = classList.get(caller_ret_type).methods.get(the_dispatch.name);
+				true_type = the_method.typeid;
 				// Check if the number of arguments are the correct number
 				if (the_method.formals.size() != the_actuals.size())
 				{
-					reportError(filename, the_dispatch.lineNo, "Method " + the_dispatch.name + " is dispatched with " + actuals.size() + " number of arguments instead of " + the_method.formals.size());
+					reportError(filename, the_dispatch.lineNo, "Method " + the_dispatch.name + " is dispatched with " + the_actuals.size() + " number of arguments instead of " + the_method.formals.size());
+					return_true_type = return_true_type && false;
 				}
 				else
 				{
 					for(int i = 0; i < the_method.formals.size(); i++)
 					{
+						// Actually we need to check for conformance. 
+						// But since we are not dealing with SELF_TYPE, the conformance check actually boils down
+						// equal type-checking
+						
+						// Refer to page 19 of the COOL Manual for dispatch type checking
 						boolean cond = (the_method.formals.get(i).typeid).equals(the_actuals.get(i).type);
 						if(cond == false)
 						{
 							reportError(filename, the_dispatch.lineNo, "Required type " + the_method.formals.get(i) + " as argument " + i+1 + " instead of " + the_actuals.get(i).type + " for the dispatch of method " + the_dispatch.name);
+							return_true_type = return_true_type && false;
 						}
 					}
 				}
-				the_dispatch.type = the_method.typeid;
 			}
 		}
+		if (return_true_type == true)
+		{
+			the_dispatch.type = true_type;
+		}
+		else
+		{
+			the_dispatch.type = "Object";
+		}		
 	}
 	
+	// Another "big" function to check static_dispatches
 	public void NodeVisit(AST.static_dispatch the_static_dispatch)
 	{
-		//TODO: Finish this too
+		boolean return_true_type = true;
+		String true_type = null;
+
+		NodeVisit(the_static_dispatch.caller);
+		List<AST.expression> the_actuals = the_static_dispatch.actuals;
+		for (int i = 0; i < the_actuals.size(); i++)
+		{
+			NodeVisit(the_actuals.get(i));
+		}
+		
+		// Checking if the static dispatch type exists
+		boolean cond_stat_dis_type = classList.containsKey(the_static_dispatch.typeid);
+		if (cond_stat_dis_type == false)
+		{
+			reportError(filename, the_static_dispatch.lineNo, "Static dispatch to non-existent type " + the_static_dispatch.typeid);
+			return_true_type = return_true_type && false;
+		}
+		else
+		{
+			// Checking conformance between the caller type and the static dispatch type
+			String caller_ret_type = the_static_dispatch.caller.type;
+			boolean cond_conf = conformance_check(caller_ret_type, the_static_dispatch.typeid);
+			if (cond_conf == false)
+			{
+				reportError(filename, the_static_dispatch.lineNo, "Non-conformance of types " + caller_ret_type + " & " + the_static_dispatch.typeid);
+				return_true_type = return_true_type && false;
+			}
+			else
+			{
+				AST.method the_method = classList.get(caller_ret_type).methods.get(the_static_dispatch.name);
+				true_type = the_method.typeid;
+				// Check if number of arguments are the correct number
+				if (the_method.formals.size() != the_actuals.size())
+				{
+					reportError(filename, the_static_dispatch.lineNo, "Method " + the_static_dispatch.name + " is dispatched with " + the_actuals.size() + " number of arguments instead of " + the_method.formals.size());
+					return_true_type = return_true_type && false;
+				}
+				else
+				{
+					for(int i = 0; i < the_method.formals.size(); i++)
+					{
+						// Actually we need to check for conformance. 
+						// But since we are not dealing with SELF_TYPE, the conformance check actually boils down
+						// equal type-checking
+						
+						// Refer to page 19 of the COOL Manual for static dispatch type checking
+						boolean cond = (the_method.formals.get(i).typeid).equals(the_actuals.get(i).type);
+						if(cond == false)
+						{
+							reportError(filename, the_static_dispatch.lineNo, "Required type " + the_method.formals.get(i) + " as argument " + i+1 + " instead of " + the_actuals.get(i).type + " for the dispatch of method " + the_static_dispatch.name);
+							return_true_type = return_true_type && false;
+						}
+					}
+				}
+			}
+		}
+		if (return_true_type == true)
+		{
+			the_static_dispatch.type = true_type;
+		}
+		else
+		{
+			the_static_dispatch.type = "Object";
+		}
 	}
 	
 	// Function to get the lowest common ancestor of two types
