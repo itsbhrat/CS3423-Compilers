@@ -857,7 +857,48 @@ public class Semantic
 	// Another "big" function to check dispatches
 	public void NodeVisit(AST.dispatch the_dispatch)
 	{
-		//TODO: Finish this
+		NodeVisit(the_dispatch.caller);
+		List<AST.expression> the_actuals = the_dispatch.actuals;
+		for (int i=0; i < the_actuals.size(); i++)
+		{
+			NodeVisit(the_actuals.get(i));
+		}
+
+		String caller_ret_type = the_dispatch.caller.type;
+		if (classList.containsKey(caller_ret_type) == false)
+		{
+			reportError(filename, the_dispatch.caller.lineNo, "Class " + caller_ret_type + " not found");
+			the_dispatch.type = "Object";
+		}
+		else
+		{
+			if (classList.get(caller_ret_type).methods.containsKey(the_dispatch.name) == false)
+			{
+				reportError(filename, the_dispatch.lineNo, "Method " + the_dispatch.name + " is undefined");
+				the_dispatch.type = "Object";
+			}
+			else
+			{
+				the_method = classList.get(caller_ret_type).methods.get(the_dispatch.name);
+				// Check if the number of arguments are the correct number
+				if (the_method.formals.size() != the_actuals.size())
+				{
+					reportError(filename, the_dispatch.lineNo, "Method " + the_dispatch.name + " is dispatched with " + actuals.size() + " number of arguments instead of " + the_method.formals.size());
+				}
+				else
+				{
+					for(int i = 0; i < the_method.formals.size(); i++)
+					{
+						boolean cond = (the_method.formals.get(i).typeid).equals(the_actuals.get(i).type);
+						if(cond == false)
+						{
+							reportError(filename, the_dispatch.lineNo, "Required type " + the_method.formals.get(i) + " as argument " + i+1 + " instead of " + the_actuals.get(i).type + " for the dispatch of method " + the_dispatch.name);
+						}
+					}
+				}
+				the_dispatch.type = the_method.typeid;
+			}
+		}
 	}
 	
 	public void NodeVisit(AST.static_dispatch the_static_dispatch)
