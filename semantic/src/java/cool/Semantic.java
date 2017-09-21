@@ -357,11 +357,11 @@ public class Semantic {
         Refer to Section 5 Page 8 of the COOL Manual for default initialization
     */
     private void add_default_value(AST.attr atr) {
-        if (atr.typeid == "Int") {
+        if (atr.typeid.equals("Int")) {
             atr.value = new AST.int_const(0, atr.lineNo);
-        } else if (atr.typeid == "String") {
+        } else if (atr.typeid.equals("String")) {
             atr.value = new AST.string_const("", atr.lineNo);
-        } else if (atr.typeid == "Bool") {
+        } else if (atr.typeid.equals("Bool")) {
             atr.value = new AST.bool_const(false, atr.lineNo);
         } else {
             // TODO ???
