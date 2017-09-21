@@ -61,7 +61,7 @@ public class Semantic {
         // checking Main Class here so that filename attribute gets initialized  
         if (classList.containsKey("Main") == false) {   //check the existence of Main class
             reportError(filename, 1, "Program does not contain class 'Main'");
-        } else if (classList.get("Main").methods.containsKey("main") == false) {    //check the existence of main method in Main class
+        } else if (classList.get("Main").methods.containsKey("main") == false) {    //check the existence of conflicting main method in Main class
             reportError(filename, 1, "'Main' class does not contain 'main' method");
         }
     }
@@ -394,12 +394,12 @@ public class Semantic {
                 // checking for duplicate attributes within the class attributes
                 if (user_attributes.containsKey(atr.name)) {
                     reportError(user.filename, atr.lineNo, "Attribute '" + atr.name + "' in class '" + user.name + "' is multiply defined in class '" + user.name + "'.");
-                    ok = false;
+                    ok = ok && false;
                 }
                 // checking for duplicate inherited class attributes
                 if (parent_attributes.containsKey(atr.name)) {
                     reportError(user.filename, atr.lineNo, "Attribute '" + atr.name + "' in class '" + user.name + "' is an attribute of an inherited class '" + parent + "'.");
-                    ok = false;
+                    ok = ok && false;
                 }
 
                 if (ok) {
@@ -418,7 +418,7 @@ public class Semantic {
                 // checking for duplicate methods definition within the class methods
                 if (user_method.containsKey(me.name)) {
                     reportError(user.filename, me.lineNo, "Method '" + me.name + "' is defined multiply in class '" + user.name + "'.");
-                    ok = false;
+                    ok = ok && false;
                 }
                 // checking for duplicate inherited class methods
                 // Refer to Page 8 of the COOL Manual for redifining inherited methods in class
@@ -427,18 +427,18 @@ public class Semantic {
                     // checking no of formal parameters
                     if (pr_met.formals.size() != me.formals.size()) {
                         reportError(user.filename, me.lineNo, "Incompatible number of formal parameters of redefined method '" + me.name + "' in class '" + user.name + "'.");
-                        ok = false;
+                        ok = ok && false;
                     }
                     // checking return type
                     if (!pr_met.typeid.equals(me.typeid)) {
                         reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', return type '" + me.typeid + "' is different from original return type '" + pr_met.typeid + "'.");
-                        ok = false;
+                        ok = ok && false;
                     }
                     // checking parameter types
                     for (int i = 0; i < me.formals.size(); i++) {
                         if (pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid) == false) {
                             reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
-                            ok = false;
+                            ok = ok && false;
                         }
                     }
                 }
@@ -446,11 +446,13 @@ public class Semantic {
                 if (ok) {
                     user_method.put(me.name, me);
                 }
-            } else {
-                reportError(user.filename, user.lineNo, "Undefined feature in class '" + user.name + "'.");
             }
         }
 
+        // if Main class does not have main method but it's inherited class has main method
+        if( user.name.equals("Main") && (user_method.containsKey("main") == false) )  {
+            reportError(user.filename, 1, "'Main' class does not contain 'main' method");
+        }
         user_node.methods.putAll(user_method);
         user_node.attributes.putAll(user_attributes);
 
