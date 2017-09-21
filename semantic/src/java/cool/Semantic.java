@@ -46,7 +46,6 @@ public class Semantic {
         define_built_in_classes();
         process_graph(program.classes);
 
-        // debug_class_list();
 
         for (AST.class_ e : program.classes) {
             filename = e.filename;              // filename for each class
@@ -66,7 +65,7 @@ public class Semantic {
         }
     }
 
-    
+    //  function used for debugging purposes    
     private void debug_class_list() {
         for (HashMap.Entry<String, ClassNode> entry : classList.entrySet()) {
             ClassNode value = entry.getValue();
