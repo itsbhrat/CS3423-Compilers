@@ -364,7 +364,7 @@ public class Semantic {
         } else if (atr.typeid.equals("Bool")) {
             atr.value = new AST.bool_const(false, atr.lineNo);
         } else {
-            // TODO ???
+            System.out.println("default_not_weird_attrs is " + atr.value + " of Class " + atr.value.getClass());
             //atr.value = new AST.int_const(0, atr.lineNo);
         }
     }
@@ -411,17 +411,6 @@ public class Semantic {
             else if (e instanceof AST.method) {
                 AST.method me = (AST.method)e;
                 ok = true;
-
-                // The identifiers used in the formal parameter list must be distinct.
-                List<String> formal_list = new ArrayList<String>();
-                for (AST.formal formal_parameters : me.formals) {
-                    if (formal_list.contains(formal_parameters.name)) {
-                        reportError(user.filename, me.lineNo, "Formal parameter '" + formal_parameters.name + "' of method '" + me.name + "' in class '" + user.name + "' is multiply defined.");
-                        ok = false;
-                    } else {
-                        formal_list.add(formal_parameters.name);
-                    }
-                }
 
                 // checking for duplicate methods definition within the class methods
                 if (user_method.containsKey(me.name)) {
@@ -483,10 +472,18 @@ public class Semantic {
         
         // Entering the scope of the method
         the_scope_table.enterScope();
-        
+        List<AST.formal> formal_list = the_method.formals;
+        for (int i = 0; i < formal_list.size(); i++) {
+            AST.formal cur_formal = formal_list.get(i);
+            
+            if (the_scope_table.lookUpLocal(cur_formal.name) == null) {
+                the_scope_table.insert(cur_formal.name, new AST.attr(cur_formal.name, cur_formal.typeid, new AST.no_expr(cur_formal.lineNo), cur_formal.lineNo));
+            } else {
+                reportError(filename, cur_formal.lineNo, "Multiple declarations for formal parameters");
+            }
+        }
         NodeVisit(the_method.body);
         
-
         // Refer to page 8 for conformance of types in methods
         if (conformance_check(the_method.body.type, the_method.typeid) == false) {
             reportError(filename, the_method.lineNo, "Non-conformance of types " + the_method.body.type + " & " + the_method.typeid);
@@ -559,7 +556,7 @@ public class Semantic {
             Boolean cond_e1_type = (e1_type.equals("Int") || e1_type.equals("String") || e1_type.equals("Bool"));
             Boolean cond_e2_type = (e2_type.equals("Int") || e2_type.equals("String") || e2_type.equals("Bool"));
             if ((cond_e1_type || cond_e2_type)) {
-                if (e1_type.equals(e2_type)) {
+                if (e1_type.equals(e2_type) == false) {
                     reportError(filename, the_equality.lineNo, "Incompatible types " + e1_type + " & " + e2_type + " for equality testing");
                 }
             }
@@ -771,7 +768,7 @@ public class Semantic {
         if (cond_pred) {
             List<AST.branch> branch_list = cases.branches;
             for (int i = 0; i < branch_list.size(); i++) {
-                for (int j = i + 1; i < branch_list.size(); j++) {
+                for (int j = i + 1; j < branch_list.size(); j++) {
                     AST.branch branch_1 = branch_list.get(i);
                     AST.branch branch_2 = branch_list.get(j);
                     Boolean cond_brnch = branch_1.type.equals(branch_2.type);
@@ -784,7 +781,7 @@ public class Semantic {
             for (AST.branch single_branch : branch_list) {
                 the_scope_table.enterScope();
                 String ins_type = "Object";
-                if (classList.containsKey(single_branch.type)) {
+                if (classList.containsKey(single_branch.type) == false) {
                     reportError(filename, single_branch.lineNo, "Class " + single_branch.type + " is undefined");
                 } else {
                     ins_type = single_branch.type;
@@ -798,7 +795,7 @@ public class Semantic {
 
             String the_case_type = null;
             for (int i = 0; i < branch_list.size(); i++) {
-                for (int j = i + 1; j < branch_list.size(); i++) {
+                for (int j = i + 1; j < branch_list.size(); j++) {
                     String b1_type = branch_list.get(i).type;
                     String b2_type = branch_list.get(j).type;
                     Boolean cond_brnch = b1_type.equals(b2_type);
@@ -884,7 +881,7 @@ public class Semantic {
                         // Refer to page 19 of the COOL Manual for dispatch type checking
                         boolean cond = (the_method.formals.get(i).typeid).equals(the_actuals.get(i).type);
                         if (cond == false) {
-                            reportError(filename, the_dispatch.lineNo, "Required type " + the_method.formals.get(i) + " as argument " + i + 1 + " instead of " + the_actuals.get(i).type + " for the dispatch of method " + the_dispatch.name);
+                            reportError(filename, the_dispatch.lineNo, "Required type " + the_method.formals.get(i).typeid + " as argument " + i + 1 + " instead of " + the_actuals.get(i).type + " for the dispatch of method " + the_dispatch.name);
                             return_true_type = return_true_type && false;
                         }
                     }

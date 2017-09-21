@@ -31,7 +31,7 @@ class Some_1 inherits Some_2 {
 
 *)
 
-     a : Some_3 <- case self of
+     a : Some_3 <- case tRue of
 		      n : Some_3 => (new Some_4);
 		      n : Some_1 => (new Some_3);
 		      n : Some_4 => n;
@@ -49,7 +49,7 @@ class Some_4 inherits Some_3 {
 
 
 class Some_3 inherits Some_1 {
-     e : Some_4 <- case self of
+     e : Some_4 <- case trUe of
 		  n : Some_3 => (new Some_4);
 		  n : Some_4 => n;
 		esac;
@@ -62,7 +62,7 @@ class Some_2 inherits IO {
 
 -- demonstrates declare and assign objects
      h : Int <- 1;
-     g : Some_1  <- case self of
+     g : Some_1  <- case trUe of
 		     	n : Some_2 => (new Some_1);
 		     	n : Some_3 => (new Some_4);
 			n : Some_1  => (new Some_3);
