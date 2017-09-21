@@ -58,10 +58,10 @@ Class N inherits J{
 
 
 Class Main inherits A{ 
-	yo : Int;
-	main() : Int {
+	yo : B;
+	main() : B {
 	   {				
-	   		yo <- 1;
+	   	yo;
 	   }
 	};
 };
