@@ -483,20 +483,6 @@ public class Semantic {
         System.out.println("###Entered Method Visit " +  the_method.name);
         // Entering the scope of the method
         the_scope_table.enterScope();
-        List<AST.formal> formal_list = the_method.formals;
-        for (int i = 0; i < formal_list.size(); i++) {
-            AST.formal cur_formal = formal_list.get(i);
-
-            // Suppose we had something like this:
-            // foo(a : Int, b : String, a : Bool), then we flag it.
-            // Essentially, we check the local scope for pre-existing variable names and then if the name is not there, then
-            // we add it
-            if (the_scope_table.lookUpLocal(cur_formal.name) == null) {
-                the_scope_table.insert(cur_formal.name, new AST.attr(cur_formal.name, cur_formal.typeid, new AST.no_expr(cur_formal.lineNo), cur_formal.lineNo));
-            } else {
-                reportError(filename, cur_formal.lineNo, "Multiple declarations for formal parameters");
-            }
-        }
         NodeVisit(the_method.body);
 
         // Refer to page 8 for conformance of types in methods
@@ -735,6 +721,24 @@ public class Semantic {
                 reportError(filename, the_if_else.predicate.lineNo, "If-else predicate must have type Bool instead of " + predicate_type);
             }
             the_if_else.type = lowest_common_ancestor(the_if_else.ifbody.type, the_if_else.elsebody.type);
+        }
+        
+        else if (expr instanceof AST.assign) {
+        	AST.assign the_assign = (AST.assign)expr;
+        	NodeVisit(the_assign.e1);
+        	
+        	if (the_scope_table.lookUpGlobal(the_assign.name) == null) {
+        		reportError(filename, the_assign.lineNo, "Trying to assign to undeclared variable");
+        		the_assign.type = "Object";
+        	} else {
+        		String the_assign_typeid = the_scope_table.lookUpGlobal(the_assign.name).typeid;
+        		Boolean cond_conf = conformance_check(the_assign.e1.type, the_assign_typeid);
+        		if (cond_conf == false) {
+        			reportError(filename, the_assign.lineNo, "Non-conformance of types " + the_assign.e1.type + " & " + the_assign_typeid);
+        			the_assign.type = "Object";
+        		}
+        		the_assign.type = the_assign.e1.type;
+        	}
         }
     }
 
