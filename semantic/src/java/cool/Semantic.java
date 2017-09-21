@@ -6,8 +6,8 @@ class ClassNode {
     public String name;
     public String parent;
     public int height;
-    public HashMap<String, AST.attr> attributes;
-    public HashMap<String, AST.method> methods;
+    public HashMap<String, AST.attr> attributes = new HashMap<String, AST.attr>();
+    public HashMap<String, AST.method> methods = new HashMap<String, AST.method> ();
 
     ClassNode(String class_name, String class_parent, int class_height, HashMap<String, AST.attr> class_atributes, HashMap<String, AST.method> class_methods) {
         name = class_name;
@@ -29,34 +29,62 @@ public class Semantic {
     public Boolean getErrorFlag() {
         return errorFlag;
     }
-
+public static final String ANSI_RESET = "\u001B[0m";
+public static final String ANSI_BLACK = "\u001B[30m";
+public static final String ANSI_RED = "\u001B[31m";
+public static final String ANSI_GREEN = "\u001B[32m";
+public static final String ANSI_YELLOW = "\u001B[33m";
+public static final String ANSI_BLUE = "\u001B[34m";
+public static final String ANSI_PURPLE = "\u001B[35m";
+public static final String ANSI_CYAN = "\u001B[36m";
+public static final String ANSI_WHITE = "\u001B[37m";
     /*
         Don't change code above this line
     */
 
     // Data Structure sections
     private ScopeTable<AST.attr> the_scope_table = new ScopeTable<AST.attr>();
-    public HashMap<String, ClassNode> classList;
+    public HashMap<String, ClassNode> classList = new HashMap<String, ClassNode>();
     private String filename;
 
     // Functions
     public Semantic(AST.program program) {
+        
         //Write Semantic analyzer code here
         define_built_in_classes();
         process_graph(program.classes);
 
-        for (AST.class_ e : program.classes) {
+       // debug_class_list();
+
+/*        for (AST.class_ e : program.classes) {
             filename = e.filename;              // filename for each class
-            //scopeTable.enterScope();          // enter new scope for a class
-            //scopeTable.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
-            //scopeTable.insertAll(classTable.getAttrs(e.name));        // insert all inherited and other declared attributes within the class into the scope
+            the_scope_table.enterScope();          // enter new scope for a class
+            the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
+            the_scope_table.insertAll(classList.get(e.name).attributes);        // insert all inherited and other declared attributes within the class into the scope
             NodeVisit(e);
-            ////System.out.println("###Finished processing class " +  e.name);
-            //scopeTable.exitScope();               // once class is processed, exit the scope.
+            System.out.println("###Finished processing class " +  e.name);
+            the_scope_table.exitScope();               // once class is processed, exit the scope.
         }
-
+*/
     }
+    private void debug_class_list() {
+        for (HashMap.Entry<String, ClassNode> entry : classList.entrySet()) {
+            ClassNode value = entry.getValue();
+            System.out.println("\n\n\t CLASS ==> " +  value.name);
+            System.out.println("\t\t PARENT ==> " +  value.parent);
+            System.out.println("\t\t HEIGHT ==> " +  value.height);
+            System.out.print("\t\t ATTRIBUTES ==> ");
 
+            for (HashMap.Entry<String, AST.attr> key : value.attributes.entrySet()) {
+                System.out.print("(" + key.getKey() + "," + key.getValue().typeid + ")  :: ");
+            }
+            System.out.print("\n\t\t METHODS ==> ");
+
+        for (HashMap.Entry<String, AST.method> key : value.methods.entrySet()) {
+                System.out.print("(" + key.getKey() + "," + key.getValue().typeid + ")  :: ");
+            }
+        }
+    }
     private void define_built_in_classes() {
         /*
             consider line number = 0 for all the basic classes
@@ -66,12 +94,13 @@ public class Semantic {
         // Refer to Page 13 of the COOL Manual for basic classes definition
 
         /****** adding object class members ******/
+
         HashMap <String, AST.method> Object_methods = new HashMap <String, AST.method>();
 
         Object_methods.put("abort", new AST.method("abort", new ArrayList<AST.formal>(), "Object", new AST.no_expr(0), 0));
-        
+
         Object_methods.put("type_name", new AST.method("type_name", new ArrayList<AST.formal>(), "String", new AST.no_expr(0), 0));
-        
+
         Object_methods.put("copy", new AST.method("copy", new ArrayList<AST.formal>(), "Object", new AST.no_expr(0), 0));
 
 
@@ -95,19 +124,19 @@ public class Semantic {
 
         classList.put("IO", new ClassNode("IO", "Object", 1, new HashMap <String, AST.attr>(), IO_methods));
 
-    
+
         /****** adding Int class members ******/
 
         //inheriting all object methods
         classList.put("Int", new ClassNode("Int", "Object", 1, new HashMap <String, AST.attr>(), new HashMap <String, AST.method>(Object_methods)));
 
-    
+
         /****** adding Bool class members ******/
 
         //inheriting all object methods
         classList.put("Bool", new ClassNode("Bool", "Object", 1, new HashMap <String, AST.attr>(), new HashMap <String, AST.method>(Object_methods)));
 
-    
+
         /****** adding String class members ******/
 
         HashMap <String, AST.method> String_methods = new HashMap <String, AST.method>();
@@ -122,7 +151,7 @@ public class Semantic {
         String_methods.put("substr", new AST.method("substr", substr_formal, "String", new AST.no_expr(0), 0));
 
         String_methods.putAll(Object_methods);      //inheriting all object methods
-        
+
 
         classList.put("String", new ClassNode("String", "Object", 1, new HashMap <String, AST.attr>(), String_methods));
     }
@@ -136,7 +165,7 @@ public class Semantic {
 
         /*
             adding basic classes to graph
-            Not inserting Int, Bool, String in graph as no user class inherits from them. 
+            Not inserting Int, Bool, String in graph as no user class inherits from them.
          */
 
         class_int.put("Object", 0);
@@ -179,7 +208,11 @@ public class Semantic {
 
         //adding the edges among the classes
         for (AST.class_ c : classes) {
-            
+
+            if(c.parent == null || c.parent == "") {
+                reportError(c.filename, c.lineNo, "Class " + c.name + " has nno parent class.");
+                ok = false;
+            }
             //checking if parent class is defined
             if (class_int.containsKey(c.parent) == false) {
                 reportError(c.filename, c.lineNo, "Class " + c.name + " inherits from an undefined class " + c.parent + ".");
@@ -191,9 +224,17 @@ public class Semantic {
             }
         }
 
+/*        for (int i = 0; i < adjacency_list.size(); i++) {
+            System.out.print(i + " ==> ");
+            for (Integer j : adjacency_list.get(i)) {
+                System.out.print(j + " , ");
+            }
+            System.out.println();
+        }*/
         if (ok == false || isCyclic(adjacency_list, class_node, no_nodes_in_graph)) {
             System.exit(0);
         }
+
 
         Queue<Integer> q = new LinkedList<Integer>();
         List<Boolean> visited = new ArrayList<Boolean>(Collections.nCopies(no_nodes_in_graph, false));
@@ -202,7 +243,7 @@ public class Semantic {
             Add classes in a BFS manner so that the derived classes can inherit features from it's parent classes
             as we are inserting the parent class first
         */
-        
+
         Integer node = 0;
         q.add(0);   //Object class
         visited.set(0, true);
@@ -232,45 +273,48 @@ public class Semantic {
         Detection of cycle implementation is taken from http://www.geeksforgeeks.org/detect-cycle-in-a-graph/
     */
 
-    private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, Integer v, List<Boolean> visited, List<Boolean> recursion_stack) {
-        if (visited.get(v)) {
+    private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, Integer v, boolean[] visited, boolean[] recursion_stack) {
+        if (visited[v] == false) {
             // Mark the current node as visited and part of recursion stack
-            visited.set(v, true);
-            recursion_stack.set(v, true);
+            visited[v] = true;
+            recursion_stack[v] = true;
 
             // Recur for all the vertices adjacent to this vertex
             for (Integer i : adjacency_list.get(v)) {
 
-                if (visited.get(i) == false) {
+                if (visited[i] == false) {
                     Integer dfs = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
                     if (dfs != -1) {        // if graph has a back-edge
-                        recursion_stack.set(v, false);  // remove the vertex from recursion stack
+                        recursion_stack[v] = false;  // remove the vertex from recursion stack
                         return dfs;
                     }
                 }
 
-                else if (recursion_stack.get(i)) {  // if graph has a back-edge
-                    recursion_stack.set(v, false);  // remove the vertex from recursion stack
+                else if (recursion_stack[i]) {  // if graph has a back-edge
+                    recursion_stack[v] = false;  // remove the vertex from recursion stack
                     return i;
                 }
             }
         }
-        recursion_stack.set(v, false);  // remove the vertex from recursion stack
+
+        recursion_stack[v] = false;  // remove the vertex from recursion stack
         return -1;
     }
 
-    /* 
+    /*
         detect cycle using DFS
     */
     private Boolean isCyclic(ArrayList<ArrayList<Integer>> adjacency_list, ArrayList<AST.class_> class_node, int no_nodes_in_graph) {
         // Mark all the vertices as not visited and not part of recursion stack
-        List<Boolean> visited = new ArrayList<Boolean>(Collections.nCopies(no_nodes_in_graph, false));
-        List<Boolean> recursion_stack = new ArrayList<Boolean>(Collections.nCopies(no_nodes_in_graph, false));
+        boolean[] visited = new boolean[no_nodes_in_graph];
+        boolean[] recursion_stack = new boolean[no_nodes_in_graph];
 
         // Call the recursive helper function to detect cycle in different subgraphs
         boolean ok = false;
         for (int i = 0; i < no_nodes_in_graph; i++) {
-            if (visited.get(i) == false) {
+            if (visited[i] == false) {
+
+           //     printArray(visited, no_nodes_in_graph);
                 Integer node = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
                 if (node != -1) {
                     ok = true;
@@ -284,8 +328,8 @@ public class Semantic {
     /*
         In Cool if even a single cycle is detected, then original Cool compiler
         flags every classes that is reachable from the cycle node's as error nodes
-        
-        This function takes as input a node that is part of the cycle and 
+
+        This function takes as input a node that is part of the cycle and
         prints all the nodes reachable from all the cycle nodes (using BFS).
 
     */
@@ -296,6 +340,8 @@ public class Semantic {
 
         q.add(node);
         visited.set(node, true);
+        
+        reportError(class_node.get(node).filename, class_node.get(node).lineNo, " Class " + class_node.get(node).name + ", or an ancestor of " + class_node.get(node).name + ", is involved in an inheritance cycle.");
 
         // doing a BFS traversal of the cycle nodes (and the reachable nodes)
         while (q.isEmpty() == false) {
@@ -311,23 +357,20 @@ public class Semantic {
     }
 
     /*
-        This function initializes the attributes     
+        This function initializes the attributes
         Refer to Section 5 Page 8 of the COOL Manual for default initialization
     */
     private void add_default_value(AST.attr atr) {
-        if(atr.typeid == "Int") {
+        if (atr.typeid == "Int") {
             atr.value = new AST.int_const(0, atr.lineNo);
-        }
-        else if(atr.typeid == "String") {
+        } else if (atr.typeid == "String") {
             atr.value = new AST.string_const("", atr.lineNo);
-        }
-        else if(atr.typeid == "Bool") {
+        } else if (atr.typeid == "Bool") {
             atr.value = new AST.bool_const(false, atr.lineNo);
-        }
-        else {
+        } else {
             // TODO ???
             //atr.value = new AST.int_const(0, atr.lineNo);
-        } 
+        }
     }
 
     private void insert_class(AST.class_ user) {
@@ -362,7 +405,7 @@ public class Semantic {
 
                 if (ok) {
                     // adding the default values
-                    if(atr.value.getClass() == AST.no_expr.class)
+                    if (atr.value.getClass() == AST.no_expr.class)
                         add_default_value(atr);
                     user_attributes.put(atr.name, atr);
                 }
