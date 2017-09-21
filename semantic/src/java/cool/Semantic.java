@@ -66,6 +66,7 @@ public class Semantic {
         }
     }
 
+    
     private void debug_class_list() {
         for (HashMap.Entry<String, ClassNode> entry : classList.entrySet()) {
             ClassNode value = entry.getValue();
@@ -84,6 +85,7 @@ public class Semantic {
             }
         }
     }
+
 
     private void define_built_in_classes() {
         /*

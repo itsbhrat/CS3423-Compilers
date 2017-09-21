@@ -11,7 +11,7 @@ Class C inherits B{
 	c : Int;
 };
 
-Class D { --  To add cycle ::=> Class D inherits C{ 
+Class D inherits C { --  To add cycle ::=> Class D inherits C{ 
 	d : Int;
 };
 
@@ -53,19 +53,6 @@ Class M inherits H{
 
 Class N inherits J{ 
 	n : Int;
-};
-
-
-Class O inherits P{ 
-	o : Int;
-};
-
-Class P inherits Q{ 
-	p : Int;
-};
-
-Class Q inherits Main{ 
-	q : Int;
 };
 
 
