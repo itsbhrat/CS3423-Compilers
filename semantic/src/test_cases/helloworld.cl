@@ -4,10 +4,8 @@ class Main {
 	
 	b : String;
 
-	main():Int {{
-		a <- 1;
-	}
---		new IO.out_string("Hello world!\n")
+	main():Int {
+		new IO.out_string("Hello world!\n")
 	};
 };
 

@@ -54,7 +54,7 @@ public class Semantic {
             the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
             the_scope_table.insertAll(classList.get(e.name).attributes);        // insert all inherited and other declared attributes within the class into the scope
             NodeVisit(e);
-            System.out.println("###Finished processing class " +  e.name);
+            
             the_scope_table.exitScope();               // once class is processed, exit the scope.
         }
 
@@ -480,10 +480,12 @@ public class Semantic {
 
     // Overloaded function to now visit the method nodes in the AST
     private void NodeVisit(AST.method the_method) {
-        System.out.println("###Entered Method Visit " +  the_method.name);
+        
         // Entering the scope of the method
         the_scope_table.enterScope();
+        
         NodeVisit(the_method.body);
+        
 
         // Refer to page 8 for conformance of types in methods
         if (conformance_check(the_method.body.type, the_method.typeid) == false) {
@@ -674,6 +676,7 @@ public class Semantic {
 
         else if (expr instanceof AST.new_) {
             AST.new_ the_new = (AST.new_)expr;
+	    
 
             // Refer to Page 19 of the COOL Manual for new object type checking
             if (classList.containsKey(the_new.typeid) == false) {
@@ -739,6 +742,22 @@ public class Semantic {
         		}
         		the_assign.type = the_assign.e1.type;
         	}
+        }
+        
+        else if (expr instanceof AST.typcase) {
+            NodeVisit((AST.typcase)expr);
+        }
+        
+        else if (expr instanceof AST.let) {
+            NodeVisit((AST.let)expr);
+        }
+        
+        else if (expr instanceof AST.dispatch) {
+            NodeVisit((AST.dispatch)expr);
+        }
+        
+        else if (expr instanceof AST.static_dispatch) {
+            NodeVisit((AST.static_dispatch)expr);
         }
     }
 
@@ -829,6 +848,7 @@ public class Semantic {
 
     // Another "big" function to check dispatches
     private void NodeVisit(AST.dispatch the_dispatch) {
+	
         boolean return_true_type = true;
         String true_type = null;
 
