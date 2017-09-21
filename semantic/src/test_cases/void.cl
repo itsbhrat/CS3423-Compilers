@@ -8,8 +8,18 @@ Class A {
 	};
 };
  
-class Main {
-	b : A;
-	
+class Main inherits IO{
+	b : new A;
+	c : Bool;
+	main() : IO {
+		{
+			if (isvoid(b))
+			then
+				out_string("YO")
+			else
+				out_string("NO")
+			fi;
+		}
+	};
 };
 
