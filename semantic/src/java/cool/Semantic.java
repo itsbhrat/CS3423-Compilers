@@ -366,8 +366,9 @@ public class Semantic {
         } else if (atr.typeid.equals("Bool")) {
             atr.value = new AST.bool_const(false, atr.lineNo);
         } else {
-            System.out.println("default_not_weird_attrs is " + atr.value + " of Class " + atr.value.getClass());
-            //atr.value = new AST.int_const(0, atr.lineNo);
+            // System.out.println("default_not_weird_attrs is " + atr.value + " of Class " + atr.value.getClass());
+            // atr.value = new AST.int_const(0, atr.lineNo);
+            // TODO: Confirm with Abhishek Patwardhan about void type
         }
     }
 
@@ -837,7 +838,20 @@ public class Semantic {
             if (conformance_check(the_let.value.type, the_let.typeid) == false) {
                 reportError(filename, the_let.lineNo, "Non-conformance of types " + the_let.value.type + " & " + the_let.typeid);
             }
+        } else {
+            if (the_let.typeid.equals("Int")) {
+                the_let.value = new AST.int_const(0, the_let.lineNo);
+            } else if (the_let.typeid.equals("String")) {
+                the_let.value = new AST.string_const("", the_let.lineNo);
+            } else if (the_let.typeid.equals("Bool")) {
+                the_let.value = new AST.bool_const(false, the_let.lineNo);
+            } else {
+                // System.out.println("default_not_weird_attrs is " + atr.value + " of Class " + atr.value.getClass());
+                // atr.value = new AST.int_const(0, atr.lineNo);
+                // TODO: Confirm with Abhishek Patwardhan about void type
+            }
         }
+
         the_scope_table.insert(the_let.name, new AST.attr(the_let.name, the_let.typeid, the_let.value, the_let.lineNo));
         NodeVisit(the_let.body);
         the_let.type    = the_let.body.type;

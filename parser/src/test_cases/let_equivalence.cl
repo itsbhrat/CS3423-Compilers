@@ -57,7 +57,7 @@ class Let1 inherits IO
 {
     main() : Object
     { 
-        (let a:Int in let b:Int in let c:Int in {
+        (let a:Int in let b:String in let c:Bool in {
             a <- 9;
         })
     };
@@ -67,8 +67,18 @@ class Let2
 {
 	main() : Object
 	{
-		(let a: Int, b: Int, c: Int in {
-			b <- 10;		
+		(let a: Bool, b: String, c: Int in {
+			b <- "10";		
 		})
 	};
+};
+
+class Main
+{
+	a : Int;
+	main() : Object {
+	{
+		a <- 1;
+	}
+ };
 };
