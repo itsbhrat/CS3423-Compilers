@@ -767,61 +767,52 @@ public class Semantic {
     private void NodeVisit(AST.typcase cases) {
         NodeVisit(cases.predicate);
         String predicate_type = cases.predicate.type;
-        Boolean cond_pred = predicate_type.equals("Bool");
 
         // Refer to Page 21 of the COOL Manual for case statement type checking
-        if (cond_pred) {
-            List<AST.branch> branch_list = cases.branches;
-            for (int i = 0; i < branch_list.size(); i++) {
-                for (int j = i + 1; j < branch_list.size(); j++) {
-                    AST.branch branch_1 = branch_list.get(i);
-                    AST.branch branch_2 = branch_list.get(j);
-                    Boolean cond_brnch = branch_1.type.equals(branch_2.type);
-                    if (cond_brnch) {
-                        reportError(filename, branch_1.lineNo, "Non-distinct branch types in case statement");
-                    }
+        List<AST.branch> branch_list = cases.branches;
+        for (int i = 0; i < branch_list.size(); i++) {
+            for (int j = i + 1; j < branch_list.size(); j++) {
+                AST.branch branch_1 = branch_list.get(i);
+                AST.branch branch_2 = branch_list.get(j);
+                Boolean cond_brnch = branch_1.type.equals(branch_2.type);
+                if (cond_brnch) {
+                    reportError(filename, branch_1.lineNo, "Non-distinct branch types in case statement");
                 }
             }
-
-            for (AST.branch single_branch : branch_list) {
-                the_scope_table.enterScope();
-                String ins_type = "Object";
-                if (classList.containsKey(single_branch.type) == false) {
-                    reportError(filename, single_branch.lineNo, "Class " + single_branch.type + " is undefined");
-                } else {
-                    ins_type = single_branch.type;
-                }
-                the_scope_table.insert(single_branch.name, new AST.attr(single_branch.name, ins_type, single_branch.value, single_branch.lineNo));
-                NodeVisit(single_branch.value);
-                the_scope_table.exitScope();
+        }
+            
+        for (AST.branch single_branch : branch_list) {
+            the_scope_table.enterScope();
+            String ins_type = "Object";
+            if (classList.containsKey(single_branch.type) == false) {
+                reportError(filename, single_branch.lineNo, "Class " + single_branch.type + " is undefined");
+            } else {
+                ins_type = single_branch.type;
             }
-
-            // Performing LCA pair-wise to obtain the join as mentioned in Page 20 of the COOL Manual for case type checking
-
-            String the_case_type = null;
-            for (int i = 0; i < branch_list.size(); i++) {
-                for (int j = i + 1; j < branch_list.size(); j++) {
-                    String b1_type = branch_list.get(i).type;
-                    String b2_type = branch_list.get(j).type;
-                    Boolean cond_brnch = b1_type.equals(b2_type);
-                    if (cond_brnch) {
-                        reportError(filename, branch_list.get(i).lineNo, "Non-distinct branch types in case expression");
-                    }
-                }
-                if (i == 0) {
-                    the_case_type = branch_list.get(i).value.type;
-                } else {
-                    the_case_type = lowest_common_ancestor(the_case_type, branch_list.get(i).value.type);
-                }
-            }
-            cases.type = the_case_type;
+            the_scope_table.insert(single_branch.name, new AST.attr(single_branch.name, ins_type, single_branch.value, single_branch.lineNo));
+            NodeVisit(single_branch.value);
+            the_scope_table.exitScope();
         }
 
-        // If the predicate is not Bool, then we assign the type of the case as the type of the predicate itself
-        else {
-            reportError(filename, cases.lineNo, "Non-Boolean predicate for case statement");
-            cases.type = predicate_type;
+        // Performing LCA pair-wise to obtain the join as mentioned in Page 20 of the COOL Manual for case type checking
+
+        String the_case_type = null;
+        for (int i = 0; i < branch_list.size(); i++) {
+            for (int j = i + 1; j < branch_list.size(); j++) {
+                String b1_type = branch_list.get(i).type;
+                String b2_type = branch_list.get(j).type;
+                Boolean cond_brnch = b1_type.equals(b2_type);
+                if (cond_brnch) {
+                   reportError(filename, branch_list.get(i).lineNo, "Non-distinct branch types in case expression");
+                }
+            }
+            if (i == 0) {
+               the_case_type = branch_list.get(i).value.type;
+            } else {
+               the_case_type = lowest_common_ancestor(the_case_type, branch_list.get(i).value.type);
+            }
         }
+        cases.type = the_case_type;
     }
 
     // Another "big" function to check let expressions
