@@ -55,15 +55,16 @@ Class N inherits J{
 	n : Int;
 };
 
-Class O { 
+
+Class O inherits P{ 
 	o : Int;
 };
 
-Class P { 
+Class P inherits Q{ 
 	p : Int;
 };
 
-Class Q { 
+Class Q inherits Main{ 
 	q : Int;
 };
 

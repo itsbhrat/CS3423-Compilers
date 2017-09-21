@@ -29,15 +29,7 @@ public class Semantic {
     public Boolean getErrorFlag() {
         return errorFlag;
     }
-public static final String ANSI_RESET = "\u001B[0m";
-public static final String ANSI_BLACK = "\u001B[30m";
-public static final String ANSI_RED = "\u001B[31m";
-public static final String ANSI_GREEN = "\u001B[32m";
-public static final String ANSI_YELLOW = "\u001B[33m";
-public static final String ANSI_BLUE = "\u001B[34m";
-public static final String ANSI_PURPLE = "\u001B[35m";
-public static final String ANSI_CYAN = "\u001B[36m";
-public static final String ANSI_WHITE = "\u001B[37m";
+
     /*
         Don't change code above this line
     */
@@ -49,14 +41,14 @@ public static final String ANSI_WHITE = "\u001B[37m";
 
     // Functions
     public Semantic(AST.program program) {
-        
+
         //Write Semantic analyzer code here
         define_built_in_classes();
         process_graph(program.classes);
 
-       // debug_class_list();
+        // debug_class_list();
 
-/*        for (AST.class_ e : program.classes) {
+        for (AST.class_ e : program.classes) {
             filename = e.filename;              // filename for each class
             the_scope_table.enterScope();          // enter new scope for a class
             the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
@@ -65,8 +57,15 @@ public static final String ANSI_WHITE = "\u001B[37m";
             System.out.println("###Finished processing class " +  e.name);
             the_scope_table.exitScope();               // once class is processed, exit the scope.
         }
-*/
+
+        // checking Main Class here so that filename attribute gets initialized  
+        if (classList.containsKey("Main") == false) {   //check the existence of Main class
+            reportError(filename, 1, "Program does not contain class 'Main'");
+        } else if (classList.get("Main").methods.containsKey("main") == false) {    //check the existence of main method in Main class
+            reportError(filename, 1, "'Main' class does not contain 'main' method");
+        }
     }
+
     private void debug_class_list() {
         for (HashMap.Entry<String, ClassNode> entry : classList.entrySet()) {
             ClassNode value = entry.getValue();
@@ -80,11 +79,12 @@ public static final String ANSI_WHITE = "\u001B[37m";
             }
             System.out.print("\n\t\t METHODS ==> ");
 
-        for (HashMap.Entry<String, AST.method> key : value.methods.entrySet()) {
+            for (HashMap.Entry<String, AST.method> key : value.methods.entrySet()) {
                 System.out.print("(" + key.getKey() + "," + key.getValue().typeid + ")  :: ");
             }
         }
     }
+
     private void define_built_in_classes() {
         /*
             consider line number = 0 for all the basic classes
@@ -155,27 +155,38 @@ public static final String ANSI_WHITE = "\u001B[37m";
 
         classList.put("String", new ClassNode("String", "Object", 1, new HashMap <String, AST.attr>(), String_methods));
     }
+
     private void process_graph(List<AST.class_> classes) {
 
         HashMap<String, Integer> class_int = new HashMap<String, Integer>();        // map class name to node index in graph
         ArrayList<AST.class_> class_node = new ArrayList<AST.class_>();             // map node index to AST.class_
         ArrayList<ArrayList<Integer>> adjacency_list = new ArrayList<ArrayList<Integer>>();
 
-        int no_nodes_in_graph = 2;
+        int no_nodes_in_graph = 5;
 
         /*
             adding basic classes to graph
-            Not inserting Int, Bool, String in graph as no user class inherits from them.
+            We are inserting Int, Bool, String basic classes in graph
+            to take care of cases if user class inherits from one of the non-inheritable classes
          */
 
         class_int.put("Object", 0);
         class_int.put("IO", 1);
+        class_int.put("Int", 2);
+        class_int.put("String", 3);
+        class_int.put("Bool", 4);
 
+        class_node.add(null);
+        class_node.add(null);
+        class_node.add(null);
         class_node.add(null);
         class_node.add(null);
 
         adjacency_list.add(new ArrayList<Integer>(Arrays.asList(1)));   //adding Object to graph
         adjacency_list.add(new ArrayList<Integer>());   //adding IO to graph
+        adjacency_list.add(new ArrayList<Integer>());   //adding Int to graph
+        adjacency_list.add(new ArrayList<Integer>());   //adding String to graph
+        adjacency_list.add(new ArrayList<Integer>());   //adding Bool to graph
 
         boolean ok = true;
 
@@ -185,18 +196,18 @@ public static final String ANSI_WHITE = "\u001B[37m";
             //checking if user class is one of the basic class
             boolean cond_name = (c.name.equals("Object") || c.name.equals("IO") || c.name.equals("Int") || c.name.equals("String") || c.name.equals("Bool"));
             if (cond_name) {
-                reportError(c.filename, c.lineNo, "Redefinition of basic class " + c.name + ".");
+                reportError(c.filename, c.lineNo, "Redefinition of basic class '" + c.name + "'.");
                 ok = false;
             }
             //checking if user class inherits from one of the non-inheritable classes
             boolean cond_parent = (c.parent.equals("Int") || c.parent.equals("String") || c.parent.equals("Bool"));
             if (cond_parent) {
-                reportError(c.filename, c.lineNo, "Class " + c.name + " cannot inherit basic class " + c.parent + ".");
+                reportError(c.filename, c.lineNo, "Class '" + c.name + "' cannot inherit basic class '" + c.parent + "'.");
                 ok = false;
             }
             //checking if user class is redefined
             if (class_int.containsKey(c.name)) {
-                reportError(c.filename, c.lineNo, "Class " + c.name + " was previously defined.");
+                reportError(c.filename, c.lineNo, "Class '" + c.name + "' was previously defined.");
                 ok = false;
             } else {
                 class_int.put(c.name, no_nodes_in_graph);
@@ -209,13 +220,9 @@ public static final String ANSI_WHITE = "\u001B[37m";
         //adding the edges among the classes
         for (AST.class_ c : classes) {
 
-            if(c.parent == null || c.parent == "") {
-                reportError(c.filename, c.lineNo, "Class " + c.name + " has nno parent class.");
-                ok = false;
-            }
             //checking if parent class is defined
             if (class_int.containsKey(c.parent) == false) {
-                reportError(c.filename, c.lineNo, "Class " + c.name + " inherits from an undefined class " + c.parent + ".");
+                reportError(c.filename, c.lineNo, "Class '" + c.name + "' inherits from an undefined class '" + c.parent + "'.");
                 ok = false;
             }
 
@@ -224,13 +231,6 @@ public static final String ANSI_WHITE = "\u001B[37m";
             }
         }
 
-/*        for (int i = 0; i < adjacency_list.size(); i++) {
-            System.out.print(i + " ==> ");
-            for (Integer j : adjacency_list.get(i)) {
-                System.out.print(j + " , ");
-            }
-            System.out.println();
-        }*/
         if (ok == false || isCyclic(adjacency_list, class_node, no_nodes_in_graph)) {
             System.exit(0);
         }
@@ -261,11 +261,7 @@ public static final String ANSI_WHITE = "\u001B[37m";
             }
         }
 
-        if (classList.containsKey("Main") == false) {   //check the existence of Main class
-            reportError(filename, 1, "Program does not contain class 'Main'");
-        } else if (classList.get("Main").methods.containsKey("main") == false) {    //check the existence of main method in Main class
-            reportError(filename, 1, "'Main' class does not contain 'main' method");
-        }
+
     }
 
 
@@ -273,7 +269,8 @@ public static final String ANSI_WHITE = "\u001B[37m";
         Detection of cycle implementation is taken from http://www.geeksforgeeks.org/detect-cycle-in-a-graph/
     */
 
-    private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, Integer v, boolean[] visited, boolean[] recursion_stack) {
+    private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, int v, boolean[] visited, boolean[] recursion_stack) {
+
         if (visited[v] == false) {
             // Mark the current node as visited and part of recursion stack
             visited[v] = true;
@@ -314,7 +311,6 @@ public static final String ANSI_WHITE = "\u001B[37m";
         for (int i = 0; i < no_nodes_in_graph; i++) {
             if (visited[i] == false) {
 
-           //     printArray(visited, no_nodes_in_graph);
                 Integer node = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
                 if (node != -1) {
                     ok = true;
@@ -340,7 +336,7 @@ public static final String ANSI_WHITE = "\u001B[37m";
 
         q.add(node);
         visited.set(node, true);
-        
+
         reportError(class_node.get(node).filename, class_node.get(node).lineNo, " Class " + class_node.get(node).name + ", or an ancestor of " + class_node.get(node).name + ", is involved in an inheritance cycle.");
 
         // doing a BFS traversal of the cycle nodes (and the reachable nodes)
@@ -394,12 +390,12 @@ public static final String ANSI_WHITE = "\u001B[37m";
 
                 // checking for duplicate attributes within the class attributes
                 if (user_attributes.containsKey(atr.name)) {
-                    reportError(user.filename, atr.lineNo, "Attribute " + atr.name + " is multiply defined in class " + user.name + ".");
+                    reportError(user.filename, atr.lineNo, "Attribute '" + atr.name + "' in class '" + user.name + "' is multiply defined in class '" + user.name + "'.");
                     ok = false;
                 }
                 // checking for duplicate inherited class attributes
                 if (parent_attributes.containsKey(atr.name)) {
-                    reportError(user.filename, atr.lineNo, "Attribute " + atr.name + " is an attribute of an inherited class \"" + parent + "\".");
+                    reportError(user.filename, atr.lineNo, "Attribute '" + atr.name + "' in class '" + user.name + "' is an attribute of an inherited class '" + parent + "'.");
                     ok = false;
                 }
 
@@ -420,7 +416,7 @@ public static final String ANSI_WHITE = "\u001B[37m";
                 List<String> formal_list = new ArrayList<String>();
                 for (AST.formal formal_parameters : me.formals) {
                     if (formal_list.contains(formal_parameters.name)) {
-                        reportError(user.filename, me.lineNo, "Formal parameter " + formal_parameters.name + " of method " + me.name + " in class " + user.name + " is multiply defined.");
+                        reportError(user.filename, me.lineNo, "Formal parameter '" + formal_parameters.name + "' of method '" + me.name + "' in class '" + user.name + "' is multiply defined.");
                         ok = false;
                     } else {
                         formal_list.add(formal_parameters.name);
@@ -429,7 +425,7 @@ public static final String ANSI_WHITE = "\u001B[37m";
 
                 // checking for duplicate methods definition within the class methods
                 if (user_method.containsKey(me.name)) {
-                    reportError(user.filename, me.lineNo, "Method " + me.name + " is defined multiply in class " + user.name + ".");
+                    reportError(user.filename, me.lineNo, "Method '" + me.name + "' is defined multiply in class '" + user.name + "'.");
                     ok = false;
                 }
                 // checking for duplicate inherited class methods
@@ -438,18 +434,18 @@ public static final String ANSI_WHITE = "\u001B[37m";
                     AST.method pr_met = parent_method.get(me.name);
                     // checking no of formal parameters
                     if (pr_met.formals.size() != me.formals.size()) {
-                        reportError(user.filename, me.lineNo, "Incompatible number of formal parameters of redefined method " + me.name + " in class " + user.name + ".");
+                        reportError(user.filename, me.lineNo, "Incompatible number of formal parameters of redefined method '" + me.name + "' in class '" + user.name + "'.");
                         ok = false;
                     }
                     // checking return type
                     if (!pr_met.typeid.equals(me.typeid)) {
-                        reportError(user.filename, me.lineNo, "In redefined method " + me.name + " in class " + user.name + ", return type " + me.typeid + " is different from original return type " + pr_met.typeid + ".");
+                        reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', return type '" + me.typeid + "' is different from original return type '" + pr_met.typeid + "'.");
                         ok = false;
                     }
                     // checking parameter types
                     for (int i = 0; i < me.formals.size(); i++) {
                         if (pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid) == false) {
-                            reportError(user.filename, me.lineNo, "In redefined method " + me.name + " in class " + user.name + ", parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
+                            reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
                             ok = false;
                         }
                     }
@@ -459,7 +455,7 @@ public static final String ANSI_WHITE = "\u001B[37m";
                     user_method.put(me.name, me);
                 }
             } else {
-                reportError(user.filename, user.lineNo, "Undefined feature in class " + user.name + ".");
+                reportError(user.filename, user.lineNo, "Undefined feature in class '" + user.name + "'.");
             }
         }
 
@@ -484,6 +480,7 @@ public static final String ANSI_WHITE = "\u001B[37m";
 
     // Overloaded function to now visit the method nodes in the AST
     private void NodeVisit(AST.method the_method) {
+        System.out.println("###Entered Method Visit " +  the_method.name);
         // Entering the scope of the method
         the_scope_table.enterScope();
         List<AST.formal> formal_list = the_method.formals;
