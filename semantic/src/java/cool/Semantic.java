@@ -746,6 +746,11 @@ public class Semantic {
         else if (expr instanceof AST.static_dispatch) {
             NodeVisit((AST.static_dispatch)expr);
         }
+        
+	// For the Code generator interface
+        else if (expr instanceof AST.no_expr) {
+            ((AST.no_expr)expr).type = "No_type";
+        }
     }
 
     // The "big" function to check case expressions
