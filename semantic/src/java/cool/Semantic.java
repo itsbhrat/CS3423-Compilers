@@ -50,14 +50,14 @@ public class Semantic {
         for (AST.class_ e : program.classes) {
             filename = e.filename;              // filename for each class
             the_scope_table.enterScope();          // enter new scope for a class
-            the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
+            // the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
             the_scope_table.insertAll(classList.get(e.name).attributes);        // insert all inherited and other declared attributes within the class into the scope
             NodeVisit(e);
-            
+
             the_scope_table.exitScope();               // once class is processed, exit the scope.
         }
 
-        // checking Main Class here so that filename attribute gets initialized  
+        // checking Main Class here so that filename attribute gets initialized
         if (classList.containsKey("Main") == false) {   //check the existence of Main class
             reportError(filename, 1, "Program does not contain class 'Main'");
         } else if (classList.get("Main").methods.containsKey("main") == false) {    //check the existence of conflicting main method in Main class
@@ -65,7 +65,7 @@ public class Semantic {
         }
     }
 
-    //  function used for debugging purposes    
+    //  function used for debugging purposes
     private void debug_class_list() {
         for (HashMap.Entry<String, ClassNode> entry : classList.entrySet()) {
             ClassNode value = entry.getValue();
@@ -197,7 +197,7 @@ public class Semantic {
                 ok = false;
             }
             //checking if user class is redefined
-            if (class_int.containsKey(c.name)) {
+            if (!cond_name && class_int.containsKey(c.name)) {
                 reportError(c.filename, c.lineNo, "Class '" + c.name + "' was previously defined.");
                 ok = false;
             } else {
@@ -413,19 +413,21 @@ public class Semantic {
                     if (pr_met.formals.size() != me.formals.size()) {
                         reportError(user.filename, me.lineNo, "Incompatible number of formal parameters of redefined method '" + me.name + "' in class '" + user.name + "'.");
                         ok = ok && false;
+                    } else {
+                        // checking parameter types
+                        for (int i = 0; i < me.formals.size(); i++) {
+                            if (pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid) == false) {
+                                reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
+                                ok = ok && false;
+                            }
+                        }
                     }
                     // checking return type
                     if (!pr_met.typeid.equals(me.typeid)) {
                         reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', return type '" + me.typeid + "' is different from original return type '" + pr_met.typeid + "'.");
                         ok = ok && false;
                     }
-                    // checking parameter types
-                    for (int i = 0; i < me.formals.size(); i++) {
-                        if (pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid) == false) {
-                            reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
-                            ok = ok && false;
-                        }
-                    }
+
                 }
 
                 if (ok) {
@@ -435,7 +437,7 @@ public class Semantic {
         }
 
         // if Main class does not have main method but it's inherited class has main method
-        if( user.name.equals("Main") && (user_method.containsKey("main") == false) )  {
+        if ( user.name.equals("Main") && (user_method.containsKey("main") == false) )  {
             reportError(user.filename, 1, "'Main' class does not contain 'main' method");
         }
         user_node.methods.putAll(user_method);
@@ -459,13 +461,13 @@ public class Semantic {
 
     // Overloaded function to now visit the method nodes in the AST
     private void NodeVisit(AST.method the_method) {
-        
+
         // Entering the scope of the method
         the_scope_table.enterScope();
         List<AST.formal> formal_list = the_method.formals;
         for (int i = 0; i < formal_list.size(); i++) {
             AST.formal cur_formal = formal_list.get(i);
-            
+
             if (the_scope_table.lookUpLocal(cur_formal.name) == null) {
                 the_scope_table.insert(cur_formal.name, new AST.attr(cur_formal.name, cur_formal.typeid, new AST.no_expr(cur_formal.lineNo), cur_formal.lineNo));
             } else {
@@ -473,7 +475,7 @@ public class Semantic {
             }
         }
         NodeVisit(the_method.body);
-        
+
         // Refer to page 8 for conformance of types in methods
         if (conformance_check(the_method.body.type, the_method.typeid) == false) {
             reportError(filename, the_method.lineNo, "Non-conformance of types " + the_method.body.type + " & " + the_method.typeid);
@@ -663,7 +665,7 @@ public class Semantic {
 
         else if (expr instanceof AST.new_) {
             AST.new_ the_new = (AST.new_)expr;
-	    
+
 
             // Refer to Page 19 of the COOL Manual for new object type checking
             if (classList.containsKey(the_new.typeid) == false) {
@@ -712,42 +714,42 @@ public class Semantic {
             }
             the_if_else.type = lowest_common_ancestor(the_if_else.ifbody.type, the_if_else.elsebody.type);
         }
-        
+
         else if (expr instanceof AST.assign) {
-        	AST.assign the_assign = (AST.assign)expr;
-        	NodeVisit(the_assign.e1);
-        	
-        	if (the_scope_table.lookUpGlobal(the_assign.name) == null) {
-        		reportError(filename, the_assign.lineNo, "Trying to assign to undeclared variable");
-        		the_assign.type = "Object";
-        	} else {
-        		String the_assign_typeid = the_scope_table.lookUpGlobal(the_assign.name).typeid;
-        		Boolean cond_conf = conformance_check(the_assign.e1.type, the_assign_typeid);
-        		if (cond_conf == false) {
-        			reportError(filename, the_assign.lineNo, "Non-conformance of types " + the_assign.e1.type + " & " + the_assign_typeid);
-        			the_assign.type = "Object";
-        		}
-        		the_assign.type = the_assign.e1.type;
-        	}
+            AST.assign the_assign = (AST.assign)expr;
+            NodeVisit(the_assign.e1);
+
+            if (the_scope_table.lookUpGlobal(the_assign.name) == null) {
+                reportError(filename, the_assign.lineNo, "Trying to assign to undeclared variable");
+                the_assign.type = "Object";
+            } else {
+                String the_assign_typeid = the_scope_table.lookUpGlobal(the_assign.name).typeid;
+                Boolean cond_conf = conformance_check(the_assign.e1.type, the_assign_typeid);
+                if (cond_conf == false) {
+                    reportError(filename, the_assign.lineNo, "Non-conformance of types " + the_assign.e1.type + " & " + the_assign_typeid);
+                    the_assign.type = "Object";
+                }
+                the_assign.type = the_assign.e1.type;
+            }
         }
-        
+
         else if (expr instanceof AST.typcase) {
             NodeVisit((AST.typcase)expr);
         }
-        
+
         else if (expr instanceof AST.let) {
             NodeVisit((AST.let)expr);
         }
-        
+
         else if (expr instanceof AST.dispatch) {
             NodeVisit((AST.dispatch)expr);
         }
-        
+
         else if (expr instanceof AST.static_dispatch) {
             NodeVisit((AST.static_dispatch)expr);
         }
-        
-	// For the Code generator interface
+
+        // For the Code generator interface
         else if (expr instanceof AST.no_expr) {
             ((AST.no_expr)expr).type = "No_type";
         }
@@ -782,13 +784,13 @@ public class Semantic {
                 String b2_type = branch_list.get(j).type;
                 Boolean cond_brnch = b1_type.equals(b2_type);
                 if (cond_brnch) {
-                   reportError(filename, branch_list.get(j).lineNo, "Non-distinct branch types " + b1_type + " in case expression.");
+                    reportError(filename, branch_list.get(j).lineNo, "Non-distinct branch types " + b1_type + " in case expression.");
                 }
             }
             if (i == 0) {
-               the_case_type = branch_list.get(i).value.type;
+                the_case_type = branch_list.get(i).value.type;
             } else {
-               the_case_type = lowest_common_ancestor(the_case_type, branch_list.get(i).value.type);
+                the_case_type = lowest_common_ancestor(the_case_type, branch_list.get(i).value.type);
             }
         }
         cases.type = the_case_type;
@@ -829,7 +831,7 @@ public class Semantic {
 
     // Another "big" function to check dispatches
     private void NodeVisit(AST.dispatch the_dispatch) {
-	
+
         boolean return_true_type = true;
         String true_type = null;
 
