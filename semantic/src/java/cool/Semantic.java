@@ -99,11 +99,8 @@ public class Semantic {
         HashMap <String, AST.method> Object_methods = new HashMap <String, AST.method>();
 
         Object_methods.put("abort", new AST.method("abort", new ArrayList<AST.formal>(), "Object", new AST.no_expr(0), 0));
-
         Object_methods.put("type_name", new AST.method("type_name", new ArrayList<AST.formal>(), "String", new AST.no_expr(0), 0));
-
         Object_methods.put("copy", new AST.method("copy", new ArrayList<AST.formal>(), "Object", new AST.no_expr(0), 0));
-
 
         classList.put("Object", new ClassNode("Object", null, 0, new HashMap <String, AST.attr>(), Object_methods));
 
@@ -113,15 +110,10 @@ public class Semantic {
         HashMap <String, AST.method> IO_methods = new HashMap <String, AST.method>();
 
         IO_methods.put("out_string", new AST.method("out_string", Arrays.asList(new AST.formal("x", "String", 0)), "IO", new AST.no_expr(0), 0));
-
         IO_methods.put("out_int", new AST.method("out_int", Arrays.asList(new AST.formal("x", "Int", 0)), "IO", new AST.no_expr(0), 0));
-
         IO_methods.put("in_string", new AST.method("in_string", new ArrayList<AST.formal>(), "String", new AST.no_expr(0), 0));
-
         IO_methods.put("in_int", new AST.method("in_int", new ArrayList<AST.formal>(), "Int", new AST.no_expr(0), 0));
-
         IO_methods.putAll(Object_methods);      //inheriting all object methods
-
 
         classList.put("IO", new ClassNode("IO", "Object", 1, new HashMap <String, AST.attr>(), IO_methods));
 
@@ -143,7 +135,6 @@ public class Semantic {
         HashMap <String, AST.method> String_methods = new HashMap <String, AST.method>();
 
         String_methods.put("length", new AST.method("length", new ArrayList<AST.formal>(), "Int", new AST.no_expr(0), 0));
-
         String_methods.put("concat", new AST.method("concat", Arrays.asList(new AST.formal("s", "String", 0)), "String", new AST.no_expr(0), 0));
 
         List<AST.formal> substr_formal = new ArrayList<AST.formal>();
@@ -152,7 +143,6 @@ public class Semantic {
         String_methods.put("substr", new AST.method("substr", substr_formal, "String", new AST.no_expr(0), 0));
 
         String_methods.putAll(Object_methods);      //inheriting all object methods
-
 
         classList.put("String", new ClassNode("String", "Object", 1, new HashMap <String, AST.attr>(), String_methods));
     }
@@ -364,10 +354,6 @@ public class Semantic {
             atr.value = new AST.string_const("", atr.lineNo);
         } else if (atr.typeid.equals("Bool")) {
             atr.value = new AST.bool_const(false, atr.lineNo);
-        } else {
-            // System.out.println("default_not_weird_attrs is " + atr.value + " of Class " + atr.value.getClass());
-            // atr.value = new AST.int_const(0, atr.lineNo);
-            // TODO: Confirm with Abhishek Patwardhan about void type
         }
     }
 
@@ -769,17 +755,7 @@ public class Semantic {
 
         // Refer to Page 21 of the COOL Manual for case statement type checking
         List<AST.branch> branch_list = cases.branches;
-        for (int i = 0; i < branch_list.size(); i++) {
-            for (int j = i + 1; j < branch_list.size(); j++) {
-                AST.branch branch_1 = branch_list.get(i);
-                AST.branch branch_2 = branch_list.get(j);
-                Boolean cond_brnch = branch_1.type.equals(branch_2.type);
-                if (cond_brnch) {
-                    reportError(filename, branch_1.lineNo, "Non-distinct branch types in case statement");
-                }
-            }
-        }
-            
+
         for (AST.branch single_branch : branch_list) {
             the_scope_table.enterScope();
             String ins_type = "Object";
@@ -794,7 +770,6 @@ public class Semantic {
         }
 
         // Performing LCA pair-wise to obtain the join as mentioned in Page 20 of the COOL Manual for case type checking
-
         String the_case_type = null;
         for (int i = 0; i < branch_list.size(); i++) {
             for (int j = i + 1; j < branch_list.size(); j++) {
@@ -802,7 +777,7 @@ public class Semantic {
                 String b2_type = branch_list.get(j).type;
                 Boolean cond_brnch = b1_type.equals(b2_type);
                 if (cond_brnch) {
-                   reportError(filename, branch_list.get(i).lineNo, "Non-distinct branch types in case expression");
+                   reportError(filename, branch_list.get(j).lineNo, "Non-distinct branch types " + b1_type + " in case expression.");
                 }
             }
             if (i == 0) {
@@ -837,10 +812,6 @@ public class Semantic {
                 the_let.value = new AST.string_const("", the_let.lineNo);
             } else if (the_let.typeid.equals("Bool")) {
                 the_let.value = new AST.bool_const(false, the_let.lineNo);
-            } else {
-                // System.out.println("default_not_weird_attrs is " + atr.value + " of Class " + atr.value.getClass());
-                // atr.value = new AST.int_const(0, atr.lineNo);
-                // TODO: Confirm with Abhishek Patwardhan about void type
             }
         }
 
@@ -884,12 +855,12 @@ public class Semantic {
                     for (int i = 0; i < the_method.formals.size(); i++) {
                         // Actually we need to check for conformance.
                         // But since we are not dealing with SELF_TYPE, the conformance check actually boils down
-                        // equal type-checking
+                        // equal type-checking. But for the sake of completion, the conformance check is done
 
                         // Refer to page 19 of the COOL Manual for dispatch type checking
-                        boolean cond = (the_method.formals.get(i).typeid).equals(the_actuals.get(i).type);
-                        if (cond == false) {
-                            reportError(filename, the_dispatch.lineNo, "Required type " + the_method.formals.get(i).typeid + " as argument " + i + 1 + " instead of " + the_actuals.get(i).type + " for the dispatch of method " + the_dispatch.name);
+                        boolean cond_conf = conformance_check(the_actuals.get(i).type, the_method.formals.get(i).typeid);
+                        if (cond_conf == false) {
+                            reportError(filename, the_dispatch.lineNo,  "Argument " + i + 1 + " of type " + the_actuals.get(i).type + " does not conform to " + the_method.formals.get(i).typeid + " for the dispatch of method " + the_dispatch.name);
                             return_true_type = return_true_type && false;
                         }
                     }
@@ -937,12 +908,12 @@ public class Semantic {
                     for (int i = 0; i < the_method.formals.size(); i++) {
                         // Actually we need to check for conformance.
                         // But since we are not dealing with SELF_TYPE, the conformance check actually boils down
-                        // equal type-checking
+                        // equal type-checking. But for the sake of completion, the conformance check is done
 
                         // Refer to page 19 of the COOL Manual for static dispatch type checking
-                        boolean cond = (the_method.formals.get(i).typeid).equals(the_actuals.get(i).type);
-                        if (cond == false) {
-                            reportError(filename, the_static_dispatch.lineNo, "Required type " + the_method.formals.get(i) + " as argument " + i + 1 + " instead of " + the_actuals.get(i).type + " for the dispatch of method " + the_static_dispatch.name);
+                        boolean cond_conf_params = conformance_check(the_actuals.get(i).type, the_method.formals.get(i).typeid);
+                        if (cond_conf_params == false) {
+                            reportError(filename, the_static_dispatch.lineNo,  "Argument " + i + 1 + " of type " + the_actuals.get(i).type + " does not conform to " + the_method.formals.get(i).typeid + " for the dispatch of method " + the_static_dispatch.name);
                             return_true_type = return_true_type && false;
                         }
                     }

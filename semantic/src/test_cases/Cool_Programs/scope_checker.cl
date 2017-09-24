@@ -24,13 +24,15 @@ class Main {
 			c <- true;
 			
 			let a : String <- "Hello", b : Bool <- true, c : Int <- 1729 in {	-- b is String globally, but here Bool
-				while b loop 							-- that is why this line works w.r.t. types
-				{
-					d <- d + 1;
-					b <- d < 10;
-				}
-				pool;
-			};			
+				let c : String <- "Hi there!!" in {				-- c in Int in previous scope, Bool globally
+					while b loop 						-- that is why this line works w.r.t. types
+					{
+						d <- d + 1;
+						b <- d < 10;
+					}
+					pool;
+				};
+			};
 		}
 	};
 };
