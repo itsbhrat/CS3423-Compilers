@@ -53,10 +53,12 @@ public class Semantic {
 
 	    // Enter new scope for a class
             the_scope_table.enterScope();
-            // the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
 
 	    // Insert all inherited and other declared attributes within every class into the scope
             the_scope_table.insertAll(classList.get(e.name).attributes);
+-           
+            the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
+            
             NodeVisit(e);
 
 	    // Once Class is processed, exit the scope
