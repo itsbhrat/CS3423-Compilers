@@ -12,7 +12,60 @@
 
 ### Design/pipeline of the Semantic Analyzer
 
-This section will discuss our design decisions, choice of algorithms, and access methods. We have added this is a FAQ format, for the benefit of the reader.
+This section will discuss our design decisions, choice of algorithms, and access methods. We have added this in a FAQ format, for the benefit of the reader.
+
+
+#### Building the Inheritance Graph
+Building the inheritance graph is divided into 2 parts : Node Creation & Edge Creation.
+<strong> Node Creation </strong>
+Iterate over the list of classes(obtained from the parser ) and after checking the validity of the class & it's parent's names append this class to the inheritance graph adjacency list.
+
+<strong> Edge Creation </strong>
+After all the nodes have been created , iterate over the list of classes and add a directed edge from the parent class to it's child class.
+
+The reason for separating these 2 steps is that in a semantically wrong Cool program, a  class can inherit from an undefined class. If we check the existence of the parent class for each node in the list of classes(from the parser) during the node creation step , it can lead to a O(V<sup>2</sup>) solution.
+By separating the 2 steps we have obtained a O(2*V) solution.
+
+
+#### Cycle-Detection
+For cycle detection , an iterative DFS traversal of the CFG is done. This is done to avoid recursive functions( & prevent stack overflow errors for large programs).
+At first our plan was to use Johnson Algorithm to detect all simple cycles in a directed graph.
+But after experimenting with original cool compiler we found that if a cycle is found in a connected graph , then all the graph nodes that are reachable from the cycle nodes are flagged as being involved in the inheritance cycle.
+Hence using DFS approach as soon as we find 1 cycle node (already visited node during DFS)  , we terminate the DFS and print all the nodes reachable from all the cycle nodes.
+By this approach if another cycle is also present in the graph , it's nodes will be automatically flagged as an error.
+
+#### Building the classList HashMap
+After ensuring that the inheritance graph is valid , we add the class features to the classList Hashmap in a BFS manner , starting from Object class.
+This is done to add parent classes before their corresponding child classes in classList.
+ By doing this we ensure that a child class can always inherit the features of it's parent class.
+
+
+### Attribute overrides
+
+Before adding a class to the classList , certain checks are made about the class features.
+
+If any child class attempts to redefine it's parent class attributes, an error is reported and the inherited attribute is retained in the child class.
+
+
+If any child class attempts to redefine it's parent class method, the following checks are made
+<ul>
+	<li> Redefined method has the same data type as the parent class method.</li>
+	<li> Redefined method has the same number of formal parameters.</li>
+	<li> Redefined method has the same data type as the parent class method.</li>
+
+</ul>
+
+an error is reported and the inherited attribute is retained in the child class.
+
+
+Method overrides
+
+The method HashMap is inherited from the parent class. If any method is found to be overriden, it is check for errors. Possible errors are that the method return type may not be the same as the original. Additionally, the method may take incompatible number of arguments (incomaptible to the inherited attribute). Thirdly, the parameter types may not match.
+
+Even in this case, the inherited attribute is retained in case of an error. The redefined attribute is discarded.
+
+
+
 
 ### Test Cases
 
