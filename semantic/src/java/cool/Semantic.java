@@ -272,59 +272,42 @@ public class Semantic {
 
 
     /*
-        Detection of cycle implementation is taken from http://www.geeksforgeeks.org/detect-cycle-in-a-graph/
-    */
-
-    private Integer isCyclicUtil(ArrayList<ArrayList<Integer>> adjacency_list, int v, boolean[] visited, boolean[] recursion_stack) {
-
-        if (visited[v] == false) {
-            // Mark the current node as visited and part of recursion stack
-            visited[v] = true;
-            recursion_stack[v] = true;
-
-            // Recurse over all the vertices adjacent to this vertex
-            for (Integer i : adjacency_list.get(v)) {
-
-                if (visited[i] == false) {
-                    Integer dfs = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
-                    if (dfs != -1) {        	// If graph has a back-edge
-                        recursion_stack[v] = false;  // Remove the vertex from recursion stack
-                        return dfs;
-                    }
-                }
-
-                else if (recursion_stack[i]) {  // If graph has a back-edge
-                    recursion_stack[v] = false;  // Remove the vertex from recursion stack
-                    return i;
-                }
-            }
-        }
-
-        recursion_stack[v] = false;  // Remove the vertex from recursion stack
-        return -1;
-    }
-
-    /*
         detect cycle using DFS
+        If during DFS we encounter a back-edge , a cycle is detected
     */
-    private Boolean isCyclic(ArrayList<ArrayList<Integer>> adjacency_list, ArrayList<AST.class_> class_node, int no_nodes_in_graph) {
-        // Mark all the vertices as not visited and not part of recursion stack
-        boolean[] visited = new boolean[no_nodes_in_graph];
-        boolean[] recursion_stack = new boolean[no_nodes_in_graph];
+    private boolean isCyclic(ArrayList<ArrayList<Integer>> adjacency_list, ArrayList<AST.class_> class_node, int no_nodes_in_graph) {
+    
+        boolean visited[] = new boolean[no_nodes_in_graph];
+        Stack<Integer> DFS_stack = new Stack<Integer>();        // acting as recursion stack
+        boolean is_cyclic = false;
 
-        // Call the recursive helper function to detect cycle in different subgraphs
-        boolean ok = false;
         for (int i = 0; i < no_nodes_in_graph; i++) {
+
             if (visited[i] == false) {
 
-                Integer node = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
-                if (node != -1) {
-                    ok = true;
-                    printCycle(adjacency_list, class_node, node, no_nodes_in_graph);
+                DFS_stack.push(i);
+
+                while (!DFS_stack.empty()) {
+
+                    Integer node = DFS_stack.peek();
+                    DFS_stack.pop();
+
+                    visited[node] = true;       //marking the node as visited during DFS
+
+                    for (Integer child : adjacency_list.get(node)) {
+
+                        if (visited[child] == true) {       //checking the current edge is a back edge
+                            printCycle(adjacency_list, class_node, child, no_nodes_in_graph);       //detected cycle . print it and break
+                            is_cyclic = true;
+                            DFS_stack.removeAllElements();
+                            break;
+                        }
+                        DFS_stack.push(child);
+                    }
                 }
             }
         }
-        return ok;
+        return is_cyclic;
     }
 
     /*
