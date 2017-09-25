@@ -43,6 +43,8 @@ Hence using DFS approach as soon as we encounter 1 cycle node (already visited n
 
 ##### Building the `classList` HashMap
 ---------------------------------------------
+The `classList` HashMap is a HashMap in Java between the names of the classes and the attributes, methods, parent and height.
+
 After ensuring that the inheritance graph is valid , we add the class features to the `classList` Hashmap in a BFS manner, starting from Object class.
 This is done to add parent classes before their corresponding child classes in `classList`.
 By doing this we ensure that a child class can always inherit the features of it's parent class.
@@ -100,3 +102,6 @@ Since _void_ doesn't exist as a real type in _COOL_, we have excluded initializa
 We paid more importance to the test cases that were wrong, hence the higher number of wrong test cases versus correct ones. These test cases flag errors in the same way as the **coolc**, but the error messages are more verbose than the **coolc**.
 
 Our incorrect programs are found in `Bad_programs` subdirectory and the correct programs are found in `Cool_programs` subdirectory. The names of the programs are self-explanatory, and we have included a short description in the beginning of every program to suggest the kind of behaviour.
+
+The `inheritance_cycle.cl` has a lot of classes. The inheritance graph can be seen here:
+<img src="inheritance_cycle.png" alt="Inheritance Cycle Picture" style="width: 80em;"/>
