@@ -46,26 +46,37 @@ public class Semantic {
         define_built_in_classes();
         process_graph(program.classes);
 
-
         for (AST.class_ e : program.classes) {
-            filename = e.filename;              // filename for each class
-            the_scope_table.enterScope();          // enter new scope for a class
+
+	    // Filename for each class
+            filename = e.filename;
+
+	    // Enter new scope for a class
+            the_scope_table.enterScope();
             // the_scope_table.insert("self", new AST.attr("self", e.name, new AST.no_expr(e.lineNo), e.lineNo));     // self is available as attribute within the class
-            the_scope_table.insertAll(classList.get(e.name).attributes);        // insert all inherited and other declared attributes within the class into the scope
+
+	    // Insert all inherited and other declared attributes within every class into the scope
+            the_scope_table.insertAll(classList.get(e.name).attributes);
             NodeVisit(e);
 
-            the_scope_table.exitScope();               // once class is processed, exit the scope.
+	    // Once Class is processed, exit the scope
+            the_scope_table.exitScope();
         }
 
-        // checking Main Class here so that filename attribute gets initialized
-        if (classList.containsKey("Main") == false) {   //check the existence of Main class
+        // Checking Main Class here so that filename attribute gets initialized
+
+	// Check the existence of Main class
+        if (classList.containsKey("Main") == false) {
             reportError(filename, 1, "Program does not contain class 'Main'");
-        } else if (classList.get("Main").methods.containsKey("main") == false) {    //check the existence of conflicting main method in Main class
+        } 
+	
+	//Check the main method in Main class
+        else if (classList.get("Main").methods.containsKey("main") == false) {    
             reportError(filename, 1, "'Main' class does not contain 'main' method");
         }
     }
 
-    //  function used for debugging purposes
+    //  Function used for debugging purposes
     private void debug_class_list() {
         for (HashMap.Entry<String, ClassNode> entry : classList.entrySet()) {
             ClassNode value = entry.getValue();
@@ -181,22 +192,26 @@ public class Semantic {
 
         boolean ok = true;
 
-        //adding the classes to the graph
+        // Adding the classes to the graph
         for (AST.class_ c : classes) {
 
-            //checking if user class is one of the basic class
+            // Checking if user class is one of the basic class
+            // Refer to page number 14 of the COOL Manual
             boolean cond_name = (c.name.equals("Object") || c.name.equals("IO") || c.name.equals("Int") || c.name.equals("String") || c.name.equals("Bool"));
             if (cond_name) {
                 reportError(c.filename, c.lineNo, "Redefinition of basic class '" + c.name + "'.");
                 ok = ok && false;
             }
-            //checking if user class inherits from one of the non-inheritable classes
+
+            // Checking if user class inherits from one of the non-inheritable classes
+            // Refer to page number 14 of the COOL Manual
             boolean cond_parent = (c.parent.equals("Int") || c.parent.equals("String") || c.parent.equals("Bool"));
             if (cond_parent) {
                 reportError(c.filename, c.lineNo, "Class '" + c.name + "' cannot inherit basic class '" + c.parent + "'.");
-                ok = ok & false;
+                ok = ok && false;
             }
-            //checking if user class is redefined
+
+            //Checking if user class is redefined
             if (!cond_name && class_int.containsKey(c.name)) {
                 reportError(c.filename, c.lineNo, "Class '" + c.name + "' was previously defined.");
                 ok = ok && false;
@@ -208,7 +223,7 @@ public class Semantic {
             }
         }
 
-        //adding the edges among the classes
+        //Adding the edges among the classes
         for (AST.class_ c : classes) {
 
             //checking if parent class is defined
@@ -267,25 +282,25 @@ public class Semantic {
             visited[v] = true;
             recursion_stack[v] = true;
 
-            // Recur for all the vertices adjacent to this vertex
+            // Recurse over all the vertices adjacent to this vertex
             for (Integer i : adjacency_list.get(v)) {
 
                 if (visited[i] == false) {
                     Integer dfs = isCyclicUtil(adjacency_list, i, visited, recursion_stack);
-                    if (dfs != -1) {        // if graph has a back-edge
-                        recursion_stack[v] = false;  // remove the vertex from recursion stack
+                    if (dfs != -1) {        	// If graph has a back-edge
+                        recursion_stack[v] = false;  // Remove the vertex from recursion stack
                         return dfs;
                     }
                 }
 
-                else if (recursion_stack[i]) {  // if graph has a back-edge
-                    recursion_stack[v] = false;  // remove the vertex from recursion stack
+                else if (recursion_stack[i]) {  // If graph has a back-edge
+                    recursion_stack[v] = false;  // Remove the vertex from recursion stack
                     return i;
                 }
             }
         }
 
-        recursion_stack[v] = false;  // remove the vertex from recursion stack
+        recursion_stack[v] = false;  // Remove the vertex from recursion stack
         return -1;
     }
 
@@ -313,8 +328,8 @@ public class Semantic {
     }
 
     /*
-        In Cool if even a single cycle is detected, then original Cool compiler
-        flags every classes that is reachable from the cycle node's as error nodes
+        In COOLC, if even a single cycle is detected, then COOLC
+        flags every class that is reachable from the node inducing the cycle as error nodes
 
         This function takes as input a node that is part of the cycle and
         prints all the nodes reachable from all the cycle nodes (using BFS).
@@ -330,7 +345,7 @@ public class Semantic {
 
         reportError(class_node.get(node).filename, class_node.get(node).lineNo, " Class " + class_node.get(node).name + ", or an ancestor of " + class_node.get(node).name + ", is involved in an inheritance cycle.");
 
-        // doing a BFS traversal of the cycle nodes (and the reachable nodes)
+        // Doing a BFS traversal of the cycle nodes (and the reachable nodes)
         while (q.isEmpty() == false) {
             node = q.remove();
             for (Integer i : adjacency_list.get(node)) {
@@ -366,22 +381,24 @@ public class Semantic {
         HashMap <String, AST.attr> parent_attributes = classList.get(parent).attributes;
         HashMap <String, AST.method> parent_method = classList.get(parent).methods;
 
-        ClassNode user_node = new ClassNode(user.name, parent, classList.get(parent).height + 1, parent_attributes, parent_method); // adding the parents attribute & method list
+        // Adding the parents attribute & method list
+        ClassNode user_node = new ClassNode(user.name, parent, classList.get(parent).height + 1, parent_attributes, parent_method); 
 
         boolean ok = true;
         for (AST.feature e : user.features) {
 
-            // iterating over the attributes of class
+            // Iterating over the attributes of class
             if (e instanceof AST.attr) {
                 AST.attr atr = (AST.attr)e;
                 ok = true;
 
-                // checking for duplicate attributes within the class attributes
+                // Checking for duplicate attributes within the class attributes
                 if (user_attributes.containsKey(atr.name)) {
                     reportError(user.filename, atr.lineNo, "Attribute '" + atr.name + "' in class '" + user.name + "' is multiply defined in class '" + user.name + "'.");
                     ok = ok && false;
                 }
-                // checking for duplicate inherited class attributes
+
+                // Checking for duplicate inherited class attributes
                 if (parent_attributes.containsKey(atr.name)) {
                     reportError(user.filename, atr.lineNo, "Attribute '" + atr.name + "' in class '" + user.name + "' is an attribute of an inherited class '" + parent + "'.");
                     ok = ok && false;
@@ -395,7 +412,7 @@ public class Semantic {
                 }
             }
 
-            // iterating over the methods of class
+            // Iterating over the methods of class
             else if (e instanceof AST.method) {
                 AST.method me = (AST.method)e;
                 ok = true;
@@ -405,16 +422,18 @@ public class Semantic {
                     reportError(user.filename, me.lineNo, "Method '" + me.name + "' is defined multiply in class '" + user.name + "'.");
                     ok = ok && false;
                 }
-                // checking for duplicate inherited class methods
-                // Refer to Page 8 of the COOL Manual for redifining inherited methods in class
+                // Checking for duplicate inherited class methods
+                // Refer to Page 8 of the COOL Manual for redefining inherited methods in class
                 if (parent_method.containsKey(me.name)) {
                     AST.method pr_met = parent_method.get(me.name);
-                    // checking no of formal parameters
+
+                    // Checking number of formal parameters
                     if (pr_met.formals.size() != me.formals.size()) {
                         reportError(user.filename, me.lineNo, "Incompatible number of formal parameters of redefined method '" + me.name + "' in class '" + user.name + "'.");
                         ok = ok && false;
                     } else {
-                        // checking parameter types
+
+                        // Checking if the parameter types are the same as in parent and in order
                         for (int i = 0; i < me.formals.size(); i++) {
                             if (pr_met.formals.get(i).typeid.equals(me.formals.get(i).typeid) == false) {
                                 reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', parameter type " + me.formals.get(i).typeid + " is different from original type " + pr_met.formals.get(i).typeid + ".");
@@ -422,7 +441,8 @@ public class Semantic {
                             }
                         }
                     }
-                    // checking return type
+
+                    // Checking return type
                     if (!pr_met.typeid.equals(me.typeid)) {
                         reportError(user.filename, me.lineNo, "In redefined method '" + me.name + "' in class '" + user.name + "', return type '" + me.typeid + "' is different from original return type '" + pr_met.typeid + "'.");
                         ok = ok && false;
@@ -437,7 +457,8 @@ public class Semantic {
         }
 
         // if Main class does not have main method but it's inherited class has main method
-        if ( user.name.equals("Main") && (user_method.containsKey("main") == false) )  {
+        boolean cond_main = user.name.equals("Main") && (user_method.containsKey("main") == false);
+        if (cond_main)  {
             reportError(user.filename, 1, "'Main' class does not contain 'main' method");
         }
         user_node.methods.putAll(user_method);
@@ -480,6 +501,7 @@ public class Semantic {
         if (conformance_check(the_method.body.type, the_method.typeid) == false) {
             reportError(filename, the_method.lineNo, "Non-conformance of types " + the_method.body.type + " & " + the_method.typeid);
         }
+        //Exiting the scope of method for good measure
         the_scope_table.exitScope();
     }
 
@@ -905,25 +927,30 @@ public class Semantic {
                 reportError(filename, the_static_dispatch.lineNo, "Non-conformance of types " + caller_ret_type + " & " + the_static_dispatch.typeid);
                 return_true_type = return_true_type && false;
             } else {
-                AST.method the_method = classList.get(caller_ret_type).methods.get(the_static_dispatch.name);
-                true_type = the_method.typeid;
-                // Check if number of arguments are the correct number
-                if (the_method.formals.size() != the_actuals.size()) {
-                    reportError(filename, the_static_dispatch.lineNo, "Method " + the_static_dispatch.name + " is dispatched with " + the_actuals.size() + " number of arguments instead of " + the_method.formals.size());
-                    return_true_type = return_true_type && false;
+                if (classList.get(caller_ret_type).methods.containsKey(the_static_dispatch.name) == false) {
+                   reportError(filename, the_static_dispatch.lineNo, "Method " + the_static_dispatch.name " is undefined");
+                   return_true_type && false;
                 } else {
-                    for (int i = 0; i < the_method.formals.size(); i++) {
-                        // Actually we need to check for conformance.
-                        // But since we are not dealing with SELF_TYPE, the conformance check actually boils down
-                        // equal type-checking. But for the sake of completion, the conformance check is done
+                    AST.method the_method = classList.get(caller_ret_type).methods.get(the_static_dispatch.name);
+                    true_type = the_method.typeid;
+                    // Check if number of arguments are the correct number
+                       if (the_method.formals.size() != the_actuals.size()) {
+                          reportError(filename, the_static_dispatch.lineNo, "Method " + the_static_dispatch.name + " is dispatched with " + the_actuals.size() + " number of arguments instead of " + the_method.formals.size());
+                          return_true_type = return_true_type && false;
+                       } else {
+                           for (int i = 0; i < the_method.formals.size(); i++) {
+                           // Actually we need to check for conformance.
+                           // But since we are not dealing with SELF_TYPE, the conformance check actually boils down
+                           // equal type-checking. But for the sake of completion, the conformance check is done
 
-                        // Refer to page 19 of the COOL Manual for static dispatch type checking
-                        boolean cond_conf_params = conformance_check(the_actuals.get(i).type, the_method.formals.get(i).typeid);
-                        if (cond_conf_params == false) {
-                            reportError(filename, the_static_dispatch.lineNo,  "Argument " + i + 1 + " of type " + the_actuals.get(i).type + " does not conform to " + the_method.formals.get(i).typeid + " for the dispatch of method " + the_static_dispatch.name);
-                            return_true_type = return_true_type && false;
-                        }
-                    }
+                           // Refer to page 19 of the COOL Manual for static dispatch type checking
+                           boolean cond_conf_params = conformance_check(the_actuals.get(i).type, the_method.formals.get(i).typeid);
+                           if (cond_conf_params == false) {
+                              reportError(filename, the_static_dispatch.lineNo,  "Argument " + i + 1 + " of type " + the_actuals.get(i).type + " does not conform to " + the_method.formals.get(i).typeid + " for the dispatch of method " + the_static_dispatch.name);
+                              return_true_type = return_true_type && false;
+                           }
+                         }
+                       }
                 }
             }
         }
