@@ -188,18 +188,18 @@ public class Semantic {
             boolean cond_name = (c.name.equals("Object") || c.name.equals("IO") || c.name.equals("Int") || c.name.equals("String") || c.name.equals("Bool"));
             if (cond_name) {
                 reportError(c.filename, c.lineNo, "Redefinition of basic class '" + c.name + "'.");
-                ok = false;
+                ok = ok && false;
             }
             //checking if user class inherits from one of the non-inheritable classes
             boolean cond_parent = (c.parent.equals("Int") || c.parent.equals("String") || c.parent.equals("Bool"));
             if (cond_parent) {
                 reportError(c.filename, c.lineNo, "Class '" + c.name + "' cannot inherit basic class '" + c.parent + "'.");
-                ok = false;
+                ok = ok & false;
             }
             //checking if user class is redefined
             if (!cond_name && class_int.containsKey(c.name)) {
                 reportError(c.filename, c.lineNo, "Class '" + c.name + "' was previously defined.");
-                ok = false;
+                ok = ok && false;
             } else {
                 class_int.put(c.name, no_nodes_in_graph);
                 class_node.add(c);
@@ -214,7 +214,7 @@ public class Semantic {
             //checking if parent class is defined
             if (class_int.containsKey(c.parent) == false) {
                 reportError(c.filename, c.lineNo, "Class '" + c.name + "' inherits from an undefined class '" + c.parent + "'.");
-                ok = false;
+                ok = ok && false;
             }
 
             if (ok) {
