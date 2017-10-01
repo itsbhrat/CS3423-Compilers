@@ -1,3 +1,7 @@
 *.s
 *.class
 *.txt
+*.pdf
+*.aux
+*.out
+*.log

@@ -1,10 +1,12 @@
 \documentclass{article}
 \usepackage[margin=0.8in]{geometry}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{bookmark}
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{listings}
 
 \title{Mini-Assignment 2: CS3423 - Compilers - II}
 \author{S Vishwak\\
@@ -82,6 +84,62 @@ Below are the compile time and run time results obtained:
 \end{minipage}
 \end{figure}
 
-Notice the amazing improvement in the run time over slight increase in compile for Polly based optimizations.
+Notice the amazing improvement in the run time over slight increase in compile time for Polly based optimizations.
 \end{flushleft}
+
+\section{SCoP and Dependences}
+\subsection*{What are SCoPs?}
+\begin{flushleft}
+A Static Control Part is a set of statements executed consecutively given a set of loop bounds and conditions. These loop bounds and conditionals have to be an affine function of the loop parameters. Also it must be made sure that this set is maximal w.r.t. cardinality i.e., the number of statements has to be as high as possible.
+\(\newline\)
+
+Consider an example piece of code:
+\begin{lstlisting}
+for(int i = 0;i < 10;i++)
+{
+	for(int j = 0;j < 10;j++)
+	{
+		foo(i, j);
+	}
+}
+\end{lstlisting}
+
+The SCoP of the above section of code is: \(\{\texttt{stmt} | \texttt{stmt = foo(i, j)} \ni \texttt{ i, j} \in [0, 9] \text{ and } \texttt{i, j} \in \mathbb{Z}\}\). Note that this is maximal: \texttt{foo(i, j)} is executed for every possible pair of \texttt{i} and \texttt{j}. 
+
+It is also possible to write the constraints in an affine manner\footnote{Using the definition in this paper: \href{http://web.cs.ucla.edu/~pouchet/doc/cc-article.10.pdf}{Benabderrahmane et al}} as follows: 
+\begin{equation*}
+\begin{pmatrix}
+1 & 0 \\ 0 & 1 \\ -1 & 0 \\ 0 & -1
+\end{pmatrix}
+\begin{pmatrix}
+i \\ j
+\end{pmatrix} + 
+\begin{pmatrix}
+0 \\ 0 \\ 9 \\ 9 
+\end{pmatrix} \geq 0
+\end{equation*}
+
+This set of constraints turn out to represent the polyhedral model. The form of expression of the constraints is the reason why the SCoP detected by Polly have replaced \(<\) \texttt{N} with \(\leq\) \texttt{N - 1}.
+\end{flushleft}
+\subsection*{What are Dependences?}
+\begin{flushleft}
+Dependences come into picture when the order of execution is taken into account. We can tell a given statement \texttt{P} is dependent on \texttt{Q} if the execution of \texttt{P} is dependent on the result/execution of \texttt{Q}. Dependences\footnote{Most of the definitions and understanding is influenced by \href{https://en.wikipedia.org/wiki/Loop_dependence_analysis}{this Wikipedia page}} are classified into two types: \textit{data dependence} and \textit{control dependence}. \textit{Data dependencies} highlight the dependences of variables in the code whereas, \textit{Control dependencies} highlight the dependencies caused due to the algorithm itself.
+\(\newline\)
+
+There are three basic types of \textit{data dependencies}: \textit{true dependence}, \textit{anti dependence} and \textit{output dependence}. 
+
+\subsubsection*{True Dependence}
+\textit{True dependence} occurs when a location in memory is written to before being read from. For example, consider \texttt{P: a = 1729} and \texttt{Q: b = a}. Note that \texttt{Q} is true-dependent on \texttt{P}, otherwise the value of \texttt{b} would be junk. In the context of loops: it could happen that the statement to be executed in the current iteration is dependent on the previous iteration (like recursion). 
+
+\subsubsection*{Anti Dependence}
+\textit{Anti dependence} occurs when a location in memory is written to after being read from. Considering the same \texttt{P} and \texttt{Q}, we should be able to see that \texttt{P} is anti dependent on \texttt{Q}, if the order of execution is \texttt{Q}, then \texttt{P}. In the context of loops: it could happen that the statement to be executed reads from a variable and in the next iteration that variable is over-written. 
+
+\subsubsection*{Output Dependence}
+\textit{Output dependence} occurs when a location in memory is written to after being written to before. Consider the modified statement \texttt{R: b = 153}. Note that if the execution order is: \(\texttt{P} \rightarrow \texttt{Q} \rightarrow \texttt{R}\), then there is an output dependence between \texttt{Q} and \texttt{R}. In the context of loops: it could happen that there is a conditional counter, which is initialized at the beginning of the iteration, and modified every time the condition is satisfied. Generally all counter-based statements possess output dependence.
+
+\subsubsection*{Control Dependencies}
+\textit{Control dependence} occurs when the order of the execution of a set of statements is controlled - possibly by an algorithm. Example is an \texttt{if-then-else} statement, where the \texttt{if} check controls which set of statements are to be executed. 
+\end{flushleft}
+
+\section{Analysis of Polly generated IR and normal IR before optimizing}
 \end{document}
