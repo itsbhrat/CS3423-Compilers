@@ -141,5 +141,87 @@ There are three basic types of \textit{data dependencies}: \textit{true dependen
 \textit{Control dependence} occurs when the order of the execution of a set of statements is controlled - possibly by an algorithm. Example is an \texttt{if-then-else} statement, where the \texttt{if} check controls which set of statements are to be executed. 
 \end{flushleft}
 
-\section{Analysis of Polly generated IR and normal IR before optimizing}
+\section{Analysis of Optimized Code}
+Here, I generated the \texttt{.ll} LLVM IR files with \texttt{-O3}, \texttt{-mllvm -polly}, \texttt{-mllvm -polly -mllvm -polly-parallel}, \texttt{-mllvm -polly -mllvm -polly-vectorizer=stripmine} and \texttt{-mllvm -polly -mllvm -polly-tiling}. First I noticed a substantial increase in the amount of generated LLVM IR code when Polly was used. I used \texttt{opt} to help generate the LLVM IR code files for each optimization tag. Later I made use of the SCoP detection command to check the new SCoP. I believe that this code cannot be optimized a lot, hence only a small amount of loop unrolling was performed. Below are the SCoPs of the pre-optimized code and the optimized code.
+
+\begin{figure}[H]
+\begin{minipage}{0.45\linewidth}
+\includegraphics[width=0.9\textwidth]{./images/SCoP-1-before.png}
+\caption{\(1^{st}\) SCoP detected before optimization}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\linewidth}
+\includegraphics[width=0.9\textwidth]{./images/SCoP-1-after.png}
+\caption{\(1^{st}\) SCoP detected after optimization}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+\begin{minipage}{0.45\linewidth}
+\includegraphics[width=0.9\textwidth]{./images/SCoP-2-before.png}
+\caption{\(2^{nd}\) SCoP detected before optimization} 
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\linewidth}
+\includegraphics[width=0.9\textwidth]{./images/SCoP-2-after.png}
+\caption{\(2^{nd}\) SCoP detected after optimization}
+\end{minipage}
+\end{figure}
+
+\newpage
+\section*{Appendix}
+Code written to test Polly's capabilities. \texttt{N} was passed from the command line using \texttt{-D N=<insert number>}.
+\begin{lstlisting}
+#include <stdio.h>
+
+float A[N][N];
+float B[N][N];
+float C[N][N];
+
+void init_array()
+{
+    int i, j;
+
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            A[i][j] = (1+(i*j)%1024)/2.0;
+            B[i][j] = (1+(i*j)%1024)/2.0;
+        }
+    }
+}
+
+void print_array()
+{
+    int i, j;
+
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            fprintf(stdout, "%lf ", C[i][j]);
+            if (j%80 == 79) fprintf(stdout, "\n");
+        }
+        fprintf(stdout, "\n");
+    }
+}
+
+int main()
+{
+    int i, j, k;
+    double t_start, t_end;
+
+    init_array();
+
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            C[i][j] = 0;
+            for (k = 0; k < N; k++)
+                C[i][j] = C[i][j] + A[i][k] * B[k][j];
+        }
+    }
+
+#ifdef TEST
+    print_array();
+#endif
+    return 0;
+}
+\end{lstlisting}
 \end{document}
