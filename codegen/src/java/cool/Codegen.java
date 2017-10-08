@@ -34,10 +34,10 @@ public class Codegen {
             filename = cl.filename;
             insert_class(cl);
             List<AST.attr> attributes_list = new ArrayList<AST.attr>(classList.get(cl.name).attributes.values());
-            type_define(out, cl.name, attributes_list);
+//            typeDefine(out, cl.name, attributes_list);
 
             for (AST.method m : classList.get(cl.name).methods.values()) {
-                    declare(out, m.typeid, cl.name, m.name, m.formals);
+//                   declare(out, m.typeid, cl.name, m.name, m.formals);
             }
         }
     }

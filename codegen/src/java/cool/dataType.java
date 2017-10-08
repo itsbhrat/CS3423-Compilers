@@ -212,7 +212,7 @@ class Operand {
 	void setType(OpType t) {
 		type = t;
 	}
-	String getTypeName() {
+	String getTypename() {
 		return type.getName();
 	}
 	String getName() {

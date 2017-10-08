@@ -1,2 +1,0 @@
-#!/bin/bash
-java -cp ${CLASSPATH}../java cool.CodegenTest $1

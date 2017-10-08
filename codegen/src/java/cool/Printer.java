@@ -23,7 +23,7 @@ class Printer {
     void initConstant(PrintWriter out, String name, ConstValue op) {
         out.print("@" + name + " = ");
         out.print("constant " + op.getTypename() + " ");
-        if (op.get_type().getId() == Operand.INT8) {
+        if (op.getType().getId() == OpTypeId.INT8) {
             out.print("c\"");
             escapedString(out, op.getValue());
             out.print("\\00\"\n");
@@ -56,8 +56,8 @@ class Printer {
 
     void typeDefine(PrintWriter out, String className, List<OpType> attributes) {
         out.print("%class." + className + " = type { ");
-        for(int i = 0; i < args.size(); i++) {
-            if (i != args.size() - 1) { 
+        for(int i = 0; i < attributes.size(); i++) {
+            if (i != attributes.size() - 1) { 
                 out.print(attributes.get(i).getName() + ", ");
             } else {
                 out.print(attributes.get(i).getName() + " }\n");
@@ -70,11 +70,11 @@ class Printer {
     }
 
     void initStructConstant(PrintWriter out, Operand constant, List<OpType> fieldTypes, List<ConstValue> InitVals) {
-        out.print(constant.getName(), " = constant " + constant.getTypename() + "{\n");
+        out.print(constant.getName() + " = constant " + constant.getTypename() + "{\n");
         for(int i = 0; i < InitVals.size(); i++) {
             out.print("\t" + fieldTypes.get(i).getName() + " ");
-            if (InitVals.get(i).getType().getId() == Operand.INT8 && fieldTypes.get(i).getId() == Operand.INT8_PTR) {
-                getElementPtrEmbed(out, InitVals.get(i).getType(), InitVals.get(i), IntValue(0), IntValue(0));
+            if (InitVals.get(i).getType().getId() == OpTypeId.INT8 && fieldTypes.get(i).getId() == OpTypeId.INT8_PTR) {
+                getElementPtrEmbed(out, InitVals.get(i).getType(), InitVals.get(i), new IntValue(0), new IntValue(0));
             } else {
                 out.print(InitVals.get(i).getValue());
             }
@@ -93,7 +93,7 @@ class Printer {
 
     void arithOp(PrintWriter out, String operation, Operand op1, Operand op2, Operand result) {
         out.print("\t");
-        if (result.isEmpty() == false) {
+        if (result.getType().getId() != OpTypeId.VOID) {
             out.print(result.getName() + " = ");
         }
         out.print(operation + " " + op1.getTypename() + " " + op1.getName() + ", "  + op2.getName() + "\n");
@@ -113,13 +113,13 @@ class Printer {
     }
 
     void storeOp(PrintWriter out, Operand op, Operand result) {
-        out.print("\tstore " + op.getTypename() + " " + op.getName() + ", " result.getTypename() + " "
+        out.print("\tstore " + op.getTypename() + " " + op.getName() + ", " + result.getTypename() + " "
                     + result.getName() + "\n");
     }
     
     void getElementPtr(PrintWriter out, OpType type, List<Operand> operandList, Operand result) {
         out.print("\t");
-        if (result.getType().getId() != Operand.VOID) {
+        if (result.getType().getId() != OpTypeId.VOID) {
             out.print(result.getName() + " = ");
         }
         out.print("getelementptr " + type.getName() + ", ");
@@ -142,30 +142,30 @@ class Printer {
                     + op2.getTypename() + " " + op2.getName() + ", " + op3.getTypename() + " " + op3.getName() + "\n");
     }
 
-    void branchCondOp(PrintWriter out, Operand op, Label labelTrue, Label labelFalse) {
+    void branchCondOp(PrintWriter out, Operand op, String labelTrue, String labelFalse) {
         out.print("\tbr " + op.getTypename() + " " + op.getName() + ", label %" + labelTrue
                     + ", label %" + labelFalse + "\n");
     }
 
-    void branchUncondOp(PrintWriter out, Label label) {
+    void branchUncondOp(PrintWriter out, String label) {
         out.print("\tbr label %" + label + "\n");
     }
 
-    void compareOp(PrintWriter out, icmpVal cond, Operand op1, Operand op2, Operand result) {
+    void compareOp(PrintWriter out, String cond, Operand op1, Operand op2, Operand result) {
         out.print("\t" + result.getName() + " = icmp ");
-        if (cond == Operand.EQ) {
+        if (cond.equals("EQ")) {
             out.print("eq ");
-        } else if (cond == Operand.LT) {
+        } else if (cond.equals("LT")) {
             out.print("slt ");
-        } else if (cond == Operand.LE) {
+        } else if (cond.equals("LE")) {
             out.print("sle ");
         }
         out.print(op1.getTypename() + " " + op1.getName() + ", " + op2.getName() + "\n");
     }
 
-    void callOp(PrintWriter out, List<OpType> argTypes, string funcName, boolean isGlobal, List<Operand> args, Operand resultOp) {
+    void callOp(PrintWriter out, List<OpType> argTypes, String funcName, boolean isGlobal, List<Operand> args, Operand resultOp) {
         out.print("\t");
-        if (resultOp.getType().getId() != Operand.VOID) {
+        if (resultOp.getType().getId() != OpTypeId.VOID) {
             out.print(resultOp.getName() + " = ");
         }
         out.print("call " + resultOp.getTypename());
@@ -196,8 +196,8 @@ class Printer {
 
     void retOp(PrintWriter out, Operand op) {
         out.print("\tret ");
-        if (op.getType().getId() != Operand.VOID) {
-            out.print(opt.getTypename() + " " + op.getName() + "\n");
+        if (op.getType().getId() != OpTypeId.VOID) {
+            out.print(op.getTypename() + " " + op.getName() + "\n");
         } else {
             out.print("void\n");
         }    
