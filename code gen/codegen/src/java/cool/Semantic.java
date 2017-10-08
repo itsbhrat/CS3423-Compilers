@@ -15,7 +15,7 @@ public class Semantic {
 	 * @param filename Name of file
 	 * @param lineNo   Line number of AST Node
 	 * @param error    Error Message
-	*/
+	 */
 	public void reportError(String filename, int lineNo, String error){
 		errorFlag = true;
 		System.err.println(filename+":"+lineNo+": "+error);
