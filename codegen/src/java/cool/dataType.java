@@ -11,7 +11,7 @@ enum OpTypeId {
 class OpType {
 
 	protected OpTypeId id;
-	protected string  name;
+	protected String  name;
 
 	OpType() {
 		id = OpTypeId.EMPTY;
@@ -20,57 +20,57 @@ class OpType {
 	OpType(OpTypeId i) {
 		id = i;
 		switch (id) {
-		case OpTypeId.EMPTY:
+		case EMPTY:
 			name = "";
 			break;
-		case OpTypeId.VOID:
+		case VOID:
 			name = "void";
 			break;
-		case OpTypeId.INT1:
+		case INT1:
 			name = "i1";
 			break;
-		case OpTypeId.INT8:
+		case INT8:
 			name = "i8";
 			break;
-		case OpTypeId.INT32:
+		case INT32:
 			name = "i32";
 			break;
-		case OpTypeId.INT1_PTR:
+		case INT1_PTR:
 			name = "i1*";
 			break;
-		case OpTypeId.INT8_PTR:
+		case INT8_PTR:
 			name = "i8*";
 			break;
-		case OpTypeId.INT32_PTR:
+		case INT32_PTR:
 			name = "i32*";
 			break;
-		case OpTypeId.INT1_PPTR:
+		case INT1_PPTR:
 			name = "i1**";
 			break;
-		case OpTypeId.INT8_PPTR:
+		case INT8_PPTR:
 			name = "i8**";
 			break;
-		case OpTypeId.INT32_PPTR:
+		case INT32_PPTR:
 			name = "i32**";
 			break;
-		case OpTypeId.VAR_ARG:
+		case VAR_ARG:
 			name = "...";
 			break;
-		case OpTypeId.OBJ:
-		case OpTypeId.OBJ_PTR:
-		case OpTypeId.OBJ_PPTR:
+		case OBJ:
+		case OBJ_PTR:
+		case OBJ_PPTR:
 			break;
 		default:
-			assert 0 : "Variable type not implemented";
+			assert false : "Variable type not implemented";
 		}
 	}
 	//user defined type id are of type OBJ
-	OpType(string n) {
+	OpType(String n) {
 		id = OpTypeId.OBJ;
 		name = "%" + n;
 	}
 	//user defined types and single/double pointers
-	OpType(string n, int ptr_level) {
+	OpType(String n, int ptr_level) {
 		name = "%" + n;
 		id = OpTypeId.OBJ;
 		// Pointer to an object
@@ -84,15 +84,15 @@ class OpType {
 			name += "**";
 		}
 		if (ptr_level > 2 || ptr_level < 0)
-			assert 0 : "Invalid pointer level";
+			assert false : "Invalid pointer level";
 	}
 	OpTypeId getId() {
 		return id;
 	}
-	OpTypeId setId(OpTypeId i) {
+	void setId(OpTypeId i) {
 		id = i;
 	}
-	string getName() {
+	String getName() {
 		return name;
 	}
 	boolean isPtr() {
@@ -100,80 +100,80 @@ class OpType {
 		        (id == OpTypeId.INT32_PTR) || (id == OpTypeId.OBJ_PTR));
 	}
 	OpType getPtrType() {
-		OpTypeId ptrId;
+		OpTypeId ptrId = OpTypeId.EMPTY;
 		switch (id) {
-		case OpTypeId.INT1:
-			ptr_id = OpTypeId.INT1_PTR;
+		case INT1:
+			ptrId = OpTypeId.INT1_PTR;
 			break;
-		case OpTypeId.INT8:
-			ptr_id = OpTypeId.INT8_PTR;
+		case INT8:
+			ptrId = OpTypeId.INT8_PTR;
 			break;
-		case OpTypeId.INT32:
-			ptr_id = OpTypeId.INT32_PTR;
+		case INT32:
+			ptrId = OpTypeId.INT32_PTR;
 			break;
-		case OpTypeId.INT1_PTR:
-			ptr_id = OpTypeId.INT1_PPTR;
+		case INT1_PTR:
+			ptrId = OpTypeId.INT1_PPTR;
 			break;
-		case OpTypeId.INT8_PTR:
-			ptr_id = OpTypeId.INT8_PPTR;
+		case INT8_PTR:
+			ptrId = OpTypeId.INT8_PPTR;
 			break;
-		case OpTypeId.INT32_PTR:
-			ptr_id = OpTypeId.INT32_PPTR;
+		case INT32_PTR:
+			ptrId = OpTypeId.INT32_PPTR;
 			break;
-		case OpTypeId.OBJ:
-			ptr_id = OpTypeId.OBJ_PTR;
+		case OBJ:
+			ptrId = OpTypeId.OBJ_PTR;
 			break;
-		case OpTypeId.OBJ_PTR:
-			ptr_id = OpTypeId.OBJ_PPTR;
+		case OBJ_PTR:
+			ptrId = OpTypeId.OBJ_PPTR;
 			break;
 		default:
-			assert 0 : "getPtrType(): Type unsupported";
+			assert false : "getPtrType(): Type unsupported";
 		}
 		if (ptrId == OpTypeId.OBJ_PTR || ptrId == OpTypeId.OBJ_PPTR) {
 			OpType newType = new OpType(name.substring(1), 1);	//remove the % from the name
 			newType.setId(ptrId);
 			return newType;
 		} else {
-			return OpType(ptrId);
+			return (new OpType(ptrId));
 		}
 	}
 
 	OpType getDerefPtrType() {
-		OpTypeId derefId;
+		OpTypeId derefId = OpTypeId.EMPTY;
 		switch (id) {
-		case OpTypeId.INT1_PTR:
+		case INT1_PTR:
 			derefId = OpTypeId.INT1;
 			break;
-		case OpTypeId.INT8_PTR:
+		case INT8_PTR:
 			derefId = OpTypeId.INT8;
 			break;
-		case OpTypeId.INT32_PTR:
+		case INT32_PTR:
 			derefId = OpTypeId.INT32;
 			break;
-		case OpTypeId.INT1_PPTR:
+		case INT1_PPTR:
 			derefId = OpTypeId.INT1_PTR;
 			break;
-		case OpTypeId.INT8_PPTR:
+		case INT8_PPTR:
 			derefId = OpTypeId.INT8_PTR;
 			break;
-		case OpTypeId.INT32_PPTR:
+		case INT32_PPTR:
 			derefId = OpTypeId.INT32_PTR;
 			break;
-		case OpTypeId.OBJ_PTR:
+		case OBJ_PTR:
 			derefId = OpTypeId.OBJ;
 			break;
-		case OpTypeId.OBJ_PPTR:
+		case OBJ_PPTR:
 			derefId = OpTypeId.OBJ_PTR;
 			break;
 		default:
-			assert 0 : "get_deref_type(): Cannot get type after dereferencing";
+			assert false : "get_deref_type(): Cannot get type after dereferencing";
 		}
 		if (derefId == OpTypeId.OBJ || derefId == OpTypeId.OBJ_PTR) {
-			opType newType = new OpType(name.substring(1, name.length() - 1));	//remove % and last * from name
+			OpType newType = new OpType(name.substring(1, name.length() - 1));	//remove % and last * from name
 			newType.setId(derefId);
 			return newType;
 		} else {
-			return OpType(derefId);
+			return (new OpType(derefId));
 		}
 	}
 	boolean isPptr() {
@@ -197,12 +197,12 @@ class OpType {
 
 class Operand {
 	protected OpType type;
-	protected string name;
+	protected String name;
 	Operand() {
-		type = OpTypeId.EMPTY;
+		type = new OpType(OpTypeId.EMPTY);
 		name = "";
 	}
-	Operand(OpType t, string n) {
+	Operand(OpType t, String n) {
 		type = t;
 		name = "%" + n;
 	}
@@ -212,22 +212,22 @@ class Operand {
 	void setType(OpType t) {
 		type = t;
 	}
-	string getTypeName() {
-		return OpType.getName();
+	String getTypeName() {
+		return type.getName();
 	}
-	string getName() {
+	String getName() {
 		return name;
 	}
 }
 
 class GlobalValue extends Operand {
 	private Operand value;
-	GlobalValue(OpType t, string n, Operand v) {
+	GlobalValue(OpType t, String n, Operand v) {
 		type = t;
 		name = "@" + n;
 		value = v;
 	}
-	GlobalValue(OpType t, string n) {
+	GlobalValue(OpType t, String n) {
 		type = t;
 		name = "@" + n;
 	}
@@ -236,30 +236,30 @@ class GlobalValue extends Operand {
 	}
 }
 class ConstValue extends Operand {
-	protected string value;
-	ConstValue(OpType t, string val) {
+	protected String value;
+	ConstValue(OpType t, String val) {
 		value = val;
 		type = t;
 		name = val;
 	}
-	string getValue() {
+	String getValue() {
 		return value;
 	}
 }
 class CasedtValue extends ConstValue {
 	protected OpType precastType;
-	CasedtValue(OpType t, string val, OpType precast) {
+	CasedtValue(OpType t, String val, OpType precast) {
 		super(t, "bitcast " + precast.getName() + " " + val + "to " + t.getName());
 		precastType = precast;
 	}
-	string getPrecastType() {
+	OpType getPrecastType() {
 		return precastType;
 	}	
 }
 class IntValue extends ConstValue {
 	private int iValue;
 	IntValue(int i) {
-		super(OpType(OpTypeId.INT32), String.valueOf(i));
+		super(new OpType(OpTypeId.INT32), String.valueOf(i));
 		iValue = i;
 	}
 	int getIntValue() {
@@ -269,7 +269,7 @@ class IntValue extends ConstValue {
 class BoolValue extends ConstValue {
 	private boolean bValue;
 	BoolValue(boolean b) {
-		super(OpType(OpTypeId.INT1), "");
+		super(new OpType(OpTypeId.INT1), "");
 		bValue = b;
 		if(b)
 			value = "true";
@@ -277,7 +277,7 @@ class BoolValue extends ConstValue {
 			value = "false";
 		name = value;
 	}
-	int getBoolValue() {
+	boolean getBoolValue() {
 		return bValue;
 	}
 }
