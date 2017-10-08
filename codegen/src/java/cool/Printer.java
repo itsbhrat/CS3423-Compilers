@@ -22,9 +22,6 @@ class Printer {
 
     void initConstant(PrintWriter out, String name, ConstValue op) {
         out.print("@" + name + " = ");
-        if (op.isInternal() == true) {
-            out.print("internal ");
-        }
         out.print("constant " + op.getTypename() + " ");
         if (op.get_type().getId() == Operand.INT8) {
             out.print("c\"");
@@ -33,10 +30,6 @@ class Printer {
         } else {
             out.print(op.getValue() + "\n");
         }
-    }
-
-    void initExtConstant(PrintWriter out, String name, OpType type) {
-        out.print("@" + name + " = " + "external constant " + type.getName() + "\n");
     }
 
     void define(PrintWriter out, OpType retType, String name, List<Operand> args) {
@@ -81,7 +74,7 @@ class Printer {
         for(int i = 0; i < InitVals.size(); i++) {
             out.print("\t" + fieldTypes.get(i).getName() + " ");
             if (InitVals.get(i).getType().getId() == Operand.INT8 && fieldTypes.get(i).getId() == Operand.INT8_PTR) {
-                getElementPtr(out, InitVals.get(i).getType(), InitVals.get(i), IntValue(0), IntValue(0));
+                getElementPtrEmbed(out, InitVals.get(i).getType(), InitVals.get(i), IntValue(0), IntValue(0));
             } else {
                 out.print(InitVals.get(i).getValue());
             }
@@ -102,7 +95,7 @@ class Printer {
         out.print("\t");
         if (result.isEmpty() == false) {
             out.print(result.getName() + " = ");
-        } 
+        }
         out.print(operation + " " + op1.getTypename() + " " + op1.getName() + ", "  + op2.getName() + "\n");
     }
 
@@ -119,5 +112,99 @@ class Printer {
                     + op.getName() + "\n");
     }
 
+    void storeOp(PrintWriter out, Operand op, Operand result) {
+        out.print("\tstore " + op.getTypename() + " " + op.getName() + ", " result.getTypename() + " "
+                    + result.getName() + "\n");
+    }
     
+    void getElementPtr(PrintWriter out, OpType type, List<Operand> operandList, Operand result) {
+        out.print("\t");
+        if (result.getType().getId() != Operand.VOID) {
+            out.print(result.getName() + " = ");
+        }
+        out.print("getelementptr " + type.getName() + ", ");
+        for(int i = 0; i < operandList.size(); i++) {        
+            if (i != operandList.size() - 1) {
+                 out.print(operandList.get(i).getTypename() + " " + operandList.get(i).getName() + ", ");
+            } else {
+                 out.print(operandList.get(i).getTypename() + " " + operandList.get(i).getName() + "\n");
+            }
+        }
+    }
+    
+    void getElementPtrEmbed(PrintWriter out, OpType type, Operand op1, Operand op2, Operand op3) {
+        out.print("\tgetelementptr (" + type.getName() + ", " + op1.getTypename() + "* " + op1.getName() + ", "
+                    + op2.getTypename() + " " + op2.getName() + ", " + op3.getTypename() + " " + op3.getName() + ")\n");
+    }
+
+    void selectOp(PrintWriter out, Operand op1, Operand op2, Operand op3, Operand result) {
+        out.print("\t" + result.getName() + " = select " + op1.getTypename() + " " + op1.getName() + ", "
+                    + op2.getTypename() + " " + op2.getName() + ", " + op3.getTypename() + " " + op3.getName() + "\n");
+    }
+
+    void branchCondOp(PrintWriter out, Operand op, Label labelTrue, Label labelFalse) {
+        out.print("\tbr " + op.getTypename() + " " + op.getName() + ", label %" + labelTrue
+                    + ", label %" + labelFalse + "\n");
+    }
+
+    void branchUncondOp(PrintWriter out, Label label) {
+        out.print("\tbr label %" + label + "\n");
+    }
+
+    void compareOp(PrintWriter out, icmpVal cond, Operand op1, Operand op2, Operand result) {
+        out.print("\t" + result.getName() + " = icmp ");
+        if (cond == Operand.EQ) {
+            out.print("eq ");
+        } else if (cond == Operand.LT) {
+            out.print("slt ");
+        } else if (cond == Operand.LE) {
+            out.print("sle ");
+        }
+        out.print(op1.getTypename() + " " + op1.getName() + ", " + op2.getName() + "\n");
+    }
+
+    void callOp(PrintWriter out, List<OpType> argTypes, string funcName, boolean isGlobal, List<Operand> args, Operand resultOp) {
+        out.print("\t");
+        if (resultOp.getType().getId() != Operand.VOID) {
+            out.print(resultOp.getName() + " = ");
+        }
+        out.print("call " + resultOp.getTypename());
+        if (argTypes.size() > 0) {
+            out.print("(");
+            for (int i = 0; i < argTypes.size(); i++) {
+                if (i != argTypes.size() - 1) {
+                    out.print(argTypes.get(i).getName() + ", ");
+                } else {
+                    out.print(argTypes.get(i).getName() + ") ");
+                }
+            }
+        }
+        if (isGlobal == true) {
+            out.print("@");
+        } else {
+            out.print("%");
+        } 
+        out.print(funcName + "( ");
+        for (int i = 0; i < args.size(); i++) {
+            if (i != args.size() - 1) {            
+                out.print(args.get(i).getTypename() + " " + args.get(i).getName() + ", ");
+            } else {
+                out.print(args.get(i).getTypename() + " " + args.get(i).getName() + ")\n");
+            }
+        }
+    }
+
+    void retOp(PrintWriter out, Operand op) {
+        out.print("\tret ");
+        if (op.getType().getId() != Operand.VOID) {
+            out.print(opt.getTypename() + " " + op.getName() + "\n");
+        } else {
+            out.print("void\n");
+        }    
+    }
+
+    void bitcastOp(PrintWriter out, Operand op, OpType newType, Operand result) {
+        out.print("\t" + result.getName() + " = bitcast " + op.getTypename() + " " + op.getName() + " to "
+                    + newType.getName() + "\n");
+    }
 }
