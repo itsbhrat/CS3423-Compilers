@@ -10,8 +10,8 @@ enum OpTypeId {
 /* Mapping Data Types & Data Type Names */
 class OpType {
 
-	private OpTypeId id;
-	private string  name;
+	protected OpTypeId id;
+	protected string  name;
 
 	OpType() {
 		id = OpTypeId.EMPTY;
@@ -194,19 +194,96 @@ class OpType {
 	}
 }
 
-/* Arrays Data Types as derived from op_type */
 
-/* Array type
- * Format: [size x type]
- */
-class OpArrType extends OpType {
-
-	private	int size;
-
-	OpArrType(OpTypeId i, int s) {
-		super(i);
-
+class Operand {
+	protected OpType type;
+	protected string name;
+	Operand() {
+		type = OpTypeId.EMPTY;
+		name = "";
 	}
-	int get_size() { return size; }
-	op_type_id get_id() { return id; }
-};
+	Operand(OpType t, string n) {
+		type = t;
+		name = "%" + n;
+	}
+	OpType getType() {
+		return type;
+	}
+	void setType(OpType t) {
+		type = t;
+	}
+	string getTypeName() {
+		return OpType.getName();
+	}
+	string getName() {
+		return name;
+	}
+}
+
+class GlobalValue extends Operand {
+	private Operand value;
+	GlobalValue(OpType t, string n, Operand v) {
+		type = t;
+		name = "@" + n;
+		value = v;
+	}
+	GlobalValue(OpType t, string n) {
+		type = t;
+		name = "@" + n;
+	}
+	Operand getValue() {
+		return value;
+	}
+}
+class ConstValue extends Operand {
+	protected string value;
+	ConstValue(OpType t, string val) {
+		value = val;
+		type = t;
+		name = val;
+	}
+	string getValue() {
+		return value;
+	}
+}
+class CasedtValue extends ConstValue {
+	protected OpType precastType;
+	CasedtValue(OpType t, string val, OpType precast) {
+		super(t, "bitcast " + precast.getName() + " " + val + "to " + t.getName());
+		precastType = precast;
+	}
+	string getPrecastType() {
+		return precastType;
+	}	
+}
+class IntValue extends ConstValue {
+	private int iValue;
+	IntValue(int i) {
+		super(OpType(OpTypeId.INT32), String.valueOf(i));
+		iValue = i;
+	}
+	int getIntValue() {
+		return iValue;
+	}
+}
+class BoolValue extends ConstValue {
+	private boolean bValue;
+	BoolValue(boolean b) {
+		super(OpType(OpTypeId.INT1), "");
+		bValue = b;
+		if(b)
+			value = "true";
+		else
+			value = "false";
+		name = value;
+	}
+	int getBoolValue() {
+		return bValue;
+	}
+}
+
+class NullValue extends ConstValue {
+	NullValue(OpType t) {
+		super(t, "null");
+	}
+}
