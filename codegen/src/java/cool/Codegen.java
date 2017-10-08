@@ -57,28 +57,4 @@ public class Codegen {
         }           
         classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class_attributes, cur_class_methods));
     }
-
-    public void type_define(PrintWriter out, String class_name, List<AST.attr> attributes) {
-        out.print("%class." + class_name + " = type {");
-        for (int i = 0; i < attributes.size(); i++) {
-            if (i != attributes.size() - 1) {
-                out.print(" " + types_map.get(attributes.get(i).typeid) + ",");
-            } else {
-                out.print(" " + types_map.get(attributes.get(i).typeid) + "");
-            }
-        }
-        out.print(" }\n");
-    }
-
-    public void declare(PrintWriter out, String ret_type, String class_name, String method_name, List<AST.formal> formals) {
-        out.print("declare " + types_map.get(ret_type) + " @" + class_name + "_" + method_name + "(");
-        for (int i = 0; i < formals.size(); i++) {
-            if (i != formals.size() - 1) {
-                out.print(" " + types_map.get(formals.get(i).typeid) + ",");
-            } else {
-                out.print(" " + types_map.get(formals.get(i).typeid) + "");
-            }
-        }
-        out.print(" )\n");
-    }
 }
