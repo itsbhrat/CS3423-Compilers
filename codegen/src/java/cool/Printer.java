@@ -41,7 +41,7 @@ class Printer {
                 out.print(args.get(i).getTypename() + " " + args.get(i).getName() + "");
             }
         }
-        out.print(") {\n");
+        out.print(" ) {\n");
     }
 
     void declare(PrintWriter out, OpType retType, String name, List<Operand> args) {
@@ -91,7 +91,7 @@ class Printer {
     }
 
     void beginBlock(PrintWriter out, String label) {
-        out.print("\n" + label + ":\n");
+        out.print(label + ":\n");
     }
 
     void arithOp(PrintWriter out, String operation, Operand op1, Operand op2, Operand result) {
@@ -120,12 +120,16 @@ class Printer {
                     + result.getName() + "\n");
     }
     
-    void getElementPtr(PrintWriter out, OpType type, List<Operand> operandList, Operand result) {
+    void getElementPtr(PrintWriter out, OpType type, List<Operand> operandList, Operand result, boolean inbounds) {
         out.print("\t");
         if (result.getType().getId() != OpTypeId.VOID) {
             out.print(result.getName() + " = ");
         }
-        out.print("getelementptr " + type.getName() + ", ");
+        out.print("getelementptr ");
+        if (inbounds == true) {
+            out.print("inbounds ");
+        } 
+        out.print(type.getName() + ", ");
         for(int i = 0; i < operandList.size(); i++) {        
             if (i != operandList.size() - 1) {
                  out.print(operandList.get(i).getTypename() + " " + operandList.get(i).getName() + ", ");
