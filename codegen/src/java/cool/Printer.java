@@ -38,9 +38,10 @@ class Printer {
             if (i != args.size() - 1) {
                 out.print(args.get(i).getTypename() + " " + args.get(i).getName() + ", ");
             } else {
-                out.print(args.get(i).getTypename() + " " + args.get(i).getName() + ") {\n");
+                out.print(args.get(i).getTypename() + " " + args.get(i).getName() + "");
             }
         }
+        out.print(") {\n");
     }
 
     void declare(PrintWriter out, OpType retType, String name, List<Operand> args) {
@@ -49,9 +50,10 @@ class Printer {
             if (i != args.size() - 1) {
                 out.print(args.get(i).getName() + ", ");
             } else {
-                out.print(args.get(i).getName() + ")\n");
+                out.print(args.get(i).getName() + "");
             }
         }
+        out.print(" )\n");
     }
 
     void typeDefine(PrintWriter out, String className, List<OpType> attributes) {
@@ -60,9 +62,10 @@ class Printer {
             if (i != attributes.size() - 1) { 
                 out.print(attributes.get(i).getName() + ", ");
             } else {
-                out.print(attributes.get(i).getName() + " }\n");
+                out.print(attributes.get(i).getName() + "");
             }
         }
+        out.print(" }\n");
     }
 
     void typeAliasDefine(PrintWriter out, String aliasName, OpType type) {

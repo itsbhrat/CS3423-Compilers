@@ -2,7 +2,7 @@ class Main {
     i : Int;
     j : String;
     k : Bool;
-    foo(i : Int) : String {
+    foo(a: Int, b: Bool, c: String) : String {
         {        
             "Hi";
         }
@@ -14,9 +14,9 @@ class Main {
         }
     };
 
-    bar() : Object {
+    bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
-            j <- foo(10);        
+            j <- foo(10, true, "Hi");
         }
     };
 };
