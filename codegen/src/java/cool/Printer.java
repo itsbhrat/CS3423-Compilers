@@ -44,7 +44,7 @@ class Printer {
         out.print(" ) {\n");
     }
 
-    void declare(PrintWriter out, OpType retType, String name, List<Operand> args) {
+    void declare(PrintWriter out, OpType retType, String name, List<OpType> args) {
         out.print("declare " + retType.getName() + " @" + name + "( ");
         for(int i = 0; i < args.size(); i++) {
             if (i != args.size() - 1) {
