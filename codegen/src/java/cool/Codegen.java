@@ -63,6 +63,10 @@ public class Codegen {
         print_util.declare(out, string_type, "malloc", params);
         print_util.declare(out, new OpType(OpTypeId.VOID), "exit", params);
 
+        // Format specifiers in C : %d and %s
+        out.print("@strfmt = private unnamed_addr constant [3 x i8] c\"%d\\00\", align 1\n");
+        out.print("@intfmt = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n");
+
         for (AST.class_ cl : program.classes) {
             filename = cl.filename;
             insert_class(cl);
@@ -76,10 +80,19 @@ public class Codegen {
                     pre_def_string(out, "substr");
                     pre_def_string(out, "copy");
                 } else if (cl.name.equals("Object")) {
-//                    pre_def_object(out, "copy");
-//                    pre_def_object(out, "type_name");
-//                    pre_def_object(out, "abort");
+                    pre_def_object(out, "copy");            // To be implemented
+                    pre_def_object(out, "type_name");       // To be implemented
+                    pre_def_object(out, "abort");           // To be implemented
                 }
+                continue;
+            }
+
+            // Similarly for IO, just as above
+            else if (cl.name.equals("IO")) {
+                pre_def_io(out, "in_int");
+                pre_def_io(out, "in_string");
+                pre_def_io(out, "out_int");
+                pre_def_io(out, "out_string");
                 continue;
             }
             // Taking the attributes of the class first and generating code for it
@@ -104,7 +117,7 @@ public class Codegen {
                     4. Call the define function
                 */
                 List<Operand> arguments = new ArrayList<Operand>();
-                arguments.add(new Operand(get_optype(cl.name, false, 1), "this"));
+                arguments.add(new Operand(get_optype(cl.name, true, 1), "this"));
                 for (AST.formal f : mtd.formals) {
                     Operand cur_arg = new Operand(get_optype(f.typeid, true, 0), f.name);
                     arguments.add(cur_arg);
@@ -144,8 +157,10 @@ public class Codegen {
             return new OpType(OpTypeId.INT32);
         } else if (typeid.equals("Bool") && isClass == true) {
             return new OpType(OpTypeId.INT1);
-        } else {
+        } else if (isClass == true) {
             return new OpType("class." + typeid, depth);
+        } else {
+            return new OpType(typeid, depth);
         }
     }
 
@@ -157,12 +172,12 @@ public class Codegen {
 
         // List of Operand for attributes
         List<Operand> cons_arg_list = new ArrayList<Operand>();
-        cons_arg_list.add(new Operand(get_optype(class_name, false, 1), "this"));
+        cons_arg_list.add(new Operand(get_optype(class_name, true, 1), "this"));
 
         // Define the constructor and establish pointer information
         print_util.define(out, new OpType(OpTypeId.VOID), method_name, cons_arg_list);
         print_util.beginBlock(out, "entry");
-        print_util.allocaOp(out, get_optype(class_name, false, 1), new Operand(get_optype(class_name, false, 1), "this.addr"));
+        print_util.allocaOp(out, get_optype(class_name, true, 1), new Operand(get_optype(class_name, true, 1), "this.addr"));
         load_store_classOp(out, class_name, "this");
 
         /* For each attribute:
@@ -176,13 +191,13 @@ public class Codegen {
             AST.attr cur_attr = cur_class_attr_list.get(i);         // Get the current attribute
             Operand result = new Operand(int_type, cur_attr.name);    // Generate Operand
             List<Operand> operand_list = new ArrayList<Operand>();                      // Generate List<Operand> to be passed to a func
-            operand_list.add(new Operand(get_optype(class_name, false, 1), "this1"));
+            operand_list.add(new Operand(get_optype(class_name, true, 1), "this1"));
 
             // Int attribute codegen
             if (cur_attr.typeid.equals("Int")) {
                 operand_list.add((Operand)new IntValue(0));
                 operand_list.add((Operand)new IntValue(i));
-                print_util.getElementPtr(out, get_optype(class_name, false, 0), operand_list, result, true);    // That func is here
+                print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);    // That func is here
                 OpType ptr = new OpType(OpTypeId.INT32_PTR);
                 if (cur_attr.value instanceof AST.no_expr) {
                     print_util.storeOp(out, (Operand)new IntValue(0), new Operand(ptr, cur_attr.name));
@@ -201,13 +216,13 @@ public class Codegen {
                 // Do something
             }
         }
-        out.print("}\n");
+        print_util.retOp(out, new Operand(new OpType(OpTypeId.VOID), "retval"));
     }
 
     // Utility function to perform load store pair operation for constructors
     public void load_store_classOp(PrintWriter out, String type_name, String obj_name) {
-        OpType ptr = get_optype(type_name, false, 1);
-        OpType dptr = get_optype(type_name, false, 2);
+        OpType ptr = get_optype(type_name, true, 1);
+        OpType dptr = get_optype(type_name, true, 2);
         Operand op = new Operand(ptr, obj_name);
         Operand op_addr = new Operand(dptr, obj_name + ".addr");
         print_util.storeOp(out, op, op_addr);
@@ -218,34 +233,35 @@ public class Codegen {
     public void pre_def_string(PrintWriter out, String f_name) {
         String new_method_name = "String_" + f_name;
         Operand return_val = null;
-        List<Operand> arguments = new ArrayList<Operand>();
+        List<Operand> arguments = null;
 
         // Emitting code for length
         if (f_name.equals("length")) {
             return_val = new Operand(int_type, "retval");
+            arguments = new ArrayList<Operand>();
             arguments.add(new Operand(string_type, "this"));
             print_util.define(out, return_val.getType(), new_method_name, arguments);
             print_util.beginBlock(out, "entry");
             print_util.callOp(out, new ArrayList<OpType>(), "strlen", true, arguments, return_val);
             print_util.retOp(out, return_val);
-            out.println("}");
         }
 
         // Emitting code for cat        
         else if (f_name.equals("cat")) {
             return_val = new Operand(string_type, "retval");
+            arguments = new ArrayList<Operand>();
             arguments.add(new Operand(string_type, "this"));
             arguments.add(new Operand(string_type, "that"));
             print_util.define(out, return_val.getType(), new_method_name, arguments);
             print_util.beginBlock(out, "entry");
             print_util.callOp(out, new ArrayList<OpType>(), "strcat", true, arguments, return_val);
             print_util.retOp(out, return_val);
-            out.println("}");
         }
 
         // Emitting code for substr
         else if (f_name.equals("substr")) {
             return_val = new Operand(string_type, "retval");
+            arguments = new ArrayList<Operand>();
             arguments.add(new Operand(string_type, "this"));
             arguments.add(new Operand(int_type, "start"));
             arguments.add(new Operand(int_type, "len"));            
@@ -271,12 +287,12 @@ public class Codegen {
             arguments.add(new Operand(int_type, "len"));
             print_util.callOp(out, new ArrayList<OpType>(), "strncpy", true, arguments, return_val);
             print_util.retOp(out, return_val);
-            out.println("}");            
         }
 
         // Emitting code for copy
         else if (f_name.equals("copy")) {
             return_val = new Operand(string_type, "retval");
+            arguments = new ArrayList<Operand>();
             arguments.add(new Operand(string_type, "this"));
             print_util.define(out, return_val.getType(), new_method_name, arguments);
             print_util.beginBlock(out, "entry");
@@ -292,7 +308,121 @@ public class Codegen {
             arguments.add(new Operand(string_type, "this"));
             print_util.callOp(out, new ArrayList<OpType>(), "strcpy", true, arguments, return_val);
             print_util.retOp(out, return_val);
-            out.println("}");
+        }
+    }
+
+    public void pre_def_object(PrintWriter out, String f_name) {
+        // Do Something    
+    }
+
+    public void pre_def_io(PrintWriter out, String f_name) {
+        String new_method_name = "IO_" + f_name;
+        Operand return_val = null;
+        List<Operand> arguments = null;
+
+        // Method for generating the out_string method
+        if (f_name.equals("out_string")) {
+            return_val = new Operand(get_optype("IO", true, 1), "this");
+            arguments = new ArrayList<Operand>();
+            arguments.add(return_val);
+            arguments.add(new Operand(string_type, "given"));
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+
+            out.println("\t%0 = bitcast [3 x i8]* @strfmt to i8*");
+            
+            return_val = new Operand(int_type, "1");
+            arguments = new ArrayList<Operand>();
+            arguments.add(new Operand(string_type, "0"));
+            arguments.add(new Operand(string_type, "given"));
+            List<OpType> argTypes = new ArrayList<OpType>();
+            argTypes.add(string_type);
+            argTypes.add(new OpType(OpTypeId.VAR_ARG));
+            print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
+
+            return_val = new Operand(get_optype("IO", true, 1), "this");
+            print_util.retOp(out, return_val);
+        }
+
+        // Method for generating the out_int method
+        else if (f_name.equals("out_int")) {
+            return_val = new Operand(get_optype("IO", true, 1), "this");
+            arguments = new ArrayList<Operand>();
+            arguments.add(return_val);
+            arguments.add(new Operand(int_type, "given"));
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+
+            out.println("\t%0 = bitcast [3 x i8]* @intfmt to i8*");
+            
+            return_val = new Operand(int_type, "1");
+            arguments = new ArrayList<Operand>();
+            arguments.add(new Operand(string_type, "0"));
+            arguments.add(new Operand(int_type, "given"));
+            List<OpType> argTypes = new ArrayList<OpType>();
+            argTypes.add(string_type);
+            argTypes.add(new OpType(OpTypeId.VAR_ARG));
+            print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
+
+            return_val = new Operand(get_optype("IO", true, 1), "this");
+            print_util.retOp(out, return_val);
+        }
+
+        // Method for generating the in_string method
+        else if (f_name.equals("in_string")) {
+            return_val = new Operand(string_type, "retval");
+            arguments = new ArrayList<Operand>();
+            arguments.add(return_val);
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+
+            out.println("\t%0 = bitcast [3 x i8]* @intfmt to i8*");
+            
+            return_val = new Operand(string_type, "retval");
+            arguments = new ArrayList<Operand>();
+            arguments.add((Operand)new IntValue(1024));
+            print_util.callOp(out, new ArrayList<OpType>(), "malloc", true, arguments, return_val);
+            
+            return_val = new Operand(int_type, "1");
+            arguments = new ArrayList<Operand>();
+            arguments.add(new Operand(string_type, "0"));
+            arguments.add(new Operand(string_type, "retval"));
+            List<OpType> argTypes = new ArrayList<OpType>();
+            argTypes.add(string_type);
+            argTypes.add(new OpType(OpTypeId.VAR_ARG));
+            print_util.callOp(out, argTypes, "scanf", true, arguments, return_val);
+            print_util.retOp(out, arguments.get(1));
+        }
+
+        // Method for generating the in_int method
+        else if (f_name.equals("in_int")) {
+            return_val = new Operand(int_type, "retval");
+            arguments = new ArrayList<Operand>();
+            arguments.add(return_val);
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+
+            out.println("\t%0 = bitcast [3 x i8]* @intfmt to i8*");
+            
+            return_val = new Operand(string_type, "1");
+            arguments = new ArrayList<Operand>();
+            arguments.add((Operand)new IntValue(4));
+            print_util.callOp(out, new ArrayList<OpType>(), "malloc", true, arguments, return_val);
+            
+            out.println("\t%2 = bitcast i8* %1 to i32*");
+
+            return_val = new Operand(int_type, "3");
+            arguments = new ArrayList<Operand>();
+            arguments.add(new Operand(string_type, "0"));
+            arguments.add(new Operand(new OpType(OpTypeId.INT32_PTR), "2"));
+            List<OpType> argTypes = new ArrayList<OpType>();
+            argTypes.add(string_type);
+            argTypes.add(new OpType(OpTypeId.VAR_ARG));
+            print_util.callOp(out, argTypes, "scanf", true, arguments, return_val);
+
+            return_val = new Operand(int_type, "retval");
+            print_util.loadOp(out, int_type, arguments.get(1), return_val);
+            print_util.retOp(out, return_val);
         }
     }
 }

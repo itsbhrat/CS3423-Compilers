@@ -177,7 +177,7 @@ class Printer {
         }
         out.print("call " + resultOp.getTypename());
         if (argTypes.size() > 0) {
-            out.print("(");
+            out.print(" (");
             for (int i = 0; i < argTypes.size(); i++) {
                 if (i != argTypes.size() - 1) {
                     out.print(argTypes.get(i).getName() + ", ");
@@ -209,6 +209,7 @@ class Printer {
         } else {
             out.print("void\n");
         }    
+        out.print("}\n");
     }
 
     void bitcastOp(PrintWriter out, Operand op, OpType newType, Operand result) {
