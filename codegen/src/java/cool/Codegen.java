@@ -21,14 +21,15 @@ public class Codegen {
     HashMap<String, ClassNode> classList = new HashMap<String, ClassNode>();
     Printer print_util = new Printer();
 
+    OpType string_type = get_optype("String", true, 0);
+    OpType int_type = get_optype("Int", true, 0);
+    OpType bool_type = get_optype("Bool", true, 0);
+
 	public Codegen(AST.program program, PrintWriter out){
 		// Write Code generator code here
         out.print("; I am a comment in LLVM-IR. Feel free to remove me.\n");
 
         // C String Functions required: strlen, strcat, str(n)cpy
-        OpType string_type = get_optype("String", true, 0);
-        OpType int_type = get_optype("Int", true, 0);
-        OpType bool_type = get_optype("Bool", true, 0);
         List<OpType> params;
 
         // String concatenation
@@ -42,7 +43,7 @@ public class Codegen {
 
         // String n copy
         params.add(int_type);
-        print_util.declare(out, string_type, "strcat", params);
+        print_util.declare(out, string_type, "strncpy", params);
 
         // String length
         params = new ArrayList<OpType>();
@@ -56,10 +57,31 @@ public class Codegen {
         print_util.declare(out, int_type, "printf", params);
         print_util.declare(out, int_type, "scanf", params);
 
+        // C Misc Function required: malloc and exit
+        params = new ArrayList<OpType>();
+        params.add(int_type);
+        print_util.declare(out, string_type, "malloc", params);
+        print_util.declare(out, new OpType(OpTypeId.VOID), "exit", params);
+
         for (AST.class_ cl : program.classes) {
             filename = cl.filename;
             insert_class(cl);
 
+            // If the class is one of the predefined classes in COOL, we only require the functions
+            // and not the class itself
+            if (cl.name.equals("Int") || cl.name.equals("String") || cl.name.equals("Bool") || cl.name.equals("Object")) {
+                if (cl.name.equals("String")) {
+                    pre_def_string(out, "length");
+                    pre_def_string(out, "cat");
+                    pre_def_string(out, "substr");
+                    pre_def_string(out, "copy");
+                } else if (cl.name.equals("Object")) {
+//                    pre_def_object(out, "copy");
+//                    pre_def_object(out, "type_name");
+//                    pre_def_object(out, "abort");
+                }
+                continue;
+            }
             // Taking the attributes of the class first and generating code for it
             List<OpType> attribute_types = new ArrayList<OpType>();
             for (AST.attr attribute : classList.get(cl.name).attributes) {
@@ -152,7 +174,7 @@ public class Codegen {
         List<AST.attr> cur_class_attr_list = classList.get(class_name).attributes;
         for (int i = 0; i < cur_class_attr_list.size(); i++) {
             AST.attr cur_attr = cur_class_attr_list.get(i);         // Get the current attribute
-            Operand result = new Operand(get_optype("Int", true, 0), cur_attr.name);    // Generate Operand
+            Operand result = new Operand(int_type, cur_attr.name);    // Generate Operand
             List<Operand> operand_list = new ArrayList<Operand>();                      // Generate List<Operand> to be passed to a func
             operand_list.add(new Operand(get_optype(class_name, false, 1), "this1"));
 
@@ -193,9 +215,84 @@ public class Codegen {
     }
 
     // Utility function to generate body for all String functions
-    public void string_functions(PrintWriter out, String f_name) {
+    public void pre_def_string(PrintWriter out, String f_name) {
+        String new_method_name = "String_" + f_name;
+        Operand return_val = null;
+        List<Operand> arguments = new ArrayList<Operand>();
+
+        // Emitting code for length
         if (f_name.equals("length")) {
+            return_val = new Operand(int_type, "retval");
+            arguments.add(new Operand(string_type, "this"));
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+            print_util.callOp(out, new ArrayList<OpType>(), "strlen", true, arguments, return_val);
+            print_util.retOp(out, return_val);
+            out.println("}");
+        }
+
+        // Emitting code for cat        
+        else if (f_name.equals("cat")) {
+            return_val = new Operand(string_type, "retval");
+            arguments.add(new Operand(string_type, "this"));
+            arguments.add(new Operand(string_type, "that"));
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+            print_util.callOp(out, new ArrayList<OpType>(), "strcat", true, arguments, return_val);
+            print_util.retOp(out, return_val);
+            out.println("}");
+        }
+
+        // Emitting code for substr
+        else if (f_name.equals("substr")) {
+            return_val = new Operand(string_type, "retval");
+            arguments.add(new Operand(string_type, "this"));
+            arguments.add(new Operand(int_type, "start"));
+            arguments.add(new Operand(int_type, "len"));            
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+
+            return_val = new Operand(string_type, "0");
+            arguments = new ArrayList<Operand>();
+            arguments.add((Operand)new IntValue(1024));
+            print_util.callOp(out, new ArrayList<OpType>(), "malloc", true, arguments, return_val);
+
+            return_val = new Operand(string_type, "1");
+            arguments = new ArrayList<Operand>();
+            arguments.add(new Operand(string_type, "this"));
+            arguments.add((Operand)new IntValue(0));
+            arguments.add(new Operand(int_type, "start"));
+            print_util.getElementPtr(out, string_type, arguments, return_val, true);
             
+            return_val = new Operand(string_type, "retval");
+            arguments = new ArrayList<Operand>();
+            arguments.add(new Operand(string_type, "0"));
+            arguments.add(new Operand(string_type, "1"));
+            arguments.add(new Operand(int_type, "len"));
+            print_util.callOp(out, new ArrayList<OpType>(), "strncpy", true, arguments, return_val);
+            print_util.retOp(out, return_val);
+            out.println("}");            
+        }
+
+        // Emitting code for copy
+        else if (f_name.equals("copy")) {
+            return_val = new Operand(string_type, "retval");
+            arguments.add(new Operand(string_type, "this"));
+            print_util.define(out, return_val.getType(), new_method_name, arguments);
+            print_util.beginBlock(out, "entry");
+
+            return_val = new Operand(string_type, "0");
+            arguments = new ArrayList<Operand>();
+            arguments.add((Operand)new IntValue(1024));
+            print_util.callOp(out, new ArrayList<OpType>(), "malloc", true, arguments, return_val);
+
+            return_val = new Operand(string_type, "retval");
+            arguments = new ArrayList<Operand>();
+            arguments.add(new Operand(string_type, "0"));
+            arguments.add(new Operand(string_type, "this"));
+            print_util.callOp(out, new ArrayList<OpType>(), "strcpy", true, arguments, return_val);
+            print_util.retOp(out, return_val);
+            out.println("}");
         }
     }
 }

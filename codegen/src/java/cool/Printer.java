@@ -187,18 +187,19 @@ class Printer {
             }
         }
         if (isGlobal == true) {
-            out.print("@");
+            out.print(" @");
         } else {
-            out.print("%");
+            out.print(" %");
         } 
         out.print(funcName + "( ");
         for (int i = 0; i < args.size(); i++) {
             if (i != args.size() - 1) {            
                 out.print(args.get(i).getTypename() + " " + args.get(i).getName() + ", ");
             } else {
-                out.print(args.get(i).getTypename() + " " + args.get(i).getName() + ")\n");
+                out.print(args.get(i).getTypename() + " " + args.get(i).getName() + "");
             }
         }
+        out.print(" )\n");
     }
 
     void retOp(PrintWriter out, Operand op) {
