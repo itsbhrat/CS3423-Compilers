@@ -86,6 +86,7 @@ class OpType {
 		if (ptr_level > 2 || ptr_level < 0)
 			assert false : "Invalid pointer level";
 	}
+	
 	OpTypeId getId() {
 		return id;
 	}
@@ -214,6 +215,9 @@ class Operand {
 	}
 	String getTypename() {
 		return type.getName();
+	}
+	String getOriginalName() {
+		return name.substring(1);		
 	}
 	String getName() {
 		return name;

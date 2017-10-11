@@ -41,7 +41,7 @@ class Printer {
                 out.print(args.get(i).getTypename() + " " + args.get(i).getName() + "");
             }
         }
-        out.print(" ) {\n");
+        out.println(" ) {\nentry:");
     }
 
     void declare(PrintWriter out, OpType retType, String name, List<OpType> args) {
@@ -77,7 +77,7 @@ class Printer {
         for(int i = 0; i < InitVals.size(); i++) {
             out.print("\t" + fieldTypes.get(i).getName() + " ");
             if (InitVals.get(i).getType().getId() == OpTypeId.INT8 && fieldTypes.get(i).getId() == OpTypeId.INT8_PTR) {
-                getElementPtrEmbed(out, InitVals.get(i).getType(), InitVals.get(i), new IntValue(0), new IntValue(0));
+                getElementPtrEmbed(out, InitVals.get(i).getType(), InitVals.get(i), new IntValue(0), new IntValue(0), false);
             } else {
                 out.print(InitVals.get(i).getValue());
             }
@@ -88,10 +88,6 @@ class Printer {
                 out.print("}\n");
             }
         }
-    }
-
-    void beginBlock(PrintWriter out, String label) {
-        out.print(label + ":\n");
     }
 
     void arithOp(PrintWriter out, String operation, Operand op1, Operand op2, Operand result) {
@@ -139,8 +135,12 @@ class Printer {
         }
     }
     
-    void getElementPtrEmbed(PrintWriter out, OpType type, Operand op1, Operand op2, Operand op3) {
-        out.print("\tgetelementptr (" + type.getName() + ", " + op1.getTypename() + "* " + op1.getName() + ", "
+    void getElementPtrEmbed(PrintWriter out, OpType type, Operand op1, Operand op2, Operand op3, boolean inbounds) {
+        out.print("\tgetelementptr ");
+        if (inbounds == true) {        
+            out.print("inbounds ");
+        }
+        out.print("( " + type.getName() + ", " + op1.getTypename() + "* " + op1.getName() + ", "
                     + op2.getTypename() + " " + op2.getName() + ", " + op3.getTypename() + " " + op3.getName() + ")\n");
     }
 
