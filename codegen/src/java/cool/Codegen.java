@@ -115,7 +115,7 @@ public class Codegen {
 
       // Taking the methods of the class now and generating code for it
       for (AST.method mtd : classList.get(cl.name).methods) {
-
+        int total_ops = 0;
         /* Per method operations:
             1. Make a list of Operand for the arguments. First Operand is a pointer to the class with name "this"
             2. Make a ret_type of type OpType for the return type
@@ -134,6 +134,17 @@ public class Codegen {
         print_util.define(out, mtd_type, method_name, arguments);
 
         allocate_function_parameters(out, arguments);
+        if (mtd.body instanceof AST.block) {
+          AST.block method_body = ((AST.block)mtd.body);
+          for (AST.expression cur_expr : method_body.l1) {
+            if (cur_expr instanceof AST.assign) {
+              total_ops = arith_capture(out, ((AST.assign)cur_expr).e1, total_ops);
+              if (total_ops > 0) {
+                print_util.storeOp(out, new Operand(int_type, String.valueOf(total_ops - 1)), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name));
+              }
+            }
+          }
+        }
 
         // Required to do here: Build expressions
         // Placeholder completion added
@@ -485,5 +496,109 @@ public class Codegen {
       string_capture(out, ((AST.cond)expr).elsebody);
     }
     return ;
+  }
+
+  public int arith_capture(PrintWriter out, AST.expression expr, int ops) {
+      // Operations are four kinds: mul, divide, plus, sub
+      // The idea is for every operation faced, we increment the "ops" and return it
+      
+      // First op is MUL
+    if (expr instanceof AST.mul) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.mul)expr).e1;
+      AST.expression e2 = ((AST.mul)expr).e2;
+      return arith_impl_capture(out, e1, e2, "mul", ops);
+
+    } else if (expr instanceof AST.divide) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.divide)expr).e1;
+      AST.expression e2 = ((AST.divide)expr).e2;
+      return arith_impl_capture(out, e1, e2, "div", ops);
+
+    } else if (expr instanceof AST.plus) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.plus)expr).e1;
+      AST.expression e2 = ((AST.plus)expr).e2;
+      return arith_impl_capture(out, e1, e2, "add", ops);
+
+    } else if (expr instanceof AST.sub) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.sub)expr).e1;
+      AST.expression e2 = ((AST.sub)expr).e2;
+      return arith_impl_capture(out, e1, e2, "sub", ops);
+    }
+    return 0;
+  }
+
+  public int arith_impl_capture(PrintWriter out, AST.expression e1, AST.expression e2, String operation, int ops) {
+      // Test for the kinds of expressions obtained. This has to be done pairwise
+      // First case, if both the operands are int constants
+      if (e1 instanceof AST.int_const && e2 instanceof AST.int_const) {
+        int e1_val = ((AST.int_const)e1).value;
+        int e2_val = ((AST.int_const)e2).value;
+        print_util.arithOp(out, operation, (Operand)new IntValue(e1_val), (Operand)new IntValue(e2_val), new Operand(int_type, String.valueOf(ops)));
+        return ops + 1;
+      }
+
+      // Second and Third cases are analogous except for the placement of the object
+      else if (e1 instanceof AST.int_const && e2 instanceof AST.object) {
+        int e1_val = ((AST.int_const)e1).value;
+        AST.object e2_obj = (AST.object)e2;
+        Operand non_cons = new Operand(int_type, String.valueOf(ops));
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
+        print_util.arithOp(out, operation, (Operand)new IntValue(e1_val), non_cons, new Operand(int_type, String.valueOf(ops + 1)));
+        return ops + 2;
+      }
+
+      else if (e1 instanceof AST.object && e2 instanceof AST.int_const) {
+        int e2_val = ((AST.int_const)e2).value;
+        AST.object e1_obj = (AST.object)e1;
+        Operand non_cons = new Operand(int_type, String.valueOf(ops));
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
+        print_util.arithOp(out, operation, (Operand)new IntValue(e2_val), non_cons, new Operand(int_type, String.valueOf(ops + 1)));
+        return ops + 2;
+      }
+
+      // Last case is when both the operands are objects
+      else if (e1 instanceof AST.object && e2 instanceof AST.object) {
+        AST.object e1_obj = (AST.object)e1;
+        AST.object e2_obj = (AST.object)e2;
+        Operand non_cons_1 = new Operand(int_type, String.valueOf(ops));
+        Operand non_cons_2 = new Operand(int_type, String.valueOf(ops + 1));
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons_1);
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons_2);
+        print_util.arithOp(out, operation, non_cons_1, non_cons_2, new Operand(int_type, String.valueOf(ops + 2)));
+        return ops + 3;
+      }
+
+      else {
+        if (e1 instanceof AST.object) {
+          AST.object e1_obj = (AST.object)e1;
+          int cur_ops = arith_capture(out, e2, ops);
+          Operand non_cons = new Operand(int_type, String.valueOf(cur_ops));
+          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
+          print_util.arithOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops - 1)), new Operand(int_type, String.valueOf(cur_ops + 1)));
+          return cur_ops + 2;
+        } if (e2 instanceof AST.object) {
+          AST.object e2_obj = (AST.object)e2;
+          int cur_ops = arith_capture(out, e1, ops);
+          Operand non_cons = new Operand(int_type, String.valueOf(cur_ops));
+          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
+          print_util.arithOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops - 1)), new Operand(int_type, String.valueOf(cur_ops + 1)));
+          return cur_ops + 2;
+        } if (e1 instanceof AST.int_const) {
+          int cur_ops = arith_capture(out, e2, ops);
+          int e1_val = ((AST.int_const)e1).value;
+          print_util.arithOp(out, operation, (Operand)new IntValue(e1_val), new Operand(int_type, String.valueOf(cur_ops - 1)), new Operand(int_type, String.valueOf(cur_ops)));
+          return cur_ops + 1;
+        } if (e2 instanceof AST.int_const) {
+          int cur_ops = arith_capture(out, e1, ops);
+          int e2_val = ((AST.int_const)e2).value;
+          print_util.arithOp(out, operation, (Operand)new IntValue(e2_val), new Operand(int_type, String.valueOf(cur_ops - 1)), new Operand(int_type, String.valueOf(cur_ops)));
+          return cur_ops + 1;
+        }
+
+      return 0;
+      }
   }
 }

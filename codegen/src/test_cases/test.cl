@@ -5,6 +5,10 @@ class Main {
 
     foo(a: Int, b: Bool, c: String) : String {
         {        
+            i <- 2 + 3 * 4;
+            i <- 5 * 7 / 8;
+            i <- 1 + i;
+            a <- a + i * 5 / 5;
             "Hi";
         }
     };
