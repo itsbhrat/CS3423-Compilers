@@ -94,7 +94,6 @@ public class Codegen {
         pre_def_io(out, "in_string");
         pre_def_io(out, "out_int");
         pre_def_io(out, "out_string");
-        continue;
       }
 
       // Taking the attributes of the class first and generating code for it
@@ -112,6 +111,10 @@ public class Codegen {
       var_name : type_name <- assignment of type_name
       */
       build_constructor(out, cl.name);
+
+      if (cl.name.equals("IO")) {
+        continue;
+      }
 
       // Taking the methods of the class now and generating code for it
       for (AST.method mtd : classList.get(cl.name).methods) {
@@ -415,7 +418,7 @@ public class Codegen {
 
     // Method for generating the in_string method
     else if (f_name.equals("in_string")) {
-      return_val = new Operand(string_type, "retval");
+      return_val = new Operand(string_type, "given");
       arguments = new ArrayList<Operand>();
       arguments.add(return_val);
       print_util.define(out, return_val.getType(), new_method_name, arguments);
@@ -440,7 +443,7 @@ public class Codegen {
 
     // Method for generating the in_int method
     else if (f_name.equals("in_int")) {
-      return_val = new Operand(int_type, "retval");
+      return_val = new Operand(int_type, "given");
       arguments = new ArrayList<Operand>();
       arguments.add(return_val);
       print_util.define(out, return_val.getType(), new_method_name, arguments);
@@ -513,7 +516,7 @@ public class Codegen {
       // Get the expressions separately
       AST.expression e1 = ((AST.divide)expr).e1;
       AST.expression e2 = ((AST.divide)expr).e2;
-      return arith_impl_capture(out, e1, e2, "div", ops);
+      return arith_impl_capture(out, e1, e2, "udiv", ops);
 
     } else if (expr instanceof AST.plus) {
       // Get the expressions separately
