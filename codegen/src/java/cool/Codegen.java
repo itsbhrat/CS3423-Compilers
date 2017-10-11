@@ -103,7 +103,7 @@ public class Codegen {
         attribute_types.add(get_optype(attribute.typeid, true, 0));
         if (attribute.typeid.equals("String") && attribute.value instanceof AST.string_const) { // Getting existing string constants
 
-          StringCapture(out, attribute.value);
+          string_capture(out, attribute.value);
         }
       }
       print_util.typeDefine(out, cl.name, attribute_types); // Emits the code
@@ -122,7 +122,7 @@ public class Codegen {
             3. Mangle the name of the class with the name of the function
             4. Call the define function
         */
-        StringCapture(out, mtd.body);
+        string_capture(out, mtd.body);
         List<Operand> arguments = new ArrayList<Operand>();
         arguments.add(new Operand(get_optype(cl.name, true, 1), "this"));
         for (AST.formal f : mtd.formals) {
@@ -461,28 +461,28 @@ public class Codegen {
   // Function to find pre-defined strings and print them in LLVM-IR format
   // String name encoding done like this: @.str.<lineNo>
   // Assuming two strings cannot be in the same line
-  public void StringCapture(PrintWriter out, AST.expression expr) {
+  public void string_capture(PrintWriter out, AST.expression expr) {
     if (expr instanceof AST.string_const) {
       String cap_string = ((AST.string_const)expr).value;
       out.print("@.str." + expr.lineNo + " = private unnamed_addr constant [" + cap_string.length() + " x i8] c\"");
       print_util.escapedString(out, cap_string);
       out.println("\"");
     } else if (expr instanceof AST.eq) {
-      StringCapture(out, ((AST.eq)expr).e1);
-      StringCapture(out, ((AST.eq)expr).e2);
+      string_capture(out, ((AST.eq)expr).e1);
+      string_capture(out, ((AST.eq)expr).e2);
     } else if (expr instanceof AST.assign) {
-      StringCapture(out, ((AST.assign)expr).e1);
+      string_capture(out, ((AST.assign)expr).e1);
     } else if (expr instanceof AST.block) {
       for (AST.expression e : ((AST.block)expr).l1) {
-        StringCapture(out, e);
+        string_capture(out, e);
       }
     } else if (expr instanceof AST.loop) {
-      StringCapture(out, ((AST.loop)expr).predicate);
-      StringCapture(out, ((AST.loop)expr).body);
+      string_capture(out, ((AST.loop)expr).predicate);
+      string_capture(out, ((AST.loop)expr).body);
     } else if (expr instanceof AST.cond) {
-      StringCapture(out, ((AST.cond)expr).predicate);
-      StringCapture(out, ((AST.cond)expr).ifbody);
-      StringCapture(out, ((AST.cond)expr).elsebody);
+      string_capture(out, ((AST.cond)expr).predicate);
+      string_capture(out, ((AST.cond)expr).ifbody);
+      string_capture(out, ((AST.cond)expr).elsebody);
     }
     return ;
   }
