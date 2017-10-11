@@ -64,8 +64,9 @@ public class Codegen {
         print_util.declare(out, new OpType(OpTypeId.VOID), "exit", params);
 
         // Format specifiers in C : %d and %s
-        out.print("@strfmt = private unnamed_addr constant [3 x i8] c\"%d\\00\", align 1\n");
-        out.print("@intfmt = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n");
+        out.println("@strfmt = private unnamed_addr constant [3 x i8] c\"%d\\00\"");
+        out.println("@intfmt = private unnamed_addr constant [3 x i8] c\"%s\\00\"");
+        out.println("@.str.empty = private unnamed_addr constant [1 x i8] c\"\\00\"");
 
         for (AST.class_ cl : program.classes) {
             filename = cl.filename;
@@ -212,7 +213,18 @@ public class Codegen {
 
             // String attribute codegen
             else if (cur_attr.typeid.equals("String")) {
-                // Do something
+                operand_list.add((Operand)new IntValue(0));
+                operand_list.add((Operand)new IntValue(i));
+                print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);     // That func is here
+                String length_string = null;
+                if (cur_attr.value instanceof AST.no_expr) {
+                    length_string = "[" + 1 + " x i8]";
+                    out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str.empty");
+                } else {
+                    length_string = "[" + ((AST.string_const)cur_attr.value).value.length() + " x i8]";
+                    out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + cur_attr.lineNo);
+                }                
+                out.println(", i32 0, i32 0), i8** %" + cur_attr.name);                    
             }
 
             // Bool attribute codegen
@@ -423,12 +435,14 @@ public class Codegen {
     }
 
     // Function to find pre-defined strings and print them in LLVM-IR format
+    // String name encoding done like this: @.str.<lineNo>
+    // Assuming two strings cannot be in the same line
     public void StringCapture(PrintWriter out, AST.expression expr) {
         if (expr instanceof AST.string_const) {
             String cap_string = ((AST.string_const)expr).value;
             out.print("@.str." + expr.lineNo + " = private unnamed_addr constant [" + cap_string.length() + " x i8] c\"");
             print_util.escapedString(out, cap_string);
-            out.println("\", align 1");
+            out.println("\"");
         } else if (expr instanceof AST.eq) {
             StringCapture(out, ((AST.eq)expr).e1);
             StringCapture(out, ((AST.eq)expr).e2);
