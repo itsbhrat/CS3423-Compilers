@@ -1,6 +1,6 @@
 class Main {
     i : Int;
-    j : String;
+    j : String <- "Hello";
     k : Bool;
     foo(a: Int, b: Bool, c: String) : String {
         {        

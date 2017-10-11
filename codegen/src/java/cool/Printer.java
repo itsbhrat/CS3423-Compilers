@@ -41,7 +41,7 @@ class Printer {
                 out.print(args.get(i).getTypename() + " " + args.get(i).getName() + "");
             }
         }
-        out.print(" ) {\n");
+        out.println(" ) {\nentry:");
     }
 
     void declare(PrintWriter out, OpType retType, String name, List<OpType> args) {
@@ -88,10 +88,6 @@ class Printer {
                 out.print("}\n");
             }
         }
-    }
-
-    void beginBlock(PrintWriter out, String label) {
-        out.print(label + ":\n");
     }
 
     void arithOp(PrintWriter out, String operation, Operand op1, Operand op2, Operand result) {
