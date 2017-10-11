@@ -25,6 +25,9 @@ public class Codegen {
   OpType int_type = get_optype("Int", true, 0);
   OpType bool_type = get_optype("Bool", true, 0);
 
+  Integer basic_block_counter = 0;
+  Stack<Integer> basic_block_stack;
+
   public Codegen(AST.program program, PrintWriter out) {
     // Write Code generator code here
     out.print("; I am a comment in LLVM-IR. Feel free to remove me.\n");
@@ -134,6 +137,10 @@ public class Codegen {
         print_util.define(out, mtd_type, method_name, arguments);
 
         allocate_function_parameters(out, arguments);
+
+        // initializing basic blocks util variables
+        basic_block_counter = 0;
+        basic_block_stack; = new Stack<Integer>();
 
         // Required to do here: Build expressions
         // Placeholder completion added
@@ -486,4 +493,38 @@ public class Codegen {
     }
     return ;
   }
+
+  public int NodeVisit(PrintWriter out, AST.expression expr, int recursion_level) {
+    if (expr instanceof AST.cond) {
+      return cond_capture(out, (AST.cond)expr, recursion_level);
+    }
+  }
+
+  public int cond_capture(PrintWriter out, AST.cond expr, int ops) {
+    // adding current basic block to stack for taking car of nested if
+    int curr_if_bb_counter = basic_block_counter;
+    basic_block_counter++;
+
+    basic_block_stack.push(curr_if_bb_counter);
+
+    int x = NodeVisit(out, expr.predicate, ops);
+
+    branchCondOp(out, new Operand(new OpType(OpTypeId.INT1), String.valueOf(x - 1)), "if.then" + String.valueOf(basic_block_counter), "if.else" + String.valueOf(basic_block_counter));
+
+    // recur on then
+    out.println("if.then" + String.valueOf(curr_if_bb_counter) + ":");
+    x = NodeVisit(out, expr.ifbody, x);
+    branchUncondOp(out , "if.end" + String.valueOf(basic_block_stack.peek()));
+
+    // recur on else
+    out.println("if.else" + String.valueOf(curr_if_bb_counter) + ":");
+    x = NodeVisit(out, expr.elsebody, x);
+    branchUncondOp(out , "if.end" + String.valueOf(basic_block_stack.peek()));
+
+    out.println("if.end" + String.valueOf(curr_if_bb_counter) + ":");
+    basic_block_stack.pop();
+
+    return x;
+  }
+
 }
