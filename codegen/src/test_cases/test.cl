@@ -1,7 +1,7 @@
 class Main {
     i : Int;
     j : String;
-    k : Bool;
+    k : Bool <- true;
     foo(a: Int, b: Bool, c: String) : String {
         {        
             "Hi";
