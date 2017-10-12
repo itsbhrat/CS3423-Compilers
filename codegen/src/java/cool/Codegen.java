@@ -144,6 +144,8 @@ public class Codegen {
         basic_block_counter = 0;
         total_ops = NodeVisit(out, mtd.body, total_ops);
 
+        print_util.retOp()
+
 
         /*if (mtd.body instanceof AST.block) {
           AST.block method_body = ((AST.block)mtd.body);
@@ -612,6 +614,43 @@ public class Codegen {
       return arith_impl_capture(out, e1, e2, "sub", ops);
     }
     return 0;
+  }
+
+  public int compare_capture(PrintWriter out, AST.expression expr, int ops) {
+    // Operations are four kinds: mul, divide, plus, sub
+    // The idea is for every operation faced, we increment the "ops" and return it
+
+    // First op is MUL
+    if (expr instanceof AST.mul) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.mul)expr).e1;
+      AST.expression e2 = ((AST.mul)expr).e2;
+      return arith_impl_capture(out, e1, e2, "mul", ops);
+
+    } else if (expr instanceof AST.divide) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.divide)expr).e1;
+      AST.expression e2 = ((AST.divide)expr).e2;
+      return arith_impl_capture(out, e1, e2, "udiv", ops);
+
+    } else if (expr instanceof AST.plus) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.plus)expr).e1;
+      AST.expression e2 = ((AST.plus)expr).e2;
+      return arith_impl_capture(out, e1, e2, "add", ops);
+
+    } else if (expr instanceof AST.sub) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.sub)expr).e1;
+      AST.expression e2 = ((AST.sub)expr).e2;
+      return arith_impl_capture(out, e1, e2, "sub", ops);
+    }
+    return 0;
+  }
+
+  public int object_capture(PrintWriter out, AST.object e1, int ops) {
+    Operand non_cons = new Operand(int_type, String.valueOf(ops));
+    print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
   }
 
   public int arith_impl_capture(PrintWriter out, AST.expression e1, AST.expression e2, String operation, int ops) {
