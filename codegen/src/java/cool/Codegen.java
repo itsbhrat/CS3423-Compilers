@@ -34,7 +34,7 @@ public class Codegen {
 
     // Assuming that the code runs on linux machines with 64 bit
     // Also taking into fact that all classes are in one file
-    out.println("source filename = \"" + program.classes.get(0).filename + "\"");
+    out.println("source_filename = \"" + program.classes.get(0).filename + "\"");
     out.println("target triple = \"x86_64-unknown-linux-gnu\"\n");
 
     // C String Functions required: strlen, strcat, str(n)cpy
