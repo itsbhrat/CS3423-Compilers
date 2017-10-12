@@ -26,6 +26,7 @@ public class Codegen {
   OpType bool_type = get_optype("Bool", true, 0);
 
   Integer basic_block_counter = 0;
+  String CLASS_NAME = null;
 
   public Codegen(AST.program program, PrintWriter out) {
     // Write Code generator code here
@@ -144,23 +145,12 @@ public class Codegen {
         print_util.define(out, mtd_type, method_name, arguments);
 
         allocate_function_parameters(out, arguments);
+        get_class_attributes(out, cl.name);
 
         // initializing basic blocks util variables
         basic_block_counter = 0;
+        CLASS_NAME = cl.name;
         total_ops = NodeVisit(out, mtd.body, total_ops);
-
-
-        /*if (mtd.body instanceof AST.block) {
-          AST.block method_body = ((AST.block)mtd.body);
-          for (AST.expression cur_expr : method_body.l1) {
-            if (cur_expr instanceof AST.assign) {
-              total_ops = arith_capture(out, ((AST.assign)cur_expr).e1, total_ops);
-              if (total_ops > 0) {
-                print_util.storeOp(out, new Operand(int_type, String.valueOf(total_ops - 1)), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name));
-              }
-            }
-          }
-        }*/
 
         // Required to do here: Build expressions
         // Placeholder completion added
@@ -279,10 +269,24 @@ public class Codegen {
     }
 
     // store all the function parameters
-    for (int i = 0; i < arguments.size(); i++ ) {
+    for (int i = 1; i < arguments.size(); i++ ) {
       op = new Operand(arguments.get(i).getType(), arguments.get(i).getOriginalName());
       op_addr = new Operand(arguments.get(i).getType().getPtrType(), arguments.get(i).getOriginalName() + ".addr");
       print_util.storeOp(out, op, op_addr);
+    }
+  }
+
+  // Utility function to load the "global" class attributes into the functions
+  public void get_class_attributes(PrintWriter out, String class_name) {
+    ClassNode cur_class = classList.get(class_name);
+    load_store_classOp(out, class_name, "this");
+    for (int i = 0; i < cur_class.attributes.size(); i++) {
+      List<Operand> operand_list = new ArrayList<Operand>();
+      Operand result = new Operand(int_type, cur_class.attributes.get(i).name);
+      operand_list.add(new Operand(get_optype(class_name, true, 1), "this1"));
+      operand_list.add((Operand)new IntValue(0));
+      operand_list.add((Operand)new IntValue(i));
+      print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);     // That func is here
     }
   }
 
@@ -515,8 +519,11 @@ public class Codegen {
   }
 
   public int NodeVisit(PrintWriter out, AST.expression expr, int ops) {
-    if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub) {
-      return arith_capture(out, expr, ops);
+    if (expr instanceof AST.assign) {
+      AST.assign cur = (AST.assign)expr;
+      if (cur.e1 instanceof AST.mul || cur.e1 instanceof AST.divide || cur.e1 instanceof AST.plus || cur.e1 instanceof AST.sub) {
+        return arith_capture(out, ((AST.assign)expr).e1, ops);
+      }
     }
 
     else if (expr instanceof AST.cond) {
@@ -531,10 +538,23 @@ public class Codegen {
       AST.block the_block = (AST.block)expr;
       for (AST.expression cur_expr : the_block.l1) {
         ops = NodeVisit(out, cur_expr, ops);
+        if (cur_expr instanceof AST.assign) {
+          boolean flag = false;
+          for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
+            if (((AST.assign)cur_expr).name.equals(check_attr.name)) {
+              flag = true;
+              break;
+            }
+          }
+          if (flag == true) {
+            print_util.storeOp(out, new Operand(int_type, String.valueOf(ops - 1)), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name));
+          } else {
+            print_util.storeOp(out, new Operand(int_type, String.valueOf(ops - 1)), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name + ".addr"));
+          }
+        }
       }
       return ops;
     }
-
     return 1;
   }
 
@@ -634,7 +654,18 @@ public class Codegen {
       int e1_val = ((AST.int_const)e1).value;
       AST.object e2_obj = (AST.object)e2;
       Operand non_cons = new Operand(int_type, String.valueOf(ops));
-      print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
+      boolean flag = false;
+      for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
+        if (e2_obj.name.equals(check_attr.name)) {
+          flag = true;
+          break;
+        }
+      }
+      if (flag == true) {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
+      } else {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name + ".addr"), non_cons);
+      }
       print_util.arithOp(out, operation, (Operand)new IntValue(e1_val), non_cons, new Operand(int_type, String.valueOf(ops + 1)));
       return ops + 2;
     }
@@ -643,7 +674,18 @@ public class Codegen {
       int e2_val = ((AST.int_const)e2).value;
       AST.object e1_obj = (AST.object)e1;
       Operand non_cons = new Operand(int_type, String.valueOf(ops));
-      print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
+      boolean flag = false;
+      for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
+        if (e1_obj.name.equals(check_attr.name)) {
+          flag = true;
+          break;
+        }
+      }
+      if (flag == true) {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
+      } else {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name + ".addr"), non_cons);
+      }
       print_util.arithOp(out, operation, (Operand)new IntValue(e2_val), non_cons, new Operand(int_type, String.valueOf(ops + 1)));
       return ops + 2;
     }
@@ -654,8 +696,30 @@ public class Codegen {
       AST.object e2_obj = (AST.object)e2;
       Operand non_cons_1 = new Operand(int_type, String.valueOf(ops));
       Operand non_cons_2 = new Operand(int_type, String.valueOf(ops + 1));
-      print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons_1);
-      print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons_2);
+      boolean flag1 = false;
+      boolean flag2 = false;
+      for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
+        System.out.println(e1_obj.name + " && " + e2_obj.name + " && " + check_attr.name);
+        if (e1_obj.name.equals(check_attr.name)) {
+          flag1 = true;
+        } else if(e2_obj.name.equals(check_attr.name)) {
+          flag2 = true;
+        }
+
+        if (flag1 == true && flag2 == true) {
+          break;
+        }
+      }
+      if (flag1 == true) {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons_1);
+      } else {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name + ".addr"), non_cons_1);
+      }
+      if (flag2 == true) {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons_2);
+      } else {
+        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name + ".addr"), non_cons_2);
+      }
       print_util.arithOp(out, operation, non_cons_1, non_cons_2, new Operand(int_type, String.valueOf(ops + 2)));
       return ops + 3;
     }
@@ -665,14 +729,36 @@ public class Codegen {
         AST.object e1_obj = (AST.object)e1;
         int cur_ops = arith_capture(out, e2, ops);
         Operand non_cons = new Operand(int_type, String.valueOf(cur_ops));
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
+        boolean flag = false;
+        for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
+          if (e1_obj.name.equals(check_attr.name)) {
+            flag = true;
+            break;
+          }
+        }
+        if (flag == true) {
+          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
+        } else {
+          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name + ".addr"), non_cons);
+        }
         print_util.arithOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops - 1)), new Operand(int_type, String.valueOf(cur_ops + 1)));
         return cur_ops + 2;
       } if (e2 instanceof AST.object) {
         AST.object e2_obj = (AST.object)e2;
         int cur_ops = arith_capture(out, e1, ops);
         Operand non_cons = new Operand(int_type, String.valueOf(cur_ops));
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
+        boolean flag = false;
+        for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
+          if (e2_obj.name.equals(check_attr.name)) {
+            flag = true;
+            break;
+          }
+        }
+        if (flag == true) {
+          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
+        } else {
+          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name + ".addr"), non_cons);
+        }
         print_util.arithOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops - 1)), new Operand(int_type, String.valueOf(cur_ops + 1)));
         return cur_ops + 2;
       } if (e1 instanceof AST.int_const) {
