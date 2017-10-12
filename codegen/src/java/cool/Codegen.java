@@ -645,6 +645,8 @@ public class Codegen {
                 String length_string = "[" + String.valueOf(((AST.string_const)cur_assign.e1).value.length() + 1) + " x i8]";
                 out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + cur_assign.lineNo);
                 out.println(", i32 0, i32 0), i8** %" + cur_assign.name);
+                print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), cur_assign.name), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(ops)));
+                ops++;
               }
 
             } else {
@@ -654,6 +656,8 @@ public class Codegen {
                 String length_string = "[" + String.valueOf(((AST.string_const)cur_assign.e1).value.length() + 1) + " x i8]";
                 out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + cur_assign.lineNo);
                 out.println(", i32 0, i32 0), i8** %" + cur_assign.name + ".addr");
+                print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), cur_assign.name + ".addr"), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(ops)));
+                ops++;
               }
 
             }
