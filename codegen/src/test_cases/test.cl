@@ -33,8 +33,8 @@ class Main {
         fi
     };
 
-    loop_trial(a: Bool, b:Int) : Int {
-        while a
+    loop_trial(a: Bool, b:Int, c: Bool) : Int {
+        while a > c
         loop b+2
         pool
     };

@@ -48,6 +48,9 @@ public class Codegen {
     // String copy
     print_util.declare(out, string_type, "strcpy", params);
 
+    // String compare
+    print_util.declare(out, string_type, "strcmp", params);
+
     // String n copy
     params.add(int_type);
     print_util.declare(out, string_type, "strncpy", params);
@@ -149,7 +152,7 @@ public class Codegen {
         basic_block_counter = 0;
         total_ops = NodeVisit(out, mtd.body, total_ops);
 
-        print_util.retOp()
+        //print_util.retOp()
 
 
         /*if (mtd.body instanceof AST.block) {
@@ -355,6 +358,36 @@ public class Codegen {
       print_util.retOp(out, return_val);
     }
 
+    // Emitting code for strcmp
+    else if (f_name.equals("strcmp")) {
+      return_val = new Operand(int_type, "retval");
+      arguments = new ArrayList<Operand>();
+      arguments.add(new Operand(string_type, "this"));
+      arguments.add(new Operand(int_type, "start"));
+      arguments.add(new Operand(int_type, "len"));
+      print_util.define(out, return_val.getType(), new_method_name, arguments);
+
+      return_val = new Operand(string_type, "0");
+      arguments = new ArrayList<Operand>();
+      arguments.add((Operand)new IntValue(1024));
+      print_util.callOp(out, new ArrayList<OpType>(), "malloc", true, arguments, return_val);
+
+      return_val = new Operand(string_type, "1");
+      arguments = new ArrayList<Operand>();
+      arguments.add(new Operand(string_type, "this"));
+      arguments.add((Operand)new IntValue(0));
+      arguments.add(new Operand(int_type, "start"));
+      print_util.getElementPtr(out, string_type, arguments, return_val, true);
+
+      return_val = new Operand(string_type, "retval");
+      arguments = new ArrayList<Operand>();
+      arguments.add(new Operand(string_type, "0"));
+      arguments.add(new Operand(string_type, "1"));
+      arguments.add(new Operand(int_type, "len"));
+      print_util.callOp(out, new ArrayList<OpType>(), "strncpy", true, arguments, return_val);
+      print_util.retOp(out, return_val);
+    }
+
     // Emitting code for copy
     else if (f_name.equals("copy")) {
       return_val = new Operand(string_type, "retval");
@@ -521,7 +554,9 @@ public class Codegen {
       return arith_capture(out, expr, ops);
     }
 
-    else if (expr instanceof AST.cond) {
+    else if (expr instanceof AST.eq || expr instanceof AST.leq || expr instanceof AST.lt) {
+      return compare_capture(out, expr, ops);
+    } else if (expr instanceof AST.cond) {
       return cond_capture(out, (AST.cond)expr, ops);
     }
 
@@ -621,43 +656,6 @@ public class Codegen {
     return 0;
   }
 
-  public int compare_capture(PrintWriter out, AST.expression expr, int ops) {
-    // Operations are four kinds: mul, divide, plus, sub
-    // The idea is for every operation faced, we increment the "ops" and return it
-
-    // First op is MUL
-    if (expr instanceof AST.mul) {
-      // Get the expressions separately
-      AST.expression e1 = ((AST.mul)expr).e1;
-      AST.expression e2 = ((AST.mul)expr).e2;
-      return arith_impl_capture(out, e1, e2, "mul", ops);
-
-    } else if (expr instanceof AST.divide) {
-      // Get the expressions separately
-      AST.expression e1 = ((AST.divide)expr).e1;
-      AST.expression e2 = ((AST.divide)expr).e2;
-      return arith_impl_capture(out, e1, e2, "udiv", ops);
-
-    } else if (expr instanceof AST.plus) {
-      // Get the expressions separately
-      AST.expression e1 = ((AST.plus)expr).e1;
-      AST.expression e2 = ((AST.plus)expr).e2;
-      return arith_impl_capture(out, e1, e2, "add", ops);
-
-    } else if (expr instanceof AST.sub) {
-      // Get the expressions separately
-      AST.expression e1 = ((AST.sub)expr).e1;
-      AST.expression e2 = ((AST.sub)expr).e2;
-      return arith_impl_capture(out, e1, e2, "sub", ops);
-    }
-    return 0;
-  }
-
-  public int object_capture(PrintWriter out, AST.object e1, int ops) {
-    Operand non_cons = new Operand(int_type, String.valueOf(ops));
-    print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
-  }
-
   public int arith_impl_capture(PrintWriter out, AST.expression e1, AST.expression e2, String operation, int ops) {
     // Test for the kinds of expressions obtained. This has to be done pairwise
     // First case, if both the operands are int constants
@@ -729,4 +727,31 @@ public class Codegen {
       return 0;
     }
   }
+
+  public int compare_capture(PrintWriter out, AST.expression expr, int ops) {
+    // Operations are four kinds: mul, divide, plus, sub
+    // The idea is for every operation faced, we increment the "ops" and return it
+    if (expr instanceof AST.eq) {
+
+      return equality_capture(out, (AST.eq)expr, ops);
+
+    } else if (expr instanceof AST.leq) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.leq)expr).e1;
+      AST.expression e2 = ((AST.leq)expr).e2;
+      return compare_impl_capture(out, e1, e2, "LE", ops);
+
+    } else if (expr instanceof AST.lt) {
+      // Get the expressions separately
+      AST.expression e1 = ((AST.lt)expr).e1;
+      AST.expression e2 = ((AST.lt)expr).e2;
+      return compare_impl_capture(out, e1, e2, "LT", ops);
+    }
+    return 0;
+  }
+
+  public equality_capture(PrintWriter out, AST.eq expr, int ops) {
+
+  }
+
 }
