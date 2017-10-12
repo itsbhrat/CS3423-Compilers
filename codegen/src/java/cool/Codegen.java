@@ -139,7 +139,13 @@ public class Codegen {
         print_util.define(out, mtd_type, method_name, arguments);
 
         allocate_function_parameters(out, arguments);
-        if (mtd.body instanceof AST.block) {
+
+        // initializing basic blocks util variables
+        basic_block_counter = 0;
+        total_ops = NodeVisit(out, mtd.body, total_ops);
+
+
+        /*if (mtd.body instanceof AST.block) {
           AST.block method_body = ((AST.block)mtd.body);
           for (AST.expression cur_expr : method_body.l1) {
             if (cur_expr instanceof AST.assign) {
@@ -149,10 +155,7 @@ public class Codegen {
               }
             }
           }
-        }
-
-        // initializing basic blocks util variables
-        basic_block_counter = 0;
+        }*/
 
         // Required to do here: Build expressions
         // Placeholder completion added
@@ -506,10 +509,27 @@ public class Codegen {
     return ;
   }
 
-  public int NodeVisit(PrintWriter out, AST.expression expr, int recursion_level) {
-    if (expr instanceof AST.cond) {
-      return cond_capture(out, (AST.cond)expr, recursion_level);
+  public int NodeVisit(PrintWriter out, AST.expression expr, int ops) {
+    if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub) {
+      return arith_capture(out, expr, ops);
     }
+
+    else if (expr instanceof AST.cond) {
+      return cond_capture(out, (AST.cond)expr, ops);
+    }
+
+    else if (expr instanceof AST.loop) {
+      return loop_capture(out, (AST.loop)expr, ops);
+    }
+
+    else if (expr instanceof AST.block) {
+      AST.block the_block = (AST.block)expr;
+      for (AST.expression cur_expr : the_block.l1) {
+        ops = NodeVisit(out, cur_expr, ops);
+      }
+      return ops;
+    }
+
     return 1;
   }
 
@@ -517,7 +537,6 @@ public class Codegen {
     // adding current basic block to stack for taking car of nested if
     int curr_if_bb_counter = basic_block_counter;
     basic_block_counter++;
-
 
     int x = NodeVisit(out, expr.predicate, ops);
 
@@ -535,10 +554,34 @@ public class Codegen {
 
     //add exit basicblock
     out.println("if.end" + String.valueOf(curr_if_bb_counter) + ":");
-    
+
     return x;
   }
 
+  // print new loop basic blocks and add conditional/unconditional branches
+  // as and when necessary
+  public int loop_capture(PrintWriter out, AST.loop expr, int ops) {
+    // adding current basic block to stack for taking car of nested if
+    int curr_loop_counter = basic_block_counter;
+    basic_block_counter++;
+
+    print_util.branchUncondOp(out , "for.cond" + String.valueOf(curr_loop_counter));
+    out.println("for.cond" + String.valueOf(curr_loop_counter) + ":");
+
+    int x = NodeVisit(out, expr.predicate, ops);
+
+    print_util.branchCondOp(out, new Operand(new OpType(OpTypeId.INT1), String.valueOf(x - 1)), "for.body" + String.valueOf(curr_loop_counter), "for.end" + String.valueOf(curr_loop_counter));
+
+    // recur on loop body
+    out.println("for.body" + String.valueOf(curr_loop_counter) + ":");
+    x = NodeVisit(out, expr.body, x);
+    print_util.branchUncondOp(out , "for.cond" + String.valueOf(curr_loop_counter));
+
+    //add exit basicblock
+    out.println("for.end" + String.valueOf(curr_loop_counter) + ":");
+
+    return x;
+  }
   public int arith_capture(PrintWriter out, AST.expression expr, int ops) {
     // Operations are four kinds: mul, divide, plus, sub
     // The idea is for every operation faced, we increment the "ops" and return it

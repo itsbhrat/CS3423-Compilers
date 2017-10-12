@@ -13,9 +13,10 @@ class Main {
         }
     };
 
-    main() : Int {
+    main() : Object {
         {
             i <- 1;
+            i;
         }
     };
 
@@ -23,5 +24,18 @@ class Main {
         {
             j <- foo(10, true, "Hi");
         }
+    };
+
+    honey(a: Bool, b:Int) : Int {
+        if a
+        then b+2
+        else b+2
+        fi
+    };
+
+    loop_trial(a: Bool, b:Int) : Int {
+        while a
+        loop b+2
+        pool
     };
 };

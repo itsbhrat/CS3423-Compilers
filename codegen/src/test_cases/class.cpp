@@ -39,8 +39,17 @@ int main()
 	else {
 		d = obj.b * obj.a;
 	}
-
-
-
 	return 0;
+}
+
+
+
+int loop___________loop()
+{
+  harsh_class obj;
+  int c = 0;
+  for(int i = 0; i < obj.a; i++) {
+      c += i;
+  }
+  return 0;
 }
