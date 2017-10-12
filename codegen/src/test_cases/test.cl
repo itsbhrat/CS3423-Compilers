@@ -26,11 +26,27 @@ class Main {
         }
     };
 
+ (*  honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+        if a = b
+        then{
+            e;
+            a+b;
+        }
+        else 
+            a+d
+        fi
+    };
+ 
+    *)
+
     honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
         then
             if b <= c
-            then b+2
+            then {
+            e;
+            2+b;
+        }
             else a+9
             fi
         else 
@@ -40,14 +56,41 @@ class Main {
             fi
         fi
     };
-
-    loop_trial(a: Bool, b:Int, c: Int) : Int { {
-        while a = true 
-        loop b+2
+    
+(*    loop_trial(a: Int, b: Int, c: Int) : Int { {
+        while a <= 10 
+        loop
+            while a < 8
+            loop
+                if a = c
+                then
+                    if a <= c
+                    then {
+                    a;
+                    2+b;
+                }
+                    else a+9
+                    fi
+                else 
+                    if a = b
+                    then  b+2
+                    else  a+9
+                    fi
+                fi
+            pool
         pool;
-        c+12;
-        b*8;
-        c;
     }
     };
+*)
+    
+    loop_trial(a: Int, b: Int, c: Int) : Int { {
+        while a <= 10 
+        loop{
+                a;
+                2+b;
+            }
+        pool;
+        }
+    };
+
 };
