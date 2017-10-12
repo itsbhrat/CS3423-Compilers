@@ -584,13 +584,13 @@ public class Codegen {
   }
 
   public int NodeVisit(PrintWriter out, AST.expression expr, int ops) {
-    // if (expr instanceof AST.assign) {
-    //   AST.assign cur = (AST.assign)expr;
-    //   if (cur.e1 instanceof AST.mul || cur.e1 instanceof AST.divide || cur.e1 instanceof AST.plus || cur.e1 instanceof AST.sub ||
-    //       cur.e1 instanceof AST.leq || cur.e1 instanceof AST.lt ) {
-    //     return arith_capture(out, ((AST.assign)expr).e1, ops);
-    //   }
-    // }
+    if (expr instanceof AST.assign) {
+      AST.assign cur = (AST.assign)expr;
+      if (cur.e1 instanceof AST.mul || cur.e1 instanceof AST.divide || cur.e1 instanceof AST.plus || cur.e1 instanceof AST.sub ||
+          cur.e1 instanceof AST.leq || cur.e1 instanceof AST.lt ) {
+        return arith_capture(out, ((AST.assign)expr).e1, ops);
+      }
+    }
 
     if (expr instanceof AST.cond) {
       return cond_capture(out, (AST.cond)expr, ops);
@@ -660,7 +660,8 @@ public class Codegen {
           }
         }
       }
-      print_util.storeOp(out, new Operand(method_return_type, String.valueOf(ops - 1)), new Operand(method_return_type.getPtrType(), "retval"));
+      if(ops > 0)
+        print_util.storeOp(out, new Operand(method_return_type, String.valueOf(ops - 1)), new Operand(method_return_type.getPtrType(), "retval"));
       return ops;
     }
 
@@ -673,22 +674,22 @@ public class Codegen {
       return equality_capture(out, ((AST.eq)expr).e1, ((AST.eq)expr).e2, ops);
     }
 
-    if (expr instanceof AST.object) {
-      AST.object obj = (AST.object)expr;
-      if (method_return_type.getName().equals(get_optype(obj.type, true, 0).getName())) {
-        OpType op = get_optype(obj.type, true, 0);
-        Operand non_cons = new Operand(op, String.valueOf(ops));
-        boolean flag = check_attribute(obj.name);
-        if (flag == true) {
-          print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name), non_cons);
-        } else {
-          print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name + ".addr"), non_cons);
-        }
-        print_util.storeOp(out, new Operand(method_return_type, String.valueOf(ops)), new Operand(method_return_type.getPtrType(), "retval"));
-        return ops + 1;
-      }
-      return ops;
-    }
+    // if (expr instanceof AST.object) {
+    //   AST.object obj = (AST.object)expr;
+    //   if (method_return_type.getName().equals(get_optype(obj.type, true, 0).getName())) {
+    //     OpType op = get_optype(obj.type, true, 0);
+    //     Operand non_cons = new Operand(op, String.valueOf(ops));
+    //     boolean flag = check_attribute(obj.name);
+    //     if (flag == true) {
+    //       print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name), non_cons);
+    //     } else {
+    //       print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name + ".addr"), non_cons);
+    //     }
+    //     print_util.storeOp(out, new Operand(method_return_type, String.valueOf(ops)), new Operand(method_return_type.getPtrType(), "retval"));
+    //     return ops + 1;
+    //   }
+    //   return ops;
+    // }
     return ops;
   }
 
