@@ -27,6 +27,7 @@ public class Codegen {
 
   Integer basic_block_counter = 0;
   String CLASS_NAME = null;
+  OpType method_return_type;
 
   public Codegen(AST.program program, PrintWriter out) {
     // Write Code generator code here
@@ -130,6 +131,8 @@ public class Codegen {
 
       // Taking the methods of the class now and generating code for it
       for (AST.method mtd : classList.get(cl.name).methods) {
+
+        // this operand of function
         int total_ops = 0;
         /* Per method operations:
             1. Make a list of Operand for the arguments. First Operand is a pointer to the class with name "this"
@@ -148,23 +151,37 @@ public class Codegen {
         OpType mtd_type = get_optype(mtd.typeid, true, 0);
         print_util.define(out, mtd_type, method_name, arguments);
 
+        // printing the retval for stroign return values
+        method_return_type = get_optype(mtd.typeid, true, 0);
+        Operand retval = new Operand(get_optype(mtd.typeid, true, 0), "retval");
+        print_util.allocaOp(out, get_optype(mtd.typeid, true, 0), retval);
+        // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
+
         allocate_function_parameters(out, arguments);
         get_class_attributes(out, cl.name);
 
         // initializing basic blocks util variables
         basic_block_counter = 0;
         CLASS_NAME = cl.name;
+        // Required to do here: Build expressions
         total_ops = NodeVisit(out, mtd.body, total_ops);
 
-        //print_util.retOp()
-
-
-        // Required to do here: Build expressions
+        print_util.loadOp(out, method_return_type, new Operand(method_return_type.getPtrType(), "retval"), new Operand(method_return_type, String.valueOf(total_ops)));
+        print_util.retOp(out, new Operand(method_return_type, String.valueOf(total_ops)));
+        total_ops++;
         // Placeholder completion added
-        out.print("}\n");
       }
     }
   }
+  /*
+    public Operand get_initial_value(String type) {
+      if(type.equals("Int"))
+        return (Operand)(new IntValue(0));
+      else if(type.equals("Bool"))
+        return (Operand)(new BoolValue(false));
+      else if(type.equals("String"))
+        return (Operand)(new IntValue(0));
+    }*/
 
   public void insert_class(AST.class_ cur_class) {
     List<AST.attr> cur_class_attributes = new ArrayList<AST.attr>();
@@ -553,27 +570,23 @@ public class Codegen {
   }
 
   public int NodeVisit(PrintWriter out, AST.expression expr, int ops) {
-    if (expr instanceof AST.assign) {
-      AST.assign cur = (AST.assign)expr;
-      if (cur.e1 instanceof AST.mul || cur.e1 instanceof AST.divide || cur.e1 instanceof AST.plus || cur.e1 instanceof AST.sub ||
-          cur.e1 instanceof AST.leq || cur.e1 instanceof AST.lt ) {
-        return arith_capture(out, ((AST.assign)expr).e1, ops);
-      }
-    }
+    // if (expr instanceof AST.assign) {
+    //   AST.assign cur = (AST.assign)expr;
+    //   if (cur.e1 instanceof AST.mul || cur.e1 instanceof AST.divide || cur.e1 instanceof AST.plus || cur.e1 instanceof AST.sub ||
+    //       cur.e1 instanceof AST.leq || cur.e1 instanceof AST.lt ) {
+    //     return arith_capture(out, ((AST.assign)expr).e1, ops);
+    //   }
+    // }
 
-    else if (expr instanceof AST.eq ) {
-      return equality_capture(out, ((AST.eq)expr).e1, ((AST.eq)expr).e2, ops);
-    }
-
-    else if (expr instanceof AST.cond) {
+    if (expr instanceof AST.cond) {
       return cond_capture(out, (AST.cond)expr, ops);
     }
 
-    else if (expr instanceof AST.loop) {
+    if (expr instanceof AST.loop) {
       return loop_capture(out, (AST.loop)expr, ops);
     }
 
-    else if (expr instanceof AST.block) {
+    if (expr instanceof AST.block) {
       AST.block the_block = (AST.block)expr;
       for (AST.expression cur_expr : the_block.l1) {
         ops = NodeVisit(out, cur_expr, ops);
@@ -592,13 +605,41 @@ public class Codegen {
           }
         }
       }
+      print_util.storeOp(out, new Operand(method_return_type, String.valueOf(ops-1)), new Operand(method_return_type.getPtrType(), "retval"));
       return ops;
     }
-    return 1;
+
+    if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub ||
+        expr instanceof AST.leq || expr instanceof AST.lt ) {
+      return arith_capture(out, expr, ops);
+    }
+
+    if (expr instanceof AST.eq ) {
+      return equality_capture(out, ((AST.eq)expr).e1, ((AST.eq)expr).e2, ops);
+    }
+
+    if (expr instanceof AST.object) {
+      AST.object obj = (AST.object)expr;
+      if (method_return_type.getName().equals(get_optype(obj.type, true, 0).getName())) {
+        OpType op = get_optype(obj.type, true, 0);
+        Operand non_cons = new Operand(op, String.valueOf(ops));
+        boolean flag = check_attribute(obj);
+        if (flag == true) {
+          print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name), non_cons);
+        } else {
+          print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name + ".addr"), non_cons);
+        }
+        print_util.storeOp(out, new Operand(method_return_type, String.valueOf(ops)), new Operand(method_return_type.getPtrType(), "retval"));
+        return ops + 1;
+      }
+      return ops;
+    }
+    return ops;
   }
 
   public int cond_capture(PrintWriter out, AST.cond expr, int ops) {
     // adding current basic block to stack for taking car of nested if
+    //
     int curr_if_bb_counter = basic_block_counter;
     basic_block_counter++;
 
@@ -606,14 +647,18 @@ public class Codegen {
 
     print_util.branchCondOp(out, new Operand(new OpType(OpTypeId.INT1), String.valueOf(x - 1)), "if.then" + String.valueOf(curr_if_bb_counter), "if.else" + String.valueOf(curr_if_bb_counter));
 
-    // recur on then
+    // recur on th
     out.println("\nif.then" + String.valueOf(curr_if_bb_counter) + ":");
     x = NodeVisit(out, expr.ifbody, x);
+    print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
+
     print_util.branchUncondOp(out , "if.end" + String.valueOf(curr_if_bb_counter));
 
     // recur on else
     out.println("\nif.else" + String.valueOf(curr_if_bb_counter) + ":");
     x = NodeVisit(out, expr.elsebody, x);
+    print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
+
     print_util.branchUncondOp(out , "if.end" + String.valueOf(curr_if_bb_counter));
 
     //add exit basicblock
@@ -643,6 +688,7 @@ public class Codegen {
 
     //add exit basicblock
     out.println("\nfor.end" + String.valueOf(curr_loop_counter) + ":");
+    print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
 
     return x;
   }
@@ -951,7 +997,7 @@ public class Codegen {
         out.println("\t%" + ops + " = bitcast [" + e1_val.length() + " x i8]* " + "@.str." + e1.lineNo + " to i8*");
 
         AST.object e2_obj = (AST.object)e2;
-        Operand non_cons = new Operand(string_type, String.valueOf(ops));
+        Operand non_cons = new Operand(string_type, String.valueOf(ops + 1));
         boolean flag = check_attribute(e2_obj);
 
         if (flag == true) {
@@ -975,7 +1021,7 @@ public class Codegen {
         out.println("\t%" + ops + " = bitcast [" + e2_val.length() + " x i8]* " + "@.str." + e2.lineNo + " to i8*");
 
         AST.object e1_obj = (AST.object)e1;
-        Operand non_cons = new Operand(string_type, String.valueOf(ops));
+        Operand non_cons = new Operand(string_type, String.valueOf(ops + 1));
         boolean flag = check_attribute(e1_obj);
 
         if (flag == true) {

@@ -26,16 +26,28 @@ class Main {
         }
     };
 
-    honey(a: Bool, b:Int, c: Bool, d:Bool, e:Int) : Int {
-        if "hello" = j
-        then b+2+4+e
-        else b+2+8+e
+    honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+        if a = b
+        then
+            if b <= c
+            then b+2
+            else a+9
+            fi
+        else 
+            if "harsh" = e
+            then  b+2
+            else  a+9
+            fi
         fi
     };
 
-    loop_trial(a: Bool, b:Int, c: Bool) : Int { 
-        while a = c 
-        loop b+2
-        pool
+    loop_trial(a: Bool, b:Int, c: Int) : Int { {
+        --while a = c 
+        --loop b+2
+        --pool;
+        c+12;
+        b*8;
+        c;
+    }
     };
 };

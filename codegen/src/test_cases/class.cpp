@@ -6,23 +6,27 @@ public:
 	int a;
 	int b;
 
-	void fu_________nc() {
+	int fu_________nc() {
 		int c, d, e = 10;
 		if (a > 12345) {
 			e++;
 			if (98754 <= b) {
 				c = b + a;
+				return c;
 			}
 			else {
 				d = b * a;
+				return d;
 			}
 		}
 		else {
 			if (a <= 741852) {
 				c = b - a;
+				return c;
 			}
 			else {
 				d = b / a;
+				return d;
 			}
 		}
 	}
