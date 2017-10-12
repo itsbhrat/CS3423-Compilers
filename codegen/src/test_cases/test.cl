@@ -9,7 +9,7 @@ class Main {
             i <- 5 * 7 / 8;
             i <- 1 + i;
             a <- a + i * 5 / 5;
-            "Hi";
+            c <- "Hi";
         }
     };
 
@@ -42,9 +42,9 @@ class Main {
     };
 
     loop_trial(a: Bool, b:Int, c: Int) : Int { {
-        --while a = c 
-        --loop b+2
-        --pool;
+        while a = true 
+        loop b+2
+        pool;
         c+12;
         b*8;
         c;
