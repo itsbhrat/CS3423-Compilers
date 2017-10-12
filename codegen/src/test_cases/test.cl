@@ -22,19 +22,19 @@ class Main {
 
     bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
-            j <- foo(10, true, "Hi");
+            j <- foo(10, true, "HI____________________");
         }
     };
 
-    honey(a: Bool, b:Int) : Int {
-        if a
-        then b+2
-        else b+2
+    honey(a: Bool, b:Int, c: Bool, d:Bool, e:Int) : Int {
+        if "hello" = j
+        then b+2+4+e
+        else b+2+8+e
         fi
     };
 
-    loop_trial(a: Bool, b:Int, c: Bool) : Int {
-        while a > c
+    loop_trial(a: Bool, b:Int, c: Bool) : Int { 
+        while a = c 
         loop b+2
         pool
     };
