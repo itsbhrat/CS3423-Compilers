@@ -210,7 +210,7 @@ public class Codegen {
         CLASS_NAME = cl.name;
         // Required to do here: Build expressions
         counter = NodeVisit(out, mtd.body, counter);
-        if (! (mtd.body instanceof AST.block)) {
+        if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond)) ) {
           attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
         }
 
@@ -654,7 +654,7 @@ public class Codegen {
   }
 
   public void attempt_assign_retval(PrintWriter out, OpType op, int register) {
-    if (method_return_type.getName().equals(op.getName())) {
+    if (register >= 0 && method_return_type.getName().equals(op.getName())) {
       print_util.storeOp(out, new Operand(method_return_type, String.valueOf(register)), new Operand(method_return_type.getPtrType(), "retval"));
     }
   }
