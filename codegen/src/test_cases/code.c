@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdio.h>
-
+/*
 
 int fact(int n, char* str) {
 	if(n <= 1)
@@ -16,4 +16,13 @@ int main()
 
 	fact(5, a);
 	return 0;
+}
+*/
+
+int main()
+{
+
+  char a;
+  printf("%c\n", a);
+  return 0;
 }
