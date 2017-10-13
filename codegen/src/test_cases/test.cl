@@ -3,7 +3,7 @@ class Main inherits IO {
     k : Bool <- true;
     j : String <- "Hello";
 
-    foo(a: Int, b: Bool, c: String, d: String) : String {
+(*    foo(a: Int, b: Bool, c: String, d: String) : String {
         {        
             i <- 2 + 3 * 4;
             i <- 5 * 7 / 8;
@@ -15,21 +15,21 @@ class Main inherits IO {
             c <- "Hi";
         }
     };
-
+*)
     main() : Object {
         {
             i <- 1;
-            i;
+            out_int(i);
         }
     };
-
+(*
     bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
             j <- foo(5 + 5, true, "HI____________________", j);
         }
     };
 
- (*  honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+  honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
         then{
             e;
@@ -60,7 +60,7 @@ class Main inherits IO {
         fi
     };
     
-(*    loop_trial(a: Int, b: Int, c: Int) : Int { {
+    loop_trial(a: Int, b: Int, c: Int) : Int { {
         while a <= 10 
         loop
             while a < 8
@@ -84,7 +84,7 @@ class Main inherits IO {
         pool;
     }
     };
-*)
+
     
     loop_trial(a: Int, b: Int, c: Int) : Int { {
         while a <= 10 
@@ -96,14 +96,4 @@ class Main inherits IO {
         }
     };
     *)
-};
-
-Class OMG {
-  do_this ( i : Int, j :String, k :Bool) : String {
-      j
-  };
-
-  do_that ( a : String ) : String {
-    a <- do_this(1, "OMG", false)
-  };
 };

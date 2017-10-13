@@ -113,7 +113,9 @@ public class Codegen {
         print_util.allocaOp(out, get_optype("Main", true, 0), new Operand(get_optype("Main", true, 1), "obj"));
         List<Operand> op_list = new ArrayList<Operand>();
         op_list.add(new Operand(get_optype("Main", true, 1), "obj"));
-        print_util.callOp(out, new ArrayList<OpType>(), "Main_Cons_Main", true, op_list, new Operand(void_type, "null"));
+        print_util.callOp(out, new ArrayList<OpType>(), "Main_Cons_Main", true, op_list, new Operand(get_optype("Main", true, 1), "obj1"));
+        op_list.set(0, new Operand(get_optype("Main", true, 1), "obj1"));
+        print_util.callOp(out, new ArrayList<OpType>(), "Main_main", true, op_list, new Operand(void_type, "null"));
         print_util.retOp(out, (Operand)new IntValue(0));
       }
 
@@ -295,7 +297,7 @@ public class Codegen {
     cons_arg_list.add(new Operand(get_optype(class_name, true, 1), "this"));
 
     // Define the constructor and establish pointer information
-    print_util.define(out, void_type, method_name, cons_arg_list);
+    print_util.define(out, get_optype(class_name, true, 1), method_name, cons_arg_list);
     print_util.allocaOp(out, get_optype(class_name, true, 1), new Operand(get_optype(class_name, true, 1), "this.addr"));
     load_store_classOp(out, class_name, "this");
 
@@ -354,7 +356,7 @@ public class Codegen {
         }
       }
     }
-    print_util.retOp(out, new Operand(void_type, "retval"));
+    print_util.retOp(out, new Operand(get_optype(class_name, true, 1), "this1"));
   }
 
   public void allocate_function_parameters(PrintWriter out, List<Operand> arguments) {
@@ -887,7 +889,7 @@ public class Codegen {
       if (cur_func.name.equals("out_string")) {
         Integer print_string = string_table.get(((AST.string_const)cur_func.actuals.get(0)).value);
         List<Operand> arg_list = new ArrayList<Operand>();
-        arg_list.add((Operand)new GlobalValue(string_type, ".str." + String.valueOf(print_string)));
+        arg_list.add((Operand)new GlobalValue(string_type.getPtrType(), ".str." + String.valueOf(print_string)));
         print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, new Operand(void_type, "null"));
       }
 
@@ -904,11 +906,15 @@ public class Codegen {
         if (cur_func.actuals.get(0) instanceof AST.object) {
           AST.object print_var = (AST.object)cur_func.actuals.get(0);
           boolean flag = check_attribute(print_var.name);
+          Operand cur_var;
           if (flag == true) {
-            arg_list.add(new Operand(int_type, print_var.name));
+            cur_var = new Operand(int_type.getPtrType(), print_var.name);
           } else {
-            arg_list.add(new Operand(int_type, print_var.name + ".addr"));
+            cur_var = new Operand(int_type.getPtrType(), print_var.name + ".addr");
           }
+          print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
+          arg_list.add(new Operand(int_type, String.valueOf(counter.register)));
+          counter.register++;            
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
         }
       }
