@@ -21,9 +21,6 @@ class Main inherits IO {
         }
     };
 
-
-  
-
     harsh_main() : Int {
         {
             i <- 1;
@@ -55,6 +52,18 @@ class Main inherits IO {
         else 
             a+d
         fi
+    };
+
+    block_combo(a:Int, b:Int) : Int { {
+        a <- a + 1;
+        5;
+        if a = 5
+        then a
+        else b
+        fi;
+
+
+        }
     };
 
 
@@ -166,5 +175,3 @@ Class OMG {
     a <- do_this(1, "OMG", false)
   };
 };
-
-  
