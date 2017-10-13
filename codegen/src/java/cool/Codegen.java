@@ -785,7 +785,7 @@ public class Codegen {
           arg_list.add(new Operand(string_type, String.valueOf(counter.register)));
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
         }
-        return new Tracker(counter.register + 1, counter.if_counter, int_type);
+        return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
       }
 
       // Handling IO.out_int cases
