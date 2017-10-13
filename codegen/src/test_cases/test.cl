@@ -75,7 +75,7 @@ class Main inherits IO {
     
     
 
-
+(*
     while_inside_if(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
         then
@@ -88,6 +88,7 @@ class Main inherits IO {
             pool
         fi
     };
+*)
 (*    
     loop_trial(a: Int, b: Int, c: Int) : Int { {
         while a <= 10 
@@ -131,9 +132,18 @@ class Main inherits IO {
         pool
     }; 
 
+(*
+    nested_loop_trial(a: Int, b: Int, c: Int) : Int {
+        while a <= 10 
+        loop
+            while b <= 12
+            loop c+12
+            pool
+        pool
+    }; 
+*)
 };
 
-(*
 Class OMG {
   do_this ( i : Int, j :String, k :Bool) : String {
       j

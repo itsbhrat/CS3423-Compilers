@@ -19,18 +19,18 @@ class ClassNode {
 
 class Tracker {
   public int register;
-  public int if_counter;
   OpType last_instruction;
+  String last_basic_block;
   Tracker() {
     register = 0;
-    if_counter = 0;
     last_instruction = new OpType();
+    last_basic_block = "";
   }
 
-  Tracker(int reg , int cnt, OpType op) {
+  Tracker(int reg , OpType op, String lb) {
     register = reg;
-    if_counter = cnt;
     last_instruction = op;
+    last_basic_block = lb;
   }
 }
 
@@ -48,6 +48,7 @@ public class Codegen {
   OpType void_type = new OpType(OpTypeId.VOID);
 
   Integer loop_basic_block_counter = 0;
+  Integer if_basic_block_counter = 0;
   String CLASS_NAME = null;
   OpType method_return_type;
 
@@ -203,9 +204,10 @@ public class Codegen {
 
         // initializing basic blocks util variables
         loop_basic_block_counter = 0;
+        if_basic_block_counter = 0;
         counter.register = 0;
-        counter.if_counter = 0;
         counter.last_instruction = method_return_type;
+        counter.last_basic_block = "%entry";
 
         CLASS_NAME = cl.name;
         // Required to do here: Build expressions
@@ -666,7 +668,7 @@ public class Codegen {
       print_util.allocaOp(out, bool_type, new Operand(bool_type, String.valueOf(counter.register)));
       print_util.storeOp(out, (Operand)new BoolValue(((AST.bool_const)expr).value), new Operand(bool_type.getPtrType(), String.valueOf(counter.register)));
       print_util.loadOp(out, bool_type, new Operand(bool_type.getPtrType(), String.valueOf(counter.register)), new Operand(bool_type, String.valueOf(counter.register + 1)));
-      return new Tracker(counter.register + 2, counter.if_counter, bool_type);
+      return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
     }
 
     // code for making the IR for string constatnts
@@ -677,7 +679,7 @@ public class Codegen {
       out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(cur_assign_string));
       out.println(", i32 0, i32 0), i8** %" + String.valueOf(counter.register));
       print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), String.valueOf(counter.register)), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(counter.register + 1)));
-      return new Tracker(counter.register + 2, counter.if_counter, new OpType(OpTypeId.INT8_PTR));
+      return new Tracker(counter.register + 2, new OpType(OpTypeId.INT8_PTR), counter.last_basic_block);
     }
 
     // code for making the IR for int constatnts
@@ -685,7 +687,7 @@ public class Codegen {
       print_util.allocaOp(out, int_type, new Operand(int_type, String.valueOf(counter.register)));
       print_util.storeOp(out, (Operand)new IntValue(((AST.int_const)expr).value), new Operand(int_type.getPtrType(), String.valueOf(counter.register)));
       print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), String.valueOf(counter.register)), new Operand(int_type, String.valueOf(counter.register + 1)));
-      return new Tracker(counter.register + 2, counter.if_counter, int_type);
+      return new Tracker(counter.register + 2, int_type, counter.last_basic_block);
     }
 
     // handle IR for expr ::== ID
@@ -699,7 +701,7 @@ public class Codegen {
       } else {
         print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name + ".addr"), non_cons);
       }
-      return new Tracker(counter.register + 1, counter.if_counter, op);
+      return new Tracker(counter.register + 1, op, counter.last_basic_block);
     }
 
     // handle IR for expr ::== not ID
@@ -728,7 +730,7 @@ public class Codegen {
       for (AST.expression cur_expr : the_block.l1) {
         counter = NodeVisit(out, cur_expr, counter);
       }
-      attempt_assign_retval(out, counter.last_instruction, counter.register-1);
+      attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
       return counter;
     }
 
@@ -793,7 +795,7 @@ public class Codegen {
           arg_list.add(new Operand(int_type, String.valueOf(counter.register)));
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
         }
-        return new Tracker(counter.register+1, counter.if_counter, int_type);
+        return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
       }
       /* dispatch */
       else if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
@@ -855,7 +857,7 @@ public class Codegen {
           }
         }
         print_util.callOp(out, new ArrayList<OpType>(), CLASS_NAME + "_" + cur_func.name, true, pass_params, return_op);
-        return new Tracker(counter.register, counter.if_counter, return_op.getType());
+        return new Tracker(counter.register, return_op.getType(), counter.last_basic_block);
       }
       return counter;
     }
@@ -866,16 +868,17 @@ public class Codegen {
   public Tracker cond_capture(PrintWriter out, AST.cond expr, Tracker counter) {
     // adding current basic block to stack for taking car of nested if
     //
-    int curr_if_bb_counter = counter.if_counter;
+    int curr_if_bb_counter = if_basic_block_counter;
+    if_basic_block_counter++;
 
     Tracker predicate_block, then_block , else_block;
-    predicate_block = NodeVisit(out, expr.predicate, new Tracker(counter.register, counter.if_counter + 1, counter.last_instruction));
+    predicate_block = NodeVisit(out, expr.predicate, new Tracker(counter.register, counter.last_instruction, counter.last_basic_block));
     // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
     print_util.branchCondOp(out, new Operand(new OpType(OpTypeId.INT1), String.valueOf(predicate_block.register - 1)), "if.then" + String.valueOf(curr_if_bb_counter), "if.else" + String.valueOf(curr_if_bb_counter));
 
     // recur on th
     out.println("\nif.then" + String.valueOf(curr_if_bb_counter) + ":");
-    then_block = NodeVisit(out, expr.ifbody, predicate_block);
+    then_block = NodeVisit(out, expr.ifbody, new Tracker(predicate_block.register, predicate_block.last_instruction, "%if.then" + String.valueOf(curr_if_bb_counter)));
 
     // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
 
@@ -883,7 +886,7 @@ public class Codegen {
 
     // recur on else
     out.println("\nif.else" + String.valueOf(curr_if_bb_counter) + ":");
-    else_block = NodeVisit(out, expr.elsebody, then_block);
+    else_block = NodeVisit(out, expr.elsebody, new Tracker(then_block.register, then_block.last_instruction, "%if.else" + String.valueOf(curr_if_bb_counter)));
 
     // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
 
@@ -894,20 +897,12 @@ public class Codegen {
     OpType cond_type = else_block.last_instruction;
 
     String phi_node_1, phi_node_2;
-    if (then_block.if_counter == predicate_block.if_counter) {
-      phi_node_1 = " [ %" + (then_block.register - 1) + " , %if.then" + (predicate_block.if_counter - 1) + " ]";
-    } else {
-      phi_node_1 = " [ %" + (then_block.register - 1) + " , %if.end" + (then_block.if_counter - 1) + " ]";
-    }
+    phi_node_1 = " [ %" + (then_block.register - 1) + " , " + then_block.last_basic_block + " ]";
+    phi_node_2 = " [ %" + (else_block.register - 1) + " , " + else_block.last_basic_block + " ]";
 
-    if (else_block.if_counter == then_block.if_counter) {
-      phi_node_2 = " [ %" + (else_block.register - 1) + " , %if.else" + (then_block.if_counter - 1) + " ]";
-    } else {
-      phi_node_2 = " [ %" + (else_block.register - 1) + " , %if.end" + (else_block.if_counter - 1) + " ]";
-    }
     out.println("  %" + else_block.register + " = phi " + cond_type.getName() + phi_node_1 + " , " + phi_node_2);
     attempt_assign_retval(out, else_block.last_instruction, else_block.register);
-    return new Tracker(else_block.register + 1, else_block.if_counter, cond_type);
+    return new Tracker(else_block.register + 1, cond_type, "%if.end" + String.valueOf(curr_if_bb_counter));
   }
 
 // print new loop basic blocks and add conditional/unconditional branches
@@ -916,19 +911,19 @@ public class Codegen {
     // adding current basic block to stack for taking car of nested if
     int curr_loop_counter = loop_basic_block_counter;
     loop_basic_block_counter++;
-    
-    attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
+
+    // attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
 
     print_util.branchUncondOp(out , "for.cond" + String.valueOf(curr_loop_counter));
     out.println("\nfor.cond" + String.valueOf(curr_loop_counter) + ":");
 
-    Tracker x = NodeVisit(out, expr.predicate, counter);
+    Tracker x = NodeVisit(out, expr.predicate, new Tracker(counter.register, counter.last_instruction, "%for.cond" + String.valueOf(curr_loop_counter)));
 
     print_util.branchCondOp(out, new Operand(new OpType(OpTypeId.INT1), String.valueOf(x.register - 1)), "for.body" + String.valueOf(curr_loop_counter), "for.end" + String.valueOf(curr_loop_counter));
 
     // recur on loop body
     out.println("\nfor.body" + String.valueOf(curr_loop_counter) + ":");
-    x = NodeVisit(out, expr.body, new Tracker(x.register, x.if_counter, bool_type));
+    x = NodeVisit(out, expr.body, new Tracker(x.register, bool_type, "%for.body" + String.valueOf(curr_loop_counter)));
     OpType loop_type = x.last_instruction;
 
     if (! (expr.body instanceof AST.block)) {
@@ -940,7 +935,7 @@ public class Codegen {
     //add exit basicblock
     out.println("\nfor.end" + String.valueOf(curr_loop_counter) + ":");
 
-    return new Tracker(x.register , x.if_counter, loop_type);
+    return new Tracker(x.register , loop_type, "%for.end" + String.valueOf(curr_loop_counter));
   }
 
   public Tracker arith_capture(PrintWriter out, AST.expression expr, Tracker counter) {
@@ -1002,7 +997,7 @@ public class Codegen {
         return_type = bool_type;
       }
 
-      return new Tracker(counter.register + 1, counter.if_counter, return_type);
+      return new Tracker(counter.register + 1, return_type, counter.last_basic_block);
     }
 
     // Second and Third cases are analogous except for the placement of the object
@@ -1025,7 +1020,7 @@ public class Codegen {
         return_type = bool_type;
       }
 
-      return new Tracker(counter.register + 2, counter.if_counter, return_type);
+      return new Tracker(counter.register + 2, return_type, counter.last_basic_block);
     }
 
     else if (e1 instanceof AST.object && e2 instanceof AST.int_const) {
@@ -1046,7 +1041,7 @@ public class Codegen {
         return_type = bool_type;
       }
 
-      return new Tracker(counter.register + 2, counter.if_counter, return_type);
+      return new Tracker(counter.register + 2, return_type, counter.last_basic_block);
     }
 
     // Last case is when both the operands are objects
@@ -1075,7 +1070,7 @@ public class Codegen {
         return_type = bool_type;
       }
 
-      return new Tracker(counter.register + 3, counter.if_counter, return_type);
+      return new Tracker(counter.register + 3, return_type, counter.last_basic_block);
     }
 
     // recursion
@@ -1098,7 +1093,7 @@ public class Codegen {
           return_type = bool_type;
         }
 
-        return new Tracker(cur_ops.register + 2, cur_ops.if_counter, return_type);
+        return new Tracker(cur_ops.register + 2, return_type, counter.last_basic_block);
       }
 
       if (e2 instanceof AST.object) {
@@ -1118,7 +1113,7 @@ public class Codegen {
           print_util.compareOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(bool_type, String.valueOf(cur_ops.register + 1)));
           return_type = bool_type;
         }
-        return new Tracker(cur_ops.register + 2, cur_ops.if_counter, return_type);
+        return new Tracker(cur_ops.register + 2, return_type, counter.last_basic_block);
       }
 
       if (e1 instanceof AST.int_const) {
@@ -1131,7 +1126,7 @@ public class Codegen {
           print_util.compareOp(out, operation, (Operand)new IntValue(e1_val), new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(bool_type, String.valueOf(cur_ops.register)));
           return_type = bool_type;
         }
-        return new Tracker(cur_ops.register + 1, cur_ops.if_counter, return_type);
+        return new Tracker(cur_ops.register + 1, return_type, counter.last_basic_block);
       }
 
       if (e2 instanceof AST.int_const) {
@@ -1144,7 +1139,7 @@ public class Codegen {
           print_util.compareOp(out, operation, (Operand)new IntValue(e2_val), new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(bool_type, String.valueOf(cur_ops.register)));
           return_type = bool_type;
         }
-        return new Tracker(cur_ops.register + 1, cur_ops.if_counter, return_type);
+        return new Tracker(cur_ops.register + 1, return_type, counter.last_basic_block);
       }
       return counter;
     }
@@ -1177,7 +1172,7 @@ public class Codegen {
         boolean e1_val = ((AST.bool_const)e1).value;
         boolean e2_val = ((AST.bool_const)e2).value;
         print_util.compareOp(out, "EQ", (Operand)new BoolValue(e1_val), (Operand)new BoolValue(e2_val), new Operand(bool_type, String.valueOf(counter.register)));
-        return new Tracker(counter.register + 1, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 1, bool_type, counter.last_basic_block);
       }
 
       // Second and Third cases are analogous except for the placement of the object
@@ -1194,7 +1189,7 @@ public class Codegen {
         }
         print_util.compareOp(out, "EQ", (Operand)new BoolValue(e1_val), non_cons, new Operand(bool_type, String.valueOf(counter.register + 1)));
 
-        return new Tracker(counter.register + 2, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
       }
 
       if (e1 instanceof AST.object && e2 instanceof AST.bool_const) {
@@ -1209,7 +1204,7 @@ public class Codegen {
         }
         print_util.compareOp(out, "EQ", (Operand)new BoolValue(e2_val), non_cons, new Operand(bool_type, String.valueOf(counter.register + 1)));
 
-        return new Tracker(counter.register + 2, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
       }
 
       // Last case is when both the operands are objects
@@ -1232,7 +1227,7 @@ public class Codegen {
         }
         print_util.compareOp(out, "EQ", non_cons_1, non_cons_2, new Operand(bool_type, String.valueOf(counter.register + 2)));
 
-        return new Tracker(counter.register + 3, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
       }
       return counter;
     }
@@ -1251,7 +1246,7 @@ public class Codegen {
         arguments.add(new Operand(string_type, String.valueOf(counter.register)));
         arguments.add(new Operand(string_type, String.valueOf(counter.register + 1)));
         print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
-        return new Tracker(counter.register + 3, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
       }
 
       // Second and Third cases are analogous except for the placement of the object
@@ -1276,7 +1271,7 @@ public class Codegen {
 
         print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
 
-        return new Tracker(counter.register + 3, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
       }
 
       if (e1 instanceof AST.object && e2 instanceof AST.string_const) {
@@ -1300,7 +1295,7 @@ public class Codegen {
 
         print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
 
-        return new Tracker(counter.register + 3, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
       }
 
       // Last case is when both the operands are objects
@@ -1329,7 +1324,7 @@ public class Codegen {
 
         print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
 
-        return new Tracker(counter.register + 3, counter.if_counter, bool_type);
+        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
       }
       return counter;
     }
@@ -1344,7 +1339,7 @@ public class Codegen {
     // If the expression on the rhs of not is bool_const
     if (e1 instanceof AST.bool_const) {
       print_util.arithOp(out, "xor", (Operand)new BoolValue(((AST.bool_const)e1).value), (Operand)new BoolValue(true), new Operand(bool_type, String.valueOf(counter.register)));
-      return new Tracker(counter.register + 1, counter.if_counter, int_type);
+      return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
     }
 
     // If the expression on the rhs of not is object
@@ -1358,7 +1353,7 @@ public class Codegen {
         print_util.loadOp(out, bool_type, new Operand(bool_type.getPtrType(), e1_obj.name + ".addr"), non_cons);
       }
       print_util.arithOp(out, "xor", non_cons, (Operand)new BoolValue(true), new Operand(bool_type, String.valueOf(counter.register + 1)));
-      return new Tracker(counter.register + 2, counter.if_counter, bool_type);
+      return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
     }
 
     // Else if has to be an expression involving some params
@@ -1374,7 +1369,7 @@ public class Codegen {
     // If the expression on the rhs of ~ is int_const
     if (e1 instanceof AST.int_const) {
       print_util.arithOp(out, "mul", (Operand)new IntValue(((AST.int_const)e1).value), (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register)));
-      return new Tracker(counter.register + 1, counter.if_counter, int_type);
+      return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
     }
 
     // If the expression on the rhs of ~ is object
@@ -1388,7 +1383,7 @@ public class Codegen {
         print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), e1_obj.name + ".addr"), non_cons);
       }
       print_util.arithOp(out, "mul", non_cons, (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register + 1)));
-      return new Tracker(counter.register + 2, counter.if_counter, int_type);
+      return new Tracker(counter.register + 2, int_type, counter.last_basic_block);
     }
 
     // Else if has to be an expression involving some params
