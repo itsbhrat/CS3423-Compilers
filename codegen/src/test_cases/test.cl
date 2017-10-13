@@ -76,6 +76,22 @@ class Main inherits IO {
         fi
     };
     
+    
+
+
+    while_inside_if(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+        if a = b
+        then
+            while a <= b
+            loop    a <- a + 1
+            pool
+        else 
+            while a <= b
+            loop    a <- a + 1
+            pool
+        fi
+    };
+(*    
     loop_trial(a: Int, b: Int, c: Int) : Int { {
         while a <= 10 
         loop
@@ -100,9 +116,8 @@ class Main inherits IO {
         pool;
     }
     };
-
-    
-    loop_trial_2(a: Int, b: Int, c: Int) : Int {
+ *)
+    simple_loop_trial(a: Int, b: Int, c: Int) : Int {
         while a <= 10 
         loop    a+5
         pool
@@ -119,6 +134,16 @@ class Main inherits IO {
         if 1 < 0 then 3 else 5 fi
     };
      
+    simple_if_loop_trial(a: Int, b: Int, c: Int) : Int {
+        while a <= 10 
+        loop
+            if a = b
+            then    c
+            else    a
+            fi
+        pool
+    }; 
+
 };
 
 (*

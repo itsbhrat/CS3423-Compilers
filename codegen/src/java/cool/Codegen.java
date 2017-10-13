@@ -699,9 +699,14 @@ public class Codegen {
       return new Tracker(counter.register + 1, counter.if_counter, op);
     }
 
-    // handle IR for expr ::== ID
+    // handle IR for expr ::== not ID
     if (expr instanceof AST.comp) {
       return comp_capture(out, expr, counter);
+    }
+
+    // handle IR for expr ::== not ID
+    if (expr instanceof AST.neg) {
+      return neg_capture(out, expr, counter);
     }
     // handle IR for expr ::== expr = expr
     if (expr instanceof AST.eq ) {
@@ -720,7 +725,7 @@ public class Codegen {
       for (AST.expression cur_expr : the_block.l1) {
         counter = NodeVisit(out, cur_expr, counter);
       }
-      attempt_assign_retval(out, counter.last_instruction, counter.register);
+      attempt_assign_retval(out, counter.last_instruction, counter.register-1);
       return counter;
     }
 
