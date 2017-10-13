@@ -5,11 +5,13 @@ import java.util.*;
 
 class ClassNode {
   public String name;
+  public String parent;
   public List<AST.attr> attributes = new ArrayList<AST.attr>();
   public List<AST.method> methods = new ArrayList<AST.method>();
 
-  ClassNode(String class_name, List<AST.attr> class_attributes, List<AST.method> class_methods) {
+  ClassNode(String class_name, String class_parent, List<AST.attr> class_attributes, List<AST.method> class_methods) {
     name = class_name;
+    parent = class_parent;
     attributes = class_attributes;
     methods = class_methods;
   }
@@ -111,7 +113,9 @@ public class Codegen {
         print_util.allocaOp(out, get_optype("Main", true, 0), new Operand(get_optype("Main", true, 1), "obj"));
         List<Operand> op_list = new ArrayList<Operand>();
         op_list.add(new Operand(get_optype("Main", true, 1), "obj"));
-        print_util.callOp(out, new ArrayList<OpType>(), "Main_Cons_Main", true, op_list, new Operand(void_type, "null"));
+        print_util.callOp(out, new ArrayList<OpType>(), "Main_Cons_Main", true, op_list, new Operand(get_optype("Main", true, 1), "obj1"));
+        op_list.set(0, new Operand(get_optype("Main", true, 1), "obj1"));
+        print_util.callOp(out, new ArrayList<OpType>(), "Main_main", true, op_list, new Operand(void_type, "null"));
         print_util.retOp(out, (Operand)new IntValue(0));
       }
 
@@ -244,7 +248,7 @@ public class Codegen {
         cur_class_methods.add(cur_method);
       }
     }
-    classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class_attributes, cur_class_methods));
+    classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class.parent, cur_class_attributes, cur_class_methods));
   }
 
   public OpType get_optype(String typeid, boolean isClass, int depth) {
@@ -264,8 +268,8 @@ public class Codegen {
     public void get_default_value(OpType type, String name, boolean isAllocaNeeded) {
       if (typeid.equals("String") && isClass == true) {
         if(isAllocaNeeded)
-          our.println("%" + name + "")
-        out.println("store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str.4, i32 0, i32 0), i8** %j")
+          out.println("%" + name + "");
+        out.println("store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str. + something + i32 0, i32 0), i8** %j");
         return new OpType(OpTypeId.INT8_PTR);
       }
       else if (typeid.equals("Int")) {
@@ -283,7 +287,8 @@ public class Codegen {
       } else {
         return new OpType(typeid, depth);
       }
-    }*/
+    }
+  */
   // Function to generate the constructor of a given class
   public void build_constructor(PrintWriter out, String class_name) {
 
@@ -295,7 +300,7 @@ public class Codegen {
     cons_arg_list.add(new Operand(get_optype(class_name, true, 1), "this"));
 
     // Define the constructor and establish pointer information
-    print_util.define(out, void_type, method_name, cons_arg_list);
+    print_util.define(out, get_optype(class_name, true, 1), method_name, cons_arg_list);
     print_util.allocaOp(out, get_optype(class_name, true, 1), new Operand(get_optype(class_name, true, 1), "this.addr"));
     load_store_classOp(out, class_name, "this");
 
@@ -336,7 +341,7 @@ public class Codegen {
           out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str.empty");
         } else {
           length_string = "[" + String.valueOf(((AST.string_const)cur_attr.value).value.length() + 1) + " x i8]";
-          out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + cur_attr.lineNo);
+          out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(((AST.string_const)cur_attr.value).value));
         }
         out.println(", i32 0, i32 0), i8** %" + cur_attr.name);
       }
@@ -354,7 +359,7 @@ public class Codegen {
         }
       }
     }
-    print_util.retOp(out, new Operand(void_type, "retval"));
+    print_util.retOp(out, new Operand(get_optype(class_name, true, 1), "this1"));
   }
 
   public void allocate_function_parameters(PrintWriter out, List<Operand> arguments) {
@@ -513,9 +518,8 @@ public class Codegen {
 
     // Method for generating the out_string method
     if (f_name.equals("out_string")) {
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
       arguments.add(new Operand(string_type, "given"));
       print_util.define(out, return_val.getType(), new_method_name, arguments);
 
@@ -530,15 +534,14 @@ public class Codegen {
       argTypes.add(new OpType(OpTypeId.VAR_ARG));
       print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
 
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       print_util.retOp(out, return_val);
     }
 
     // Method for generating the out_int method
     else if (f_name.equals("out_int")) {
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
       arguments.add(new Operand(int_type, "given"));
       print_util.define(out, return_val.getType(), new_method_name, arguments);
 
@@ -553,16 +556,14 @@ public class Codegen {
       argTypes.add(new OpType(OpTypeId.VAR_ARG));
       print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
 
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       print_util.retOp(out, return_val);
     }
 
     // Method for generating the in_string method
     else if (f_name.equals("in_string")) {
-      return_val = new Operand(string_type, "given");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
-      print_util.define(out, return_val.getType(), new_method_name, arguments);
+      print_util.define(out, string_type, new_method_name, arguments);
 
       out.println("\t%0 = bitcast [3 x i8]* @strfmt to i8*");
 
@@ -584,10 +585,8 @@ public class Codegen {
 
     // Method for generating the in_int method
     else if (f_name.equals("in_int")) {
-      return_val = new Operand(int_type, "given");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
-      print_util.define(out, return_val.getType(), new_method_name, arguments);
+      print_util.define(out, int_type, new_method_name, arguments);
 
       out.println("\t%0 = bitcast [3 x i8]* @intfmt to i8*");
 
@@ -756,7 +755,44 @@ public class Codegen {
     // This case covers functions of the given class called within the class
     if (expr instanceof AST.dispatch) {
       AST.dispatch cur_func = (AST.dispatch)expr;
-      if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
+
+      // Handling IO.out_string cases
+      if (cur_func.name.equals("out_string")) {
+        Integer print_string = string_table.get(((AST.string_const)cur_func.actuals.get(0)).value);
+        List<Operand> arg_list = new ArrayList<Operand>();
+        arg_list.add((Operand)new GlobalValue(string_type.getPtrType(), ".str." + String.valueOf(print_string)));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, new Operand(void_type, "null"));
+        return counter;
+      }
+
+      // Handling IO.out_int cases
+      else if (cur_func.name.equals("out_int")) {
+        Operand returned = new Operand(void_type, "null");
+        List<Operand> arg_list = new ArrayList<Operand>();
+        // Constant val case
+        if (cur_func.actuals.get(0) instanceof AST.int_const) {
+          arg_list.add((Operand)new IntValue(((AST.int_const)cur_func.actuals.get(0)).value));
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
+        }
+        // Variable case
+        if (cur_func.actuals.get(0) instanceof AST.object) {
+          AST.object print_var = (AST.object)cur_func.actuals.get(0);
+          boolean flag = check_attribute(print_var.name);
+          Operand cur_var;
+          if (flag == true) {
+            cur_var = new Operand(int_type.getPtrType(), print_var.name);
+          } else {
+            cur_var = new Operand(int_type.getPtrType(), print_var.name + ".addr");
+          }
+          print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
+          arg_list.add(new Operand(int_type, String.valueOf(counter.register)));
+          counter.register++;
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
+        }
+        return new Tracker(counter.register+1, counter.if_counter, int_type);
+      }
+      /* dispatch */
+      else if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
         List<Operand> pass_params = new ArrayList<Operand>();
         pass_params.add(new Operand(get_optype(CLASS_NAME, true, 1), "this1"));
         for (AST.expression e : cur_func.actuals) {
@@ -816,7 +852,9 @@ public class Codegen {
         print_util.callOp(out, new ArrayList<OpType>(), CLASS_NAME + "_" + cur_func.name, true, pass_params, return_op);
         return new Tracker(counter.register, counter.if_counter, return_op.getType());
       }
+      return counter;
     }
+
     return counter;
   }
 
@@ -873,6 +911,8 @@ public class Codegen {
     // adding current basic block to stack for taking car of nested if
     int curr_loop_counter = loop_basic_block_counter;
     loop_basic_block_counter++;
+    
+    attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
 
     print_util.branchUncondOp(out , "for.cond" + String.valueOf(curr_loop_counter));
     out.println("\nfor.cond" + String.valueOf(curr_loop_counter) + ":");
@@ -1313,6 +1353,36 @@ public class Codegen {
         print_util.loadOp(out, bool_type, new Operand(bool_type.getPtrType(), e1_obj.name + ".addr"), non_cons);
       }
       print_util.arithOp(out, "xor", non_cons, (Operand)new BoolValue(true), new Operand(bool_type, String.valueOf(counter.register + 1)));
+      return new Tracker(counter.register + 2, counter.if_counter, bool_type);
+    }
+
+    // Else if has to be an expression involving some params
+    else {
+      return NodeVisit(out, e1, counter);
+    }
+  }
+
+  public Tracker neg_capture(PrintWriter out, AST.expression e, Tracker counter) {
+    AST.neg cur_expr = (AST.neg)e;
+    AST.expression e1 = cur_expr.e1;
+
+    // If the expression on the rhs of ~ is int_const
+    if (e1 instanceof AST.int_const) {
+      print_util.arithOp(out, "mul", (Operand)new IntValue(((AST.int_const)e1).value), (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register)));
+      return new Tracker(counter.register + 1, counter.if_counter, int_type);
+    }
+
+    // If the expression on the rhs of ~ is object
+    else if (e1 instanceof AST.object) {
+      AST.object e1_obj = (AST.object)e1;
+      Operand non_cons = new Operand(int_type, String.valueOf(counter.register));
+      boolean flag = check_attribute(e1_obj.name);
+      if (flag == true) {
+        print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), e1_obj.name), non_cons);
+      } else {
+        print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), e1_obj.name + ".addr"), non_cons);
+      }
+      print_util.arithOp(out, "mul", non_cons, (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register + 1)));
       return new Tracker(counter.register + 2, counter.if_counter, int_type);
     }
 

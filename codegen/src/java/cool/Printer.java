@@ -68,28 +68,6 @@ class Printer {
     out.print(" }\n");
   }
 
-  void typeAliasDefine(PrintWriter out, String aliasName, OpType type) {
-    out.print("%alias." + aliasName + " = type " + type.getName() + "\n");
-  }
-
-  void initStructConstant(PrintWriter out, Operand constant, List<OpType> fieldTypes, List<ConstValue> InitVals) {
-    out.print(constant.getName() + " = constant " + constant.getTypename() + "{\n");
-    for(int i = 0; i < InitVals.size(); i++) {
-      out.print("\t" + fieldTypes.get(i).getName() + " ");
-      if (InitVals.get(i).getType().getId() == OpTypeId.INT8 && fieldTypes.get(i).getId() == OpTypeId.INT8_PTR) {
-        getElementPtrEmbed(out, InitVals.get(i).getType(), InitVals.get(i), new IntValue(0), new IntValue(0), false);
-      } else {
-        out.print(InitVals.get(i).getValue());
-      }
-
-      if (i != InitVals.size() - 1) {
-        out.print(", ");
-      } else {
-        out.print("}\n");
-      }
-    }
-  }
-
   void arithOp(PrintWriter out, String operation, Operand op1, Operand op2, Operand result) {
     out.print("\t");
     if (result.getType().getId() != OpTypeId.VOID) {
@@ -142,11 +120,6 @@ class Printer {
     }
     out.print("( " + type.getName() + ", " + op1.getTypename() + "* " + op1.getName() + ", "
           + op2.getTypename() + " " + op2.getName() + ", " + op3.getTypename() + " " + op3.getName() + ")\n");
-  }
-
-  void selectOp(PrintWriter out, Operand op1, Operand op2, Operand op3, Operand result) {
-    out.print("\t" + result.getName() + " = select " + op1.getTypename() + " " + op1.getName() + ", "
-          + op2.getTypename() + " " + op2.getName() + ", " + op3.getTypename() + " " + op3.getName() + "\n");
   }
 
   void branchCondOp(PrintWriter out, Operand op, String labelTrue, String labelFalse) {
@@ -210,10 +183,5 @@ class Printer {
       out.print("void\n");
     }  
     out.print("}\n");
-  }
-
-  void bitcastOp(PrintWriter out, Operand op, OpType newType, Operand result) {
-    out.print("\t" + result.getName() + " = bitcast " + op.getTypename() + " " + op.getName() + " to "
-          + newType.getName() + "\n");
   }
 }

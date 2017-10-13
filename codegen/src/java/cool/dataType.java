@@ -250,16 +250,6 @@ class ConstValue extends Operand {
     return value;
   }
 }
-class CasedtValue extends ConstValue {
-  protected OpType precastType;
-  CasedtValue(OpType t, String val, OpType precast) {
-    super(t, "bitcast " + precast.getName() + " " + val + "to " + t.getName());
-    precastType = precast;
-  }
-  OpType getPrecastType() {
-    return precastType;
-  } 
-}
 class IntValue extends ConstValue {
   private int iValue;
   IntValue(int i) {
@@ -283,11 +273,5 @@ class BoolValue extends ConstValue {
   }
   boolean getBoolValue() {
     return bValue;
-  }
-}
-
-class NullValue extends ConstValue {
-  NullValue(OpType t) {
-    super(t, "null");
   }
 }

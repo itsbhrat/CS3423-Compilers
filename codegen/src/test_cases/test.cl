@@ -1,4 +1,4 @@
-class Main {
+class Main inherits IO {
     i : Int;
     k : Bool <- true;
     j : String <- "Hello";
@@ -8,15 +8,18 @@ class Main {
             i <- 2 + 3 * 4;
             i <- 5 * 7 / 8;
             i <- 1 + i;
+            i <- ~1;
             a <- a + i * 5 / 5;
             k <- not k;
+            out_string("hi boys");
+            out_int(a);
             c <- "Hi";
         }
     };
 
 
 
-    main() : Int {
+    harsh_main() : Int {
         {
             i <- 1;
             i;
@@ -24,13 +27,20 @@ class Main {
         }
     };
 
-    (*bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
+    main() : Object {
+        {
+            i <- 1;
+            out_int(i);
+        }
+    };
+
+    bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
             j <- foo(5 + 5, true, "HI____________________", j);
         }
-    };*)
+    };
 
-(*   honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+   honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
         then{
             e;
@@ -40,10 +50,9 @@ class Main {
             a+d
         fi
     };
- *)
 
 
-    honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+    honey2(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
         then
             if b <= c
@@ -95,8 +104,6 @@ class Main {
     };
      
 };
-
-(*
 Class OMG {
   do_this ( i : Int, j :String, k :Bool) : String {
       j
@@ -106,4 +113,3 @@ Class OMG {
     a <- do_this(1, "OMG", false)
   };
 };
-*)
