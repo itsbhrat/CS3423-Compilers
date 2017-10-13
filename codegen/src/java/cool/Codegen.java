@@ -35,6 +35,8 @@ public class Codegen {
   String filename;
   HashMap<String, ClassNode> classList = new HashMap<String, ClassNode>();
   Printer print_util = new Printer();
+  HashMap<String, Integer> string_table = new HashMap<String, Integer>();
+  Integer string_counter = 0;
 
   OpType string_type = get_optype("String", true, 0);
   OpType int_type = get_optype("Int", true, 0);
@@ -611,7 +613,9 @@ public class Codegen {
   public void string_capture(PrintWriter out, AST.expression expr) {
     if (expr instanceof AST.string_const) {
       String cap_string = ((AST.string_const)expr).value;
-      out.print("@.str." + expr.lineNo + " = private unnamed_addr constant [" + String.valueOf(cap_string.length() + 1) + " x i8] c\"");
+      string_table.put(cap_string, string_counter);
+      string_counter++;
+      out.print("@.str." + string_table.get(cap_string) + " = private unnamed_addr constant [" + String.valueOf(cap_string.length() + 1) + " x i8] c\"");
       print_util.escapedString(out, cap_string);
       out.println("\\00\"");
     } else if (expr instanceof AST.eq) {
@@ -665,7 +669,7 @@ public class Codegen {
             } else if (e instanceof AST.bool_const) {
               pass_params.add((Operand)new BoolValue(((AST.bool_const)e).value));
             } else if (e instanceof AST.string_const) {
-              pass_params.add((Operand)new GlobalValue(string_type, ".str." + String.valueOf(e.lineNo)));
+              pass_params.add((Operand)new GlobalValue(string_type, ".str." + string_table.get(((AST.string_const)e).value)));
             }
           }
           Operand return_op = null;
@@ -745,8 +749,9 @@ public class Codegen {
               // If it is just like this: j <- "Hello";
               if (((AST.assign)cur_expr).e1 instanceof AST.string_const) {
                 AST.assign cur_assign = (AST.assign)cur_expr;
-                String length_string = "[" + String.valueOf(((AST.string_const)cur_assign.e1).value.length() + 1) + " x i8]";
-                out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + cur_assign.lineNo);
+                String cur_assign_string = ((AST.string_const)cur_assign.e1).value;
+                String length_string = "[" + String.valueOf(cur_assign_string.length() + 1) + " x i8]";
+                out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(cur_assign_string));
                 out.println(", i32 0, i32 0), i8** %" + cur_assign.name);
                 print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), cur_assign.name), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(counter.register)));
                 counter.register++;
@@ -756,8 +761,9 @@ public class Codegen {
               // If it is just like this: j <- "Hello";
               if (((AST.assign)cur_expr).e1 instanceof AST.string_const) {
                 AST.assign cur_assign = (AST.assign)cur_expr;
-                String length_string = "[" + String.valueOf(((AST.string_const)cur_assign.e1).value.length() + 1) + " x i8]";
-                out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + cur_assign.lineNo);
+                String cur_assign_string = ((AST.string_const)cur_assign.e1).value;
+                String length_string = "[" + String.valueOf(cur_assign_string.length() + 1) + " x i8]";
+                out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(cur_assign_string));
                 out.println(", i32 0, i32 0), i8** %" + cur_assign.name + ".addr");
                 print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), cur_assign.name + ".addr"), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(counter.register)));
                 counter.register++;
@@ -1147,8 +1153,8 @@ public class Codegen {
         String e1_val = ((AST.string_const)e1).value;
         String e2_val = ((AST.string_const)e2).value;
 
-        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e1_val.length() + 1) + " x i8]* " + "@.str." + e1.lineNo + " to i8*");
-        out.println("\t%" + (counter.register + 1) + " = bitcast [" + String.valueOf(e2_val.length() + 1) + " x i8]* " + "@.str." + e2.lineNo + " to i8*");
+        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e1_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e1_val) + " to i8*");
+        out.println("\t%" + (counter.register + 1) + " = bitcast [" + String.valueOf(e2_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e2_val) + " to i8*");
 
         Operand return_val = new Operand(bool_type, String.valueOf(counter.register + 2));
         List<Operand> arguments = new ArrayList<Operand>();
@@ -1161,7 +1167,7 @@ public class Codegen {
       // Second and Third cases are analogous except for the placement of the object
       if (e1 instanceof AST.string_const && e2 instanceof AST.object) {
         String e1_val = ((AST.string_const)e1).value;
-        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e1_val.length() + 1) + " x i8]* " + "@.str." + e1.lineNo + " to i8*");
+        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e1_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e1_val) + " to i8*");
 
         AST.object e2_obj = (AST.object)e2;
         Operand non_cons = new Operand(string_type, String.valueOf(counter.register + 1));
@@ -1185,7 +1191,7 @@ public class Codegen {
 
       if (e1 instanceof AST.object && e2 instanceof AST.string_const) {
         String e2_val = ((AST.string_const)e2).value;
-        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e2_val.length() + 1) + " x i8]* " + "@.str." + e2.lineNo + " to i8*");
+        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e2_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e2_val) + " to i8*");
 
         AST.object e1_obj = (AST.object)e1;
         Operand non_cons = new Operand(string_type, String.valueOf(counter.register + 1));

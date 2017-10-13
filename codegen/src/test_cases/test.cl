@@ -3,7 +3,7 @@ class Main {
     k : Bool <- true;
     j : String <- "Hello";
 
-    foo(a: Int, b: Bool, c: String) : String {
+    foo(a: Int, b: Bool, c: String, d: String) : String {
         {        
             i <- 2 + 3 * 4;
             i <- 5 * 7 / 8;
@@ -22,7 +22,7 @@ class Main {
 
     bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
-            j <- foo(10, true, "HI____________________");
+            j <- foo(10, true, "HI____________________", "BYE_____");
         }
     };
 
