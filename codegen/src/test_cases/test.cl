@@ -3,7 +3,8 @@ class Main inherits IO {
     k : Bool <- true;
     j : String <- "Hello";
 
-    foo(a: Int, b: Bool, c: String, d: String) : String {
+(*
+  foo(a: Int, b: Bool, c: String, d: String) : String {
         {        
             i <- 2 + 3 * 4;
             i <- 5 * 7 / 8;
@@ -17,7 +18,8 @@ class Main inherits IO {
         }
     };
 
-
+*)
+  
 
     harsh_main() : Int {
         {
@@ -34,12 +36,13 @@ class Main inherits IO {
         }
     };
 
-    bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
+  (*  bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
             j <- foo(5 + 5, true, "HI____________________", j);
         }
     };
-
+*)
+  
    honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
         then{
@@ -104,6 +107,8 @@ class Main inherits IO {
     };
      
 };
+
+(*
 Class OMG {
   do_this ( i : Int, j :String, k :Bool) : String {
       j
@@ -113,3 +118,6 @@ Class OMG {
     a <- do_this(1, "OMG", false)
   };
 };
+
+*)
+  
