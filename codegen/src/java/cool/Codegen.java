@@ -669,6 +669,7 @@ public class Codegen {
         AST.dispatch cur_func = (AST.dispatch)cur.e1;
         if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
           List<Operand> pass_params = new ArrayList<Operand>();
+          pass_params.add(new Operand(get_optype(CLASS_NAME, true, 1), "this1"));
           for (AST.expression e : cur_func.actuals) {
             // Below are all constants
             if (e instanceof AST.int_const) {
@@ -697,7 +698,7 @@ public class Codegen {
                   pass_params.add(new Operand(string_type, ((AST.object)e).name));
                 } else {
                   counter = NodeVisit(out, e, counter);
-                  pass_params.add(new Operand(string_type, String.valueOf(counter.register - 1)));
+                  pass_params.add(new Operand(string_type.getPtrType(), String.valueOf(counter.register - 1)));
                 }
               }
             }

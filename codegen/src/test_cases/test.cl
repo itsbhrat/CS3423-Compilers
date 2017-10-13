@@ -95,3 +95,13 @@ class Main {
     };
 
 };
+
+Class OMG {
+  do_this ( i : Int, j :String, k :Bool) : String {
+      j
+  };
+
+  do_that ( a : String ) : String {
+    a <- do_this(1, "OMG", false)
+  };
+};
