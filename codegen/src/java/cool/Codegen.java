@@ -559,10 +559,8 @@ public class Codegen {
 
     // Method for generating the in_string method
     else if (f_name.equals("in_string")) {
-      return_val = new Operand(string_type, "given");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
-      print_util.define(out, return_val.getType(), new_method_name, arguments);
+      print_util.define(out, string_type, new_method_name, arguments);
 
       out.println("\t%0 = bitcast [3 x i8]* @strfmt to i8*");
 
@@ -584,10 +582,8 @@ public class Codegen {
 
     // Method for generating the in_int method
     else if (f_name.equals("in_int")) {
-      return_val = new Operand(int_type, "given");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
-      print_util.define(out, return_val.getType(), new_method_name, arguments);
+      print_util.define(out, int_type, new_method_name, arguments);
 
       out.println("\t%0 = bitcast [3 x i8]* @intfmt to i8*");
 
@@ -1417,6 +1413,36 @@ public class Codegen {
     }
 
     // Else if has to be an expression involving some params    
+    else {
+      return NodeVisit(out, e1, counter);
+    }
+  }
+
+  public Tracker neg_capture(PrintWriter out, AST.expression e, Tracker counter) {
+    AST.neg cur_expr = (AST.neg)e;
+    AST.expression e1 = cur_expr.e1;
+
+    // If the expression on the rhs of ~ is int_const
+    if (e1 instanceof AST.int_const) {
+      print_util.arithOp(out, "mul", (Operand)new IntValue(((AST.int_const)e1).value), (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register)));
+      return new Tracker(counter.register + 1, counter.if_counter, int_type);
+    }
+
+    // If the expression on the rhs of ~ is object
+    else if (e1 instanceof AST.object) {
+      AST.object e1_obj = (AST.object)e1;
+      Operand non_cons = new Operand(int_type, String.valueOf(counter.register));
+      boolean flag = check_attribute(e1_obj.name);
+      if (flag == true) {
+        print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), e1_obj.name), non_cons);
+      } else {
+        print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), e1_obj.name + ".addr"), non_cons);
+      }
+      print_util.arithOp(out, "mul", non_cons, (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register + 1)));
+      return new Tracker(counter.register + 2, counter.if_counter, int_type);
+    }
+
+    // Else if has to be an expression involving some params
     else {
       return NodeVisit(out, e1, counter);
     }

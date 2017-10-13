@@ -8,6 +8,7 @@ class Main inherits IO {
             i <- 2 + 3 * 4;
             i <- 5 * 7 / 8;
             i <- 1 + i;
+            i <- ~1;
             a <- a + i * 5 / 5;
             k <- not k;
             out_string("hi boys");
