@@ -206,6 +206,9 @@ public class Codegen {
         CLASS_NAME = cl.name;
         // Required to do here: Build expressions
         counter = NodeVisit(out, mtd.body, counter);
+        if (! (mtd.body instanceof AST.block)) {
+          attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
+        }
 
         if (mtd.typeid.equals("Object")) {
           print_util.retOp(out, new Operand(new OpType(OpTypeId.VOID), "null"));
@@ -258,7 +261,7 @@ public class Codegen {
     }
   }
   /*
-    public void get_default_value(Optype type, String name, boolean isAllocaNeeded) {
+    public void get_default_value(OpType type, String name, boolean isAllocaNeeded) {
       if (typeid.equals("String") && isClass == true) {
         if(isAllocaNeeded)
           our.println("%" + name + "")
@@ -651,211 +654,43 @@ public class Codegen {
     return ;
   }
 
+  public void attempt_assign_retval(PrintWriter out, OpType op, int register) {
+    if (method_return_type.getName().equals(op.getName())) {
+      print_util.storeOp(out, new Operand(method_return_type, String.valueOf(register)), new Operand(method_return_type.getPtrType(), "retval"));
+    }
+  }
+  // TODO discuss return values
   public Tracker NodeVisit(PrintWriter out, AST.expression expr, Tracker counter) {
-    if (expr instanceof AST.assign) {
-      AST.assign cur = (AST.assign)expr;
 
-      // This case covers only arithmetic expressions and inequality comparison operations
-      if (cur.e1 instanceof AST.mul || cur.e1 instanceof AST.divide || cur.e1 instanceof AST.plus || cur.e1 instanceof AST.sub ||
-          cur.e1 instanceof AST.leq || cur.e1 instanceof AST.lt ) {
-        return arith_capture(out, cur.e1, counter);
-      }
-
-      // This case covers boolean operations
-
-      if (cur.e1 instanceof AST.comp) {
-        return comp_capture(out, cur.e1, counter);
-      }
-
-      // This case covers functions of the given class called within the class
-      if (cur.e1 instanceof AST.dispatch) {
-        AST.dispatch cur_func = (AST.dispatch)cur.e1;
-        if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
-          List<Operand> pass_params = new ArrayList<Operand>();
-          pass_params.add(new Operand(get_optype(CLASS_NAME, true, 1), "this1"));
-          for (AST.expression e : cur_func.actuals) {
-            // Below are all constants
-            if (e instanceof AST.int_const) {
-              pass_params.add((Operand)new IntValue(((AST.int_const)e).value));
-            } else if (e instanceof AST.bool_const) {
-              pass_params.add((Operand)new BoolValue(((AST.bool_const)e).value));
-            } else if (e instanceof AST.string_const) {
-              pass_params.add((Operand)new GlobalValue(string_type, ".str." + string_table.get(((AST.string_const)e).value)));
-            }
-
-            // Below are all variables
-            else {
-              if (e.type.equals("Int")) {
-                if (e instanceof AST.object) {
-                  pass_params.add(new Operand(int_type, ((AST.object)e).name));
-                } else {
-                  counter = NodeVisit(out, e, counter);
-                  pass_params.add(new Operand(int_type, String.valueOf(counter.register - 1)));
-                }
-              } else if (e.type.equals("Bool")) {
-                if (e instanceof AST.object) {
-                  pass_params.add(new Operand(bool_type, ((AST.object)e).name));
-                }
-              } else if (e.type.equals("String")) {
-                if (e instanceof AST.object) {
-                  pass_params.add(new Operand(string_type, ((AST.object)e).name));
-                } else {
-                  counter = NodeVisit(out, e, counter);
-                  pass_params.add(new Operand(string_type.getPtrType(), String.valueOf(counter.register - 1)));
-                }
-              }
-            }
-          }
-          Operand return_op = null;
-          for (AST.method m : classList.get(CLASS_NAME).methods) {
-            if (m.name.equals(cur_func.name)) {
-              if (m.typeid.equals("Object")) {
-                return_op = new Operand(void_type, "null");
-              } else if (m.typeid.equals("Int")) {
-                return_op = new Operand(int_type, String.valueOf(counter.register));
-                counter.register++;
-              } else if (m.typeid.equals("Bool")) {
-                return_op = new Operand(bool_type, String.valueOf(counter.register));
-                counter.register++;
-              } else if (m.typeid.equals("String")) {
-                return_op = new Operand(string_type, String.valueOf(counter.register));
-                counter.register++;
-              } else {
-                return_op = new Operand(get_optype(m.typeid, true, 0), String.valueOf(counter.register));
-                counter.register++;
-              }
-              break;
-            }
-          }
-          print_util.callOp(out, new ArrayList<OpType>(), CLASS_NAME + "_" + cur_func.name, true, pass_params, return_op);
-          return new Tracker(counter.register, counter.if_counter, return_op.getType());
-        }
-      }
+    // code for making the IR for bool constatnts
+    if (expr instanceof AST.bool_const) {
+      print_util.allocaOp(out, bool_type, new Operand(bool_type, String.valueOf(counter.register)));
+      print_util.storeOp(out, (Operand)new BoolValue(((AST.bool_const)expr).value), new Operand(bool_type, String.valueOf(counter.register)));
+      print_util.loadOp(out, bool_type, new Operand(bool_type, String.valueOf(counter.register)), new Operand(bool_type, String.valueOf(counter.register + 1)));
+      return new Tracker(counter.register + 2, counter.if_counter, bool_type);
     }
 
-    if (expr instanceof AST.comp) {
-      return comp_capture(out, expr, counter);
+    // code for making the IR for string constatnts
+    else if (expr instanceof AST.string_const) {
+      String cur_assign_string = ((AST.string_const)expr).value;
+      print_util.allocaOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(counter.register)));
+      String length_string = "[" + String.valueOf(cur_assign_string.length() + 1) + " x i8]";
+      out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(cur_assign_string));
+      out.println(", i32 0, i32 0), i8** %" + String.valueOf(counter.register));
+      print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), String.valueOf(counter.register)), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(counter.register + 1)));
+      return new Tracker(counter.register + 2, counter.if_counter, new OpType(OpTypeId.INT8_PTR));
     }
 
-    if (expr instanceof AST.cond) {
-      return cond_capture(out, (AST.cond)expr, counter);
+    // code for making the IR for int constatnts
+    else if (expr instanceof AST.int_const) {
+      print_util.allocaOp(out, int_type, new Operand(int_type, String.valueOf(counter.register)));
+      print_util.storeOp(out, (Operand)new IntValue(((AST.int_const)expr).value), new Operand(int_type, String.valueOf(counter.register)));
+      print_util.loadOp(out, int_type, new Operand(int_type, String.valueOf(counter.register)), new Operand(int_type, String.valueOf(counter.register + 1)));
+      return new Tracker(counter.register + 2, counter.if_counter, int_type);
     }
 
-    if (expr instanceof AST.loop) {
-      return loop_capture(out, (AST.loop)expr, counter);
-    }
-
-    if (expr instanceof AST.block) {
-      AST.block the_block = (AST.block)expr;
-      for (AST.expression cur_expr : the_block.l1) {
-        counter = NodeVisit(out, cur_expr, counter);
-        if (cur_expr instanceof AST.assign) {
-
-          // If type is INT
-          if (cur_expr.type.equals("Int")) {
-            boolean flag = check_attribute(((AST.assign)cur_expr).name);
-
-            // If attribute
-            if (flag == true) {
-              // If it is just like this: i <- 1;
-              if (((AST.assign)cur_expr).e1 instanceof AST.int_const) {
-                int e1_val = ((AST.int_const)((AST.assign)cur_expr).e1).value;
-                print_util.storeOp(out, (Operand)new IntValue(e1_val), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name));
-              }
-
-              // If it like this: i <- weird operations
-              else {
-                print_util.storeOp(out, new Operand(int_type, String.valueOf(counter.register - 1)), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name));
-              }
-            }
-
-            // If not attribute
-            else {
-
-              // Same case as above
-              if (((AST.assign)cur_expr).e1 instanceof AST.int_const) {
-                int e1_val = ((AST.int_const)((AST.assign)cur_expr).e1).value;
-                print_util.storeOp(out, (Operand)new IntValue(e1_val), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name + ".addr"));
-              }
-
-              // Samce case as above
-              else {
-                print_util.storeOp(out, new Operand(int_type, String.valueOf(counter.register - 1)), new Operand(new OpType(OpTypeId.INT32_PTR), ((AST.assign)cur_expr).name + ".addr"));
-              }
-            }
-          }
-         
-          //If type is STRING
-          else if (cur_expr.type.equals("String")) {
-            boolean flag = check_attribute(((AST.assign)cur_expr).name);
-            if (flag == true) {
-              // If it is just like this: j <- "Hello";
-              if (((AST.assign)cur_expr).e1 instanceof AST.string_const) {
-                AST.assign cur_assign = (AST.assign)cur_expr;
-                String cur_assign_string = ((AST.string_const)cur_assign.e1).value;
-                String length_string = "[" + String.valueOf(cur_assign_string.length() + 1) + " x i8]";
-                out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(cur_assign_string));
-                out.println(", i32 0, i32 0), i8** %" + cur_assign.name);
-                print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), cur_assign.name), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(counter.register)));
-                counter.register++;
-              }
-            } else {
-              // If it is just like this: j <- "Hello";
-              if (((AST.assign)cur_expr).e1 instanceof AST.string_const) {
-                AST.assign cur_assign = (AST.assign)cur_expr;
-                String cur_assign_string = ((AST.string_const)cur_assign.e1).value;
-                String length_string = "[" + String.valueOf(cur_assign_string.length() + 1) + " x i8]";
-                out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(cur_assign_string));
-                out.println(", i32 0, i32 0), i8** %" + cur_assign.name + ".addr");
-                print_util.loadOp(out, new OpType(OpTypeId.INT8_PTR), new Operand(new OpType(OpTypeId.INT8_PPTR), cur_assign.name + ".addr"), new Operand(new OpType(OpTypeId.INT8_PTR), String.valueOf(counter.register)));
-                counter.register++;
-              }
-            }
-          }
-
-          // If type is Bool          
-          else if (cur_expr.type.equals("Bool")) {
-            boolean flag = check_attribute(((AST.assign)cur_expr).name);
-
-            // If attribute
-            if (flag == true) {
-              if (((AST.assign)cur_expr).e1 instanceof AST.bool_const) {
-                AST.assign cur_assign = (AST.assign)cur_expr;
-                
-                boolean e1_val = ((AST.bool_const)((AST.assign)cur_expr).e1).value;
-                print_util.storeOp(out, (Operand)new BoolValue(e1_val), new Operand(new OpType(OpTypeId.INT1_PTR), ((AST.assign)cur_expr).name));
-              } else {
-                print_util.storeOp(out, new Operand(bool_type, String.valueOf(counter.register - 1)), new Operand(new OpType(OpTypeId.INT1_PTR), ((AST.assign)cur_expr).name));
-              }
-            }
-
-            // If not attribute
-            else {
-              if (((AST.assign)cur_expr).e1 instanceof AST.bool_const) {              
-                boolean e1_val = ((AST.bool_const)((AST.assign)cur_expr).e1).value;
-                print_util.storeOp(out, (Operand)new BoolValue(e1_val), new Operand(new OpType(OpTypeId.INT1_PTR), ((AST.assign)cur_expr).name + ".addr"));
-              } else {
-                print_util.storeOp(out, new Operand(bool_type, String.valueOf(counter.register - 1)), new Operand(new OpType(OpTypeId.INT1_PTR), ((AST.assign)cur_expr).name + ".addr"));
-              }
-            }
-          }
-        }
-      }
-      if (counter.register > 0 && counter.last_instruction.getName().equals(method_return_type.getName()))
-        print_util.storeOp(out, new Operand(method_return_type, String.valueOf(counter.register - 1)), new Operand(method_return_type.getPtrType(), "retval"));
-      return counter;
-    }
-
-    if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub ||
-        expr instanceof AST.leq || expr instanceof AST.lt ) {
-      return arith_capture(out, expr, counter);
-    }
-
-    if (expr instanceof AST.eq ) {
-      return equality_capture(out, ((AST.eq)expr).e1, ((AST.eq)expr).e2, counter);
-    }
-
-    if (expr instanceof AST.object) {
+    // handle IR for expr ::== ID
+    else if (expr instanceof AST.object) {
       AST.object obj = (AST.object)expr;
       OpType op = get_optype(obj.type, true, 0);
       Operand non_cons = new Operand(op, String.valueOf(counter.register));
@@ -865,10 +700,122 @@ public class Codegen {
       } else {
         print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name + ".addr"), non_cons);
       }
-      if (method_return_type.getName().equals(op.getName())) {
-        print_util.storeOp(out, new Operand(method_return_type, String.valueOf(counter.register)), new Operand(method_return_type.getPtrType(), "retval"));
-      }
       return new Tracker(counter.register + 1, counter.if_counter, op);
+    }
+
+    // handle IR for expr ::== ID
+    if (expr instanceof AST.comp) {
+      return comp_capture(out, expr, counter);
+    }
+    // handle IR for expr ::== expr = expr
+    if (expr instanceof AST.eq ) {
+      return equality_capture(out, ((AST.eq)expr).e1, ((AST.eq)expr).e2, counter);
+    }
+
+    // handle IR for expr ::== expr arith_op expr
+    if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub ||
+        expr instanceof AST.leq || expr instanceof AST.lt ) {
+      return arith_capture(out, expr, counter);
+    }
+
+    // handle IR for expr ::== {[expr;]*}
+    if (expr instanceof AST.block) {
+      AST.block the_block = (AST.block)expr;
+      for (AST.expression cur_expr : the_block.l1) {
+        counter = NodeVisit(out, cur_expr, counter);
+      }
+      attempt_assign_retval(out, counter.last_instruction, counter.register);
+      return counter;
+    }
+
+    //handle IR for expr ::= condition
+    if (expr instanceof AST.cond) {
+      return cond_capture(out, (AST.cond)expr, counter);
+    }
+
+    //handle IR for expr ::= loop
+    if (expr instanceof AST.loop) {
+      return loop_capture(out, (AST.loop)expr, counter);
+    }
+
+    //handle IR for expr ::= ID <- expr
+    if (expr instanceof AST.assign) {
+      AST.assign cur_expr = (AST.assign)expr;
+      counter = NodeVisit(out, cur_expr.e1, counter);
+      boolean flag = check_attribute(cur_expr.name);
+
+      // If attribute
+      if (flag == true) {
+        print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_expr.name));
+      } else {
+        print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_expr.name + ".addr"));
+      }
+      return counter;
+    }
+
+    // This case covers functions of the given class called within the class
+    if (expr instanceof AST.dispatch) {
+      AST.dispatch cur_func = (AST.dispatch)expr;
+      if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
+        List<Operand> pass_params = new ArrayList<Operand>();
+        pass_params.add(new Operand(get_optype(CLASS_NAME, true, 1), "this1"));
+        for (AST.expression e : cur_func.actuals) {
+          // Below are all constants
+          if (e instanceof AST.int_const) {
+            pass_params.add((Operand)new IntValue(((AST.int_const)e).value));
+          } else if (e instanceof AST.bool_const) {
+            pass_params.add((Operand)new BoolValue(((AST.bool_const)e).value));
+          } else if (e instanceof AST.string_const) {
+            pass_params.add((Operand)new GlobalValue(string_type, ".str." + string_table.get(((AST.string_const)e).value)));
+          }
+
+          // Below are all variables
+          else {
+            if (e.type.equals("Int")) {
+              if (e instanceof AST.object) {
+                pass_params.add(new Operand(int_type, ((AST.object)e).name));
+              } else {
+                counter = NodeVisit(out, e, counter);
+                pass_params.add(new Operand(int_type, String.valueOf(counter.register - 1)));
+              }
+            } else if (e.type.equals("Bool")) {
+              if (e instanceof AST.object) {
+                pass_params.add(new Operand(bool_type, ((AST.object)e).name));
+              }
+            } else if (e.type.equals("String")) {
+              if (e instanceof AST.object) {
+                pass_params.add(new Operand(string_type, ((AST.object)e).name));
+              } else {
+                counter = NodeVisit(out, e, counter);
+                pass_params.add(new Operand(string_type.getPtrType(), String.valueOf(counter.register - 1)));
+              }
+            }
+          }
+        }
+        Operand return_op = null;
+        for (AST.method m : classList.get(CLASS_NAME).methods) {
+          if (m.name.equals(cur_func.name)) {
+            if (m.typeid.equals("Object")) {
+              return_op = new Operand(void_type, "null");
+            } else if (m.typeid.equals("Int")) {
+              return_op = new Operand(int_type, String.valueOf(counter.register));
+              counter.register++;
+            } else if (m.typeid.equals("Bool")) {
+              return_op = new Operand(bool_type, String.valueOf(counter.register));
+              counter.register++;
+            } else if (m.typeid.equals("String")) {
+              return_op = new Operand(string_type, String.valueOf(counter.register));
+              counter.register++;
+            } else {
+              return_op = new Operand(get_optype(m.typeid, true, 0), String.valueOf(counter.register));
+              counter.register++;
+            }
+            break;
+          }
+        }
+        print_util.callOp(out, new ArrayList<OpType>(), CLASS_NAME + "_" + cur_func.name, true, pass_params, return_op);
+        return new Tracker(counter.register, counter.if_counter, return_op.getType());
+      }
     }
     return counter;
   }
@@ -886,6 +833,7 @@ public class Codegen {
     // recur on th
     out.println("\nif.then" + String.valueOf(curr_if_bb_counter) + ":");
     then_block = NodeVisit(out, expr.ifbody, predicate_block);
+
     // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
 
     print_util.branchUncondOp(out , "if.end" + String.valueOf(curr_if_bb_counter));
@@ -894,7 +842,7 @@ public class Codegen {
     out.println("\nif.else" + String.valueOf(curr_if_bb_counter) + ":");
     else_block = NodeVisit(out, expr.elsebody, then_block);
 
-//    print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
+    // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
 
     print_util.branchUncondOp(out , "if.end" + String.valueOf(curr_if_bb_counter));
 
@@ -911,16 +859,16 @@ public class Codegen {
 
     if (else_block.if_counter == then_block.if_counter) {
       phi_node_2 = " [ %" + (else_block.register - 1) + " , %if.else" + (then_block.if_counter - 1) + " ]";
-      // out.println("  %" + else_block.register + " = phi " + cond_type.getName() + ] [ %" + (else_block-1) + " , %if.else" + curr_if_bb_counter + "]");
     } else {
       phi_node_2 = " [ %" + (else_block.register - 1) + " , %if.end" + (else_block.if_counter - 1) + " ]";
     }
     out.println("  %" + else_block.register + " = phi " + cond_type.getName() + phi_node_1 + " , " + phi_node_2);
+    attempt_assign_retval(out, else_block.last_instruction, else_block.register);
     return new Tracker(else_block.register + 1, else_block.if_counter, cond_type);
   }
 
-  // print new loop basic blocks and add conditional/unconditional branches
-  // as and when necessary
+// print new loop basic blocks and add conditional/unconditional branches
+// as and when necessary
   public Tracker loop_capture(PrintWriter out, AST.loop expr, Tracker counter) {
     // adding current basic block to stack for taking car of nested if
     int curr_loop_counter = loop_basic_block_counter;
@@ -938,8 +886,9 @@ public class Codegen {
     x = NodeVisit(out, expr.body, new Tracker(x.register, x.if_counter, bool_type));
     OpType loop_type = x.last_instruction;
 
-    if (method_return_type.getName().equals(loop_type.getName()))
-      print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x.register - 1)), new Operand(method_return_type.getPtrType(), "retval"));
+    if (! (expr.body instanceof AST.block)) {
+      attempt_assign_retval(out, loop_type, x.register - 1);
+    }
 
     print_util.branchUncondOp(out , "for.cond" + String.valueOf(curr_loop_counter));
 
@@ -1367,7 +1316,7 @@ public class Codegen {
       return new Tracker(counter.register + 2, counter.if_counter, int_type);
     }
 
-    // Else if has to be an expression involving some params    
+    // Else if has to be an expression involving some params
     else {
       return NodeVisit(out, e1, counter);
     }

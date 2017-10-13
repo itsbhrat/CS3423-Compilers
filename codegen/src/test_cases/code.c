@@ -1,28 +1,25 @@
-#include <string.h>
-#include <stdio.h>
-/*
 
-int fact(int n, char* str) {
-	if(n <= 1)
-		return 1;
-	return n*fact(n-1, str);
-}
-int main()
-{
-	char a[] = "harsh agarwal";
-	
-	a[1] = 'c';
-	a[8] = 'c';	
-
-	fact(5, a);
-	return 0;
-}
-*/
-
-int main()
-{
-
-  char a;
-  printf("%c\n", a);
-  return 0;
+int fact() {
+  int returnval;
+  int a, b, c;
+  while (a <= 10) {
+    while (a < 8) {
+      if (a == c) {
+        if (a <= c) {
+          returnval = 44;
+          returnval = 2 + b;
+        }
+        else  {
+          returnval = a + 9;
+        }
+      }
+      else if (a == b) {
+        returnval = b + 2;
+      }
+      else {
+        returnval = a + 9;
+      }
+    }
+  }
+  return returnval;
 }

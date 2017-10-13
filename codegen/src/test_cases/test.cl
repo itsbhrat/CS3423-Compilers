@@ -14,20 +14,23 @@ class Main {
         }
     };
 
-    main() : Object {
+
+
+    main() : Int {
         {
             i <- 1;
             i;
+            5;
         }
     };
 
-    bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
+    (*bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
             j <- foo(5 + 5, true, "HI____________________", j);
         }
-    };
+    };*)
 
- (*  honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+(*   honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
         then{
             e;
@@ -37,7 +40,7 @@ class Main {
             a+d
         fi
     };
- 
+ *)
 
 
     honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
@@ -58,7 +61,7 @@ class Main {
         fi
     };
     
-(*    loop_trial(a: Int, b: Int, c: Int) : Int { {
+    loop_trial(a: Int, b: Int, c: Int) : Int { {
         while a <= 10 
         loop
             while a < 8
@@ -82,20 +85,18 @@ class Main {
         pool;
     }
     };
-*)
+
     
-    loop_trial(a: Int, b: Int, c: Int) : Int { {
+    loop_trial_2(a: Int, b: Int, c: Int) : Int {
         while a <= 10 
-        loop{
-                a;
-                2+b;
-            }
-        pool;
-        }
+        loop    a+5
+        pool
+        
     };
-    *)
+     
 };
 
+(*
 Class OMG {
   do_this ( i : Int, j :String, k :Bool) : String {
       j
@@ -105,3 +106,4 @@ Class OMG {
     a <- do_this(1, "OMG", false)
   };
 };
+*)
