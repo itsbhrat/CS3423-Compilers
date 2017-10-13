@@ -664,8 +664,8 @@ public class Codegen {
     // code for making the IR for bool constatnts
     if (expr instanceof AST.bool_const) {
       print_util.allocaOp(out, bool_type, new Operand(bool_type, String.valueOf(counter.register)));
-      print_util.storeOp(out, (Operand)new BoolValue(((AST.bool_const)expr).value), new Operand(bool_type, String.valueOf(counter.register)));
-      print_util.loadOp(out, bool_type, new Operand(bool_type, String.valueOf(counter.register)), new Operand(bool_type, String.valueOf(counter.register + 1)));
+      print_util.storeOp(out, (Operand)new BoolValue(((AST.bool_const)expr).value), new Operand(bool_type.getPtrType(), String.valueOf(counter.register)));
+      print_util.loadOp(out, bool_type, new Operand(bool_type.getPtrType(), String.valueOf(counter.register)), new Operand(bool_type, String.valueOf(counter.register + 1)));
       return new Tracker(counter.register + 2, counter.if_counter, bool_type);
     }
 
@@ -683,8 +683,8 @@ public class Codegen {
     // code for making the IR for int constatnts
     else if (expr instanceof AST.int_const) {
       print_util.allocaOp(out, int_type, new Operand(int_type, String.valueOf(counter.register)));
-      print_util.storeOp(out, (Operand)new IntValue(((AST.int_const)expr).value), new Operand(int_type, String.valueOf(counter.register)));
-      print_util.loadOp(out, int_type, new Operand(int_type, String.valueOf(counter.register)), new Operand(int_type, String.valueOf(counter.register + 1)));
+      print_util.storeOp(out, (Operand)new IntValue(((AST.int_const)expr).value), new Operand(int_type.getPtrType(), String.valueOf(counter.register)));
+      print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), String.valueOf(counter.register)), new Operand(int_type, String.valueOf(counter.register + 1)));
       return new Tracker(counter.register + 2, counter.if_counter, int_type);
     }
 
