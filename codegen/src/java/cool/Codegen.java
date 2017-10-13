@@ -99,8 +99,8 @@ public class Codegen {
     print_util.declare(out, new OpType(OpTypeId.VOID), "exit", params);
 
     // Format specifiers in C : %d and %s
-    out.println("@strfmt = private unnamed_addr constant [3 x i8] c\"%d\\00\"");
-    out.println("@intfmt = private unnamed_addr constant [3 x i8] c\"%s\\00\"");
+    out.println("@strfmt = private unnamed_addr constant [3 x i8] c\"%s\\00\"");
+    out.println("@intfmt = private unnamed_addr constant [3 x i8] c\"%d\\00\"");
     out.println("@.str.empty = private unnamed_addr constant [1 x i8] c\"\\00\"");
 
     for (AST.class_ cl : program.classes) {
@@ -522,19 +522,9 @@ public class Codegen {
       arguments.add(new Operand(string_type, "given"));
       print_util.define(out, return_val.getType(), new_method_name, arguments);
 
-      out.println("\t%0 = bitcast [3 x i8]* @strfmt to i8*");
-
-      return_val = new Operand(int_type, "1");
-      arguments = new ArrayList<Operand>();
-      arguments.add(new Operand(string_type, "0"));
-      arguments.add(new Operand(string_type, "given"));
-      List<OpType> argTypes = new ArrayList<OpType>();
-      argTypes.add(string_type);
-      argTypes.add(new OpType(OpTypeId.VAR_ARG));
-      print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
-
-      return_val = new Operand(void_type, "null");
-      print_util.retOp(out, return_val);
+      out.println("\t%0 = getelementptr inbounds [3 x i8], [3 x i8]* @strfmt, i32 0, i32 0");
+      out.println("%call = call i32 ( i8*, ... ) @printf(i8* %0, i8* %given)");
+      out.println("ret void\n}");
     }
 
     // Method for generating the out_int method
@@ -544,19 +534,9 @@ public class Codegen {
       arguments.add(new Operand(int_type, "given"));
       print_util.define(out, return_val.getType(), new_method_name, arguments);
 
-      out.println("\t%0 = bitcast [3 x i8]* @intfmt to i8*");
-
-      return_val = new Operand(int_type, "1");
-      arguments = new ArrayList<Operand>();
-      arguments.add(new Operand(string_type, "0"));
-      arguments.add(new Operand(int_type, "given"));
-      List<OpType> argTypes = new ArrayList<OpType>();
-      argTypes.add(string_type);
-      argTypes.add(new OpType(OpTypeId.VAR_ARG));
-      print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
-
-      return_val = new Operand(void_type, "null");
-      print_util.retOp(out, return_val);
+      out.println("\t%0 = getelementptr inbounds [3 x i8], [3 x i8]* @intfmt, i32 0, i32 0");
+      out.println("%call = call i32 ( i8*, ... ) @printf(i8* %0, i32 %given)");
+      out.println("ret void\n}");
     }
 
     // Method for generating the in_string method
@@ -784,8 +764,8 @@ public class Codegen {
           print_util.loadOp(out, string_type, cur_var, new Operand(string_type, String.valueOf(counter.register)));
           arg_list.add(new Operand(string_type, String.valueOf(counter.register)));
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
+          return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
         }
-        return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
       }
 
       // Handling IO.out_int cases
@@ -810,9 +790,24 @@ public class Codegen {
           print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
           arg_list.add(new Operand(int_type, String.valueOf(counter.register)));
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
+          return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
         }
+      }
+
+      // Handling IO.in_int case
+      else if (cur_func.name.equals("in_int")) {
+        Operand returned = new Operand(int_type, String.valueOf(counter.register));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_in_int", true, new ArrayList<Operand>(), returned);
         return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
       }
+
+      // Handling IO.in_string case
+      else if (cur_func.name.equals("in_string")) {
+        Operand returned = new Operand(string_type, String.valueOf(counter.register));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_in_string", true, new ArrayList<Operand>(), returned);
+        return new Tracker(counter.register + 1, string_type, counter.last_basic_block);
+      }
+
       /* dispatch */
       else if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
         List<Operand> pass_params = new ArrayList<Operand>();
