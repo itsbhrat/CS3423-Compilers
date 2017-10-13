@@ -39,6 +39,7 @@ public class Codegen {
   OpType string_type = get_optype("String", true, 0);
   OpType int_type = get_optype("Int", true, 0);
   OpType bool_type = get_optype("Bool", true, 0);
+  OpType void_type = new OpType(OpTypeId.VOID);
 
   Integer loop_basic_block_counter = 0;
   String CLASS_NAME = null;
@@ -106,7 +107,7 @@ public class Codegen {
         print_util.allocaOp(out, get_optype("Main", true, 0), new Operand(get_optype("Main", true, 1), "obj"));
         List<Operand> op_list = new ArrayList<Operand>();
         op_list.add(new Operand(get_optype("Main", true, 1), "obj"));
-        print_util.callOp(out, new ArrayList<OpType>(), "Main_Cons_Main", true, op_list, new Operand(new OpType(OpTypeId.VOID), "null"));
+        print_util.callOp(out, new ArrayList<OpType>(), "Main_Cons_Main", true, op_list, new Operand(void_type, "null"));
         print_util.retOp(out, (Operand)new IntValue(0));
       }
 
@@ -286,7 +287,7 @@ public class Codegen {
     cons_arg_list.add(new Operand(get_optype(class_name, true, 1), "this"));
 
     // Define the constructor and establish pointer information
-    print_util.define(out, new OpType(OpTypeId.VOID), method_name, cons_arg_list);
+    print_util.define(out, void_type, method_name, cons_arg_list);
     print_util.allocaOp(out, get_optype(class_name, true, 1), new Operand(get_optype(class_name, true, 1), "this.addr"));
     load_store_classOp(out, class_name, "this");
 
@@ -345,7 +346,7 @@ public class Codegen {
         }
       }
     }
-    print_util.retOp(out, new Operand(new OpType(OpTypeId.VOID), "retval"));
+    print_util.retOp(out, new Operand(void_type, "retval"));
   }
 
   public void allocate_function_parameters(PrintWriter out, List<Operand> arguments) {
@@ -629,6 +630,16 @@ public class Codegen {
       string_capture(out, ((AST.cond)expr).predicate);
       string_capture(out, ((AST.cond)expr).ifbody);
       string_capture(out, ((AST.cond)expr).elsebody);
+    } else if (expr instanceof AST.dispatch) {
+      string_capture(out, ((AST.dispatch)expr).caller);
+      for (AST.expression e : ((AST.dispatch)expr).actuals) {
+        string_capture(out, e);
+      }
+    } else if (expr instanceof AST.static_dispatch) {
+      string_capture(out, ((AST.static_dispatch)expr).caller);
+      for (AST.expression e : ((AST.dispatch)expr).actuals) {
+        string_capture(out, e);
+      }
     }
     return ;
   }
@@ -636,9 +647,51 @@ public class Codegen {
   public Tracker NodeVisit(PrintWriter out, AST.expression expr, Tracker counter) {
     if (expr instanceof AST.assign) {
       AST.assign cur = (AST.assign)expr;
+
+      // This case covers only arithmetic expressions and inequality comparison operations
       if (cur.e1 instanceof AST.mul || cur.e1 instanceof AST.divide || cur.e1 instanceof AST.plus || cur.e1 instanceof AST.sub ||
           cur.e1 instanceof AST.leq || cur.e1 instanceof AST.lt ) {
-        return arith_capture(out, ((AST.assign)expr).e1, counter);
+        return arith_capture(out, cur.e1, counter);
+      } 
+
+      // This case covers functions of the given class called within the class
+      else if (cur.e1 instanceof AST.dispatch) {
+        AST.dispatch cur_func = (AST.dispatch)cur.e1;
+        if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
+          List<Operand> pass_params = new ArrayList<Operand>();
+          for (AST.expression e : cur_func.actuals) {
+            if (e instanceof AST.int_const) {
+              pass_params.add((Operand)new IntValue(((AST.int_const)e).value));
+            } else if (e instanceof AST.bool_const) {
+              pass_params.add((Operand)new BoolValue(((AST.bool_const)e).value));
+            } else if (e instanceof AST.string_const) {
+              pass_params.add((Operand)new GlobalValue(string_type, ".str." + String.valueOf(e.lineNo)));
+            }
+          }
+          Operand return_op = null;
+          for (AST.method m : classList.get(CLASS_NAME).methods) {
+            if (m.name.equals(cur_func.name)) {
+              if (m.typeid.equals("Object")) {
+                return_op = new Operand(void_type, "null");
+              } else if (m.typeid.equals("Int")) {
+                return_op = new Operand(int_type, String.valueOf(counter.register));
+                counter.register++;
+              } else if (m.typeid.equals("Bool")) {
+                return_op = new Operand(bool_type, String.valueOf(counter.register));
+                counter.register++;
+              } else if (m.typeid.equals("String")) {
+                return_op = new Operand(string_type, String.valueOf(counter.register));
+                counter.register++;
+              } else {
+                return_op = new Operand(get_optype(m.typeid, true, 0), String.valueOf(counter.register));
+                counter.register++;
+              }
+              break;
+            }
+          }
+          print_util.callOp(out, new ArrayList<OpType>(), CLASS_NAME + "_" + cur_func.name, true, pass_params, return_op);
+          return counter;
+        }
       }
     }
 
@@ -795,7 +848,7 @@ public class Codegen {
 
   // print new loop basic blocks and add conditional/unconditional branches
   // as and when necessary
-  public Tracker loop_capture(PrintWriter out, AST.loop expr, Tracker counter) 2{
+  public Tracker loop_capture(PrintWriter out, AST.loop expr, Tracker counter) {
     // adding current basic block to stack for taking car of nested if
     int curr_loop_counter = loop_basic_block_counter;
     loop_basic_block_counter++;
