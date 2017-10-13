@@ -758,9 +758,9 @@ public class Codegen {
 
       // Handling IO.out_string cases
       if (cur_func.name.equals("out_string")) {
-        Integer print_string = string_table.get(((AST.string_const)cur_func.actuals.get(0)).value);
+        String print_string = ((AST.string_const)cur_func.actuals.get(0)).value;
         List<Operand> arg_list = new ArrayList<Operand>();
-        arg_list.add((Operand)new GlobalValue(string_type.getPtrType(), ".str." + String.valueOf(print_string)));
+        arg_list.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(print_string.length() + 1) + " x i8 ]* @.str." + String.valueOf(string_table.get(print_string)) + " to i8* )"));
         print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, new Operand(void_type, "null"));
         return counter;
       }
@@ -786,7 +786,6 @@ public class Codegen {
           }
           print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
           arg_list.add(new Operand(int_type, String.valueOf(counter.register)));
-          counter.register++;
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
         }
         return new Tracker(counter.register+1, counter.if_counter, int_type);
@@ -802,7 +801,8 @@ public class Codegen {
           } else if (e instanceof AST.bool_const) {
             pass_params.add((Operand)new BoolValue(((AST.bool_const)e).value));
           } else if (e instanceof AST.string_const) {
-            pass_params.add((Operand)new GlobalValue(string_type, ".str." + string_table.get(((AST.string_const)e).value)));
+            String cur_string = ((AST.string_const)e).value;
+            pass_params.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(cur_string.length() + 1) + " x i8]* " + "@.str." + string_table.get(cur_string) + "to i8* )"));
           }
 
           // Below are all variables
