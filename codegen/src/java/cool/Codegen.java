@@ -5,11 +5,13 @@ import java.util.*;
 
 class ClassNode {
   public String name;
+  public String parent;
   public List<AST.attr> attributes = new ArrayList<AST.attr>();
   public List<AST.method> methods = new ArrayList<AST.method>();
 
-  ClassNode(String class_name, List<AST.attr> class_attributes, List<AST.method> class_methods) {
+  ClassNode(String class_name, String class_parent, List<AST.attr> class_attributes, List<AST.method> class_methods) {
     name = class_name;
+    parent = class_parent;
     attributes = class_attributes;
     methods = class_methods;
   }
@@ -241,7 +243,7 @@ public class Codegen {
         cur_class_methods.add(cur_method);
       }
     }
-    classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class_attributes, cur_class_methods));
+    classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class.parent, cur_class_attributes, cur_class_methods));
   }
 
   public OpType get_optype(String typeid, boolean isClass, int depth) {
@@ -669,6 +671,8 @@ public class Codegen {
       // This case covers functions of the given class called within the class
       if (cur.e1 instanceof AST.dispatch) {
         AST.dispatch cur_func = (AST.dispatch)cur.e1;
+
+        // Handling functions defined within the class
         if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
           List<Operand> pass_params = new ArrayList<Operand>();
           pass_params.add(new Operand(get_optype(CLASS_NAME, true, 1), "this1"));
@@ -728,6 +732,12 @@ public class Codegen {
           }
           print_util.callOp(out, new ArrayList<OpType>(), CLASS_NAME + "_" + cur_func.name, true, pass_params, return_op);
           return new Tracker(counter.register, counter.if_counter, return_op.getType());
+        }
+
+        // Support IO functions        
+        else if (cur_func.name.equals("out_string") || cur_func.name.equals("out_int") ||
+                 cur_func.name.equals("in_string") || cur_func.name.equals("in_int")) {
+          out.println("HIYAAAAAAAAAAAAAAAAAAAAAA");
         }
       }
     }
@@ -868,6 +878,40 @@ public class Codegen {
         print_util.storeOp(out, new Operand(method_return_type, String.valueOf(counter.register)), new Operand(method_return_type.getPtrType(), "retval"));
       }
       return new Tracker(counter.register + 1, counter.if_counter, op);
+    }
+
+    if (expr instanceof AST.dispatch) {
+      AST.dispatch cur_func = (AST.dispatch)expr;
+
+      // Handling IO.out_string cases
+      if (cur_func.name.equals("out_string")) {
+        Integer print_string = string_table.get(((AST.string_const)cur_func.actuals.get(0)).value);
+        List<Operand> arg_list = new ArrayList<Operand>();
+        arg_list.add((Operand)new GlobalValue(string_type, ".str." + String.valueOf(print_string)));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, new Operand(void_type, "null"));
+      }
+
+      // Handling IO.out_int cases
+      else if (cur_func.name.equals("out_int")) {
+        Operand returned = new Operand(void_type, "null");
+        List<Operand> arg_list = new ArrayList<Operand>();
+        // Constant val case
+        if (cur_func.actuals.get(0) instanceof AST.int_const) {
+          arg_list.add((Operand)new IntValue(((AST.int_const)cur_func.actuals.get(0)).value));
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned); 
+        }
+        // Variable case
+        if (cur_func.actuals.get(0) instanceof AST.object) {
+          AST.object print_var = (AST.object)cur_func.actuals.get(0);
+          boolean flag = check_attribute(print_var.name);
+          if (flag == true) {
+            arg_list.add(new Operand(int_type, print_var.name));
+          } else {
+            arg_list.add(new Operand(int_type, print_var.name + ".addr"));
+          }
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
+        }
+      }
     }
     return counter;
   }

@@ -1,4 +1,4 @@
-class Main {
+class Main inherits IO {
     i : Int;
     k : Bool <- true;
     j : String <- "Hello";
@@ -10,6 +10,8 @@ class Main {
             i <- 1 + i;
             a <- a + i * 5 / 5;
             k <- not k;
+            out_string("hi boys");
+            out_int(a);
             c <- "Hi";
         }
     };
