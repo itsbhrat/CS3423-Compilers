@@ -121,7 +121,7 @@ public class Codegen {
 
       // If the class is one of the predefined classes in COOL, we only require the functions
       // and not the class itself
-      if (cl.name.equals("Int") || cl.name.equals("String") || cl.name.equals("Bool") || cl.name.equals("Object")) {
+      if (cl.name.equals("Int") || cl.name.equals("String") || cl.name.equals("Bool") || cl.name.equals("Object") || cl.name.equals("IO")) {
         if (cl.name.equals("String")) {
           pre_def_string(out, "length");
           pre_def_string(out, "cat");
@@ -132,16 +132,13 @@ public class Codegen {
           pre_def_object(out, "copy");            // To be implemented
           pre_def_object(out, "type_name");       // To be implemented
           pre_def_object(out, "abort");           // To be implemented
+        } else if (cl.name.equals("IO")) {
+          pre_def_io(out, "in_int");
+          pre_def_io(out, "in_string");
+          pre_def_io(out, "out_int");
+          pre_def_io(out, "out_string");
         }
         continue;
-      }
-
-      // Similarly for IO, just as above
-      else if (cl.name.equals("IO")) {
-        pre_def_io(out, "in_int");
-        pre_def_io(out, "in_string");
-        pre_def_io(out, "out_int");
-        pre_def_io(out, "out_string");
       }
 
       // Taking the attributes of the class first and generating code for it
@@ -758,11 +755,30 @@ public class Codegen {
 
       // Handling IO.out_string cases
       if (cur_func.name.equals("out_string")) {
-        String print_string = ((AST.string_const)cur_func.actuals.get(0)).value;
+        Operand returned = new Operand(void_type, "null");
         List<Operand> arg_list = new ArrayList<Operand>();
-        arg_list.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(print_string.length() + 1) + " x i8 ]* @.str." + String.valueOf(string_table.get(print_string)) + " to i8* )"));
-        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, new Operand(void_type, "null"));
-        return counter;
+        // Constant string case        
+        if (cur_func.actuals.get(0) instanceof AST.string_const) {
+          String print_string = ((AST.string_const)cur_func.actuals.get(0)).value;
+          arg_list.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(print_string.length() + 1) + " x i8 ]* @.str." + String.valueOf(string_table.get(print_string)) + " to i8* )"));
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, new Operand(void_type, "null"));
+          return counter;
+        }
+        // Variable case
+        if (cur_func.actuals.get(0) instanceof AST.object) {
+          AST.object print_var = (AST.object)cur_func.actuals.get(0);
+          boolean flag = check_attribute(print_var.name);
+          Operand cur_var;
+          if (flag == true) {
+            cur_var = new Operand(string_type.getPtrType(), print_var.name);
+          } else {
+            cur_var = new Operand(string_type.getPtrType(), print_var.name + ".addr");
+          }
+          print_util.loadOp(out, string_type, cur_var, new Operand(string_type, String.valueOf(counter.register)));
+          arg_list.add(new Operand(string_type, String.valueOf(counter.register)));
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
+        }
+        return new Tracker(counter.register + 1, counter.if_counter, int_type);
       }
 
       // Handling IO.out_int cases
@@ -802,7 +818,7 @@ public class Codegen {
             pass_params.add((Operand)new BoolValue(((AST.bool_const)e).value));
           } else if (e instanceof AST.string_const) {
             String cur_string = ((AST.string_const)e).value;
-            pass_params.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(cur_string.length() + 1) + " x i8]* " + "@.str." + string_table.get(cur_string) + "to i8* )"));
+            pass_params.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(cur_string.length() + 1) + " x i8]* " + "@.str." + string_table.get(cur_string) + " to i8* )"));
           }
 
           // Below are all variables
@@ -820,10 +836,20 @@ public class Codegen {
               }
             } else if (e.type.equals("String")) {
               if (e instanceof AST.object) {
-                pass_params.add(new Operand(string_type, ((AST.object)e).name));
+                AST.object print_var = (AST.object)e;
+                boolean flag = check_attribute(print_var.name);
+                Operand cur_var;
+                if (flag == true) {
+                  cur_var = new Operand(string_type.getPtrType(), print_var.name);
+                } else {
+                  cur_var = new Operand(string_type.getPtrType(), print_var.name + ".addr");
+                }
+                print_util.loadOp(out, string_type, cur_var, new Operand(string_type, String.valueOf(counter.register)));
+                counter.register++;
+                pass_params.add(new Operand(string_type, String.valueOf(counter.register - 1)));
               } else {
                 counter = NodeVisit(out, e, counter);
-                pass_params.add(new Operand(string_type.getPtrType(), String.valueOf(counter.register - 1)));
+                pass_params.add(new Operand(string_type, String.valueOf(counter.register - 1)));
               }
             }
           }

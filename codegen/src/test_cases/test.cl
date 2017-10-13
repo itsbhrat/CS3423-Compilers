@@ -3,7 +3,7 @@ class Main inherits IO {
     k : Bool <- true;
     j : String <- "Hello";
 
-(*
+
   foo(a: Int, b: Bool, c: String, d: String) : String {
         {        
             i <- 2 + 3 * 4;
@@ -13,12 +13,15 @@ class Main inherits IO {
             a <- a + i * 5 / 5;
             k <- not k;
             out_string("hi boys");
+            out_string(c);
             out_int(a);
+            i <- loop_trial_3(1);
+            i <- if_then_else_trial(1729);
             c <- "Hi";
         }
     };
 
-*)
+
   
 
     harsh_main() : Int {
@@ -36,12 +39,12 @@ class Main inherits IO {
         }
     };
 
-  (*  bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
+    bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
             j <- foo(5 + 5, true, "HI____________________", j);
         }
     };
-*)
+
   
    honey(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
         if a = b
@@ -104,6 +107,16 @@ class Main inherits IO {
         loop    a+5
         pool
         
+    };
+
+    loop_trial_3(a : Int) : Int {
+        while 1 < 0
+        loop 1
+        pool
+    };
+
+    if_then_else_trial(a : Int) : Int {
+        if 1 < 0 then 3 else 5 fi
     };
      
 };
