@@ -261,8 +261,8 @@ public class Codegen {
     public void get_default_value(Optype type, String name, boolean isAllocaNeeded) {
       if (typeid.equals("String") && isClass == true) {
         if(isAllocaNeeded)
-          our.println("%" + name + "")
-        out.println("store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str.4, i32 0, i32 0), i8** %j")
+          out.println("%" + name + "");
+        out.println("store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str. + something + i32 0, i32 0), i8** %j");
         return new OpType(OpTypeId.INT8_PTR);
       }
       else if (typeid.equals("Int")) {
@@ -280,7 +280,8 @@ public class Codegen {
       } else {
         return new OpType(typeid, depth);
       }
-    }*/
+    }
+  */
   // Function to generate the constructor of a given class
   public void build_constructor(PrintWriter out, String class_name) {
 
@@ -333,7 +334,7 @@ public class Codegen {
           out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str.empty");
         } else {
           length_string = "[" + String.valueOf(((AST.string_const)cur_attr.value).value.length() + 1) + " x i8]";
-          out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + cur_attr.lineNo);
+          out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(((AST.string_const)cur_attr.value).value));
         }
         out.println(", i32 0, i32 0), i8** %" + cur_attr.name);
       }
@@ -510,9 +511,8 @@ public class Codegen {
 
     // Method for generating the out_string method
     if (f_name.equals("out_string")) {
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
       arguments.add(new Operand(string_type, "given"));
       print_util.define(out, return_val.getType(), new_method_name, arguments);
 
@@ -527,15 +527,14 @@ public class Codegen {
       argTypes.add(new OpType(OpTypeId.VAR_ARG));
       print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
 
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       print_util.retOp(out, return_val);
     }
 
     // Method for generating the out_int method
     else if (f_name.equals("out_int")) {
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       arguments = new ArrayList<Operand>();
-      arguments.add(return_val);
       arguments.add(new Operand(int_type, "given"));
       print_util.define(out, return_val.getType(), new_method_name, arguments);
 
@@ -550,7 +549,7 @@ public class Codegen {
       argTypes.add(new OpType(OpTypeId.VAR_ARG));
       print_util.callOp(out, argTypes, "printf", true, arguments, return_val);
 
-      return_val = new Operand(get_optype("IO", true, 1), "this");
+      return_val = new Operand(void_type, "null");
       print_util.retOp(out, return_val);
     }
 
