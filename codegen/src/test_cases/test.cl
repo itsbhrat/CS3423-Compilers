@@ -9,6 +9,7 @@ class Main {
             i <- 5 * 7 / 8;
             i <- 1 + i;
             a <- a + i * 5 / 5;
+            k <- not k;
             c <- "Hi";
         }
     };
@@ -22,7 +23,7 @@ class Main {
 
     bar(e: String, f: String, g: Bool, h: Int, l: Int, m: Bool) : Object {
         {
-            j <- foo(10, true, "HI____________________", "BYE_____");
+            j <- foo(5 + 5, true, "HI____________________", j);
         }
     };
 
