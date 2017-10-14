@@ -58,7 +58,8 @@ public class Codegen {
 
     // Assuming that the code runs on linux machines with 64 bit
     // Also taking into fact that all classes are in one file
-    out.println("source_filename = \"" + program.classes.get(0).filename + "\"");
+    filename = program.classes.get(0).filename;
+    out.println("source_filename = \"" + filename + "\"");
     out.println("target triple = \"x86_64-unknown-linux-gnu\"\n");
 
     // C String Functions required: strlen, strcat, str(n)cpy
@@ -103,9 +104,17 @@ public class Codegen {
     out.println("@intfmt = private unnamed_addr constant [3 x i8] c\"%d\\00\"");
     out.println("@.str.empty = private unnamed_addr constant [1 x i8] c\"\\00\"");
 
+    // adding built in classes to the AST
+    append_built_in_classes(program);
+
     for (AST.class_ cl : program.classes) {
       filename = cl.filename;
       insert_class(cl);
+    }
+
+    for (AST.class_ cl : program.classes) {
+      filename = cl.filename;
+      System.out.println("class ==> " + cl.name);
 
       if (cl.name.equals("Main")) {
 
@@ -224,6 +233,68 @@ public class Codegen {
       }
     }
   }
+
+  public void append_built_in_classes(AST.program program) {
+    /* Classes already present in the table:
+     * - Object
+     * - IO
+     * - String
+     * - Int
+     * - Bool
+     *
+     * Object has methods:
+     * - abort() : Object
+     * - type_name(): String
+     * IO has methods:
+     * - out_string(x : String) : IO
+     * - out_int(x : Int) : IO
+     * - in_string() : String
+     * - in_int() : String
+     * String has methods:
+     * - length() : Int
+     * - concat(s: String) : String
+     * - substr(i : Int, l : Int) : String
+     */
+
+    // object class
+    List <AST.feature> ol = new ArrayList <AST.feature>();
+    ol.add(new AST.method("abort", new ArrayList<AST.formal>(), "Object", new AST.no_expr(0), 0));
+    ol.add(new AST.method("type_name", new ArrayList<AST.formal>(), "String", new AST.no_expr(0), 0));
+    program.classes.add(new AST.class_("Object", filename, null, ol, 0));
+
+    // IO class
+    List <AST.feature> iol = new ArrayList<AST.feature>(ol);  // IO inherits from Object
+
+    List <AST.formal> os_formals = new ArrayList<AST.formal>();
+    os_formals.add(new AST.formal("out_string", "String", 0));
+    List <AST.formal> oi_formals = new ArrayList<AST.formal>();
+    oi_formals.add(new AST.formal("out_int", "Int", 0));
+
+    iol.add(new AST.method("out_string", os_formals, "IO", new AST.no_expr(0), 0));
+    iol.add(new AST.method("out_int", oi_formals, "IO", new AST.no_expr(0), 0));
+    iol.add(new AST.method("in_string", new ArrayList<AST.formal>(), "String", new AST.no_expr(0), 0));
+    iol.add(new AST.method("in_int", new ArrayList<AST.formal>(), "Int", new AST.no_expr(0), 0));
+    program.classes.add(new AST.class_("IO", filename, "Object", iol, 0));
+
+    // Int class
+    program.classes.add(new AST.class_("Int", filename, "Object", ol, 0));  // Int inherits from Object
+
+    // Bool class
+    program.classes.add(new AST.class_("Bool", filename, "Object", ol, 0));  // Bool inherits from Object
+
+    List <AST.feature> sl = new ArrayList<AST.feature>(ol);                // String Inherits from Object
+    List<AST.formal> concat_formal = new ArrayList<AST.formal>();
+    concat_formal.add(new AST.formal("s", "String", 0));
+    List<AST.formal> substr_formal = new ArrayList<AST.formal>();
+    substr_formal.add(new AST.formal("i", "Int", 0));
+    substr_formal.add(new AST.formal("l", "Int", 0));
+
+    sl.add(new AST.method("length", new ArrayList<AST.formal>(), "Int", new AST.no_expr(0), 0));
+    sl.add(new AST.method("concat", concat_formal, "String", new AST.no_expr(0), 0));
+    sl.add(new AST.method("substr", substr_formal, "String", new AST.no_expr(0), 0));
+
+    program.classes.add(new AST.class_("String", filename, "Object", sl, 0));
+  }
   /*
     public Operand get_initial_value(String type) {
       if(type.equals("Int"))
@@ -247,7 +318,12 @@ public class Codegen {
         cur_class_methods.add(cur_method);
       }
     }
-    classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class.parent, cur_class_attributes, cur_class_methods));
+
+    if (cur_class.parent == null) {
+      classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class.name, cur_class_attributes, cur_class_methods));
+    } else {
+      classList.put(cur_class.name, new ClassNode(cur_class.name, cur_class.parent, cur_class_attributes, cur_class_methods));
+    }
   }
 
   public OpType get_optype(String typeid, boolean isClass, int depth) {
@@ -511,6 +587,7 @@ public class Codegen {
   }
 
   public void pre_def_io(PrintWriter out, String f_name) {
+    System.out.println("HELLO-***********\n");
     String new_method_name = "IO_" + f_name;
     Operand return_val = null;
     List<Operand> arguments = null;
@@ -681,23 +758,9 @@ public class Codegen {
       return new Tracker(counter.register + 1, op, counter.last_basic_block);
     }
 
-    // handle IR for expr ::== not ID
-    if (expr instanceof AST.comp) {
-      return comp_capture(out, expr, counter);
-    }
-
-    // handle IR for expr ::== not ID
-    if (expr instanceof AST.neg) {
-      return neg_capture(out, expr, counter);
-    }
-    // handle IR for expr ::== expr = expr
-    if (expr instanceof AST.eq ) {
-      return equality_capture(out, ((AST.eq)expr).e1, ((AST.eq)expr).e2, counter);
-    }
-
     // handle IR for expr ::== expr arith_op expr
     if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub ||
-        expr instanceof AST.leq || expr instanceof AST.lt ) {
+        expr instanceof AST.leq || expr instanceof AST.lt || expr instanceof AST.eq || expr instanceof AST.comp || expr instanceof AST.neg) {
       return arith_capture(out, expr, counter);
     }
 
@@ -723,6 +786,7 @@ public class Codegen {
 
     //handle IR for expr ::= ID <- expr
     if (expr instanceof AST.assign) {
+      System.out.println("AST.assgin ************* +");
       AST.assign cur_expr = (AST.assign)expr;
       counter = NodeVisit(out, cur_expr.e1, counter);
       boolean flag = check_attribute(cur_expr.name);
@@ -744,7 +808,7 @@ public class Codegen {
       if (cur_func.name.equals("out_string")) {
         Operand returned = new Operand(void_type, "null");
         List<Operand> arg_list = new ArrayList<Operand>();
-        // Constant string case        
+        // Constant string case
         if (cur_func.actuals.get(0) instanceof AST.string_const) {
           String print_string = ((AST.string_const)cur_func.actuals.get(0)).value;
           arg_list.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(print_string.length() + 1) + " x i8 ]* @.str." + String.valueOf(string_table.get(print_string)) + " to i8* )"));
@@ -765,6 +829,11 @@ public class Codegen {
           arg_list.add(new Operand(string_type, String.valueOf(counter.register)));
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
           return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
+        } else {
+          counter = NodeVisit(out, cur_func.actuals.get(0), counter);
+          arg_list.add(new Operand(string_type, String.valueOf(counter.register - 1)));
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
+          return new Tracker(counter.register + 1, string_type, counter.last_basic_block);
         }
       }
 
@@ -778,7 +847,7 @@ public class Codegen {
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
         }
         // Variable case
-        if (cur_func.actuals.get(0) instanceof AST.object) {
+        else if (cur_func.actuals.get(0) instanceof AST.object) {
           AST.object print_var = (AST.object)cur_func.actuals.get(0);
           boolean flag = check_attribute(print_var.name);
           Operand cur_var;
@@ -789,6 +858,11 @@ public class Codegen {
           }
           print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
           arg_list.add(new Operand(int_type, String.valueOf(counter.register)));
+          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
+          return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
+        } else {
+          counter = NodeVisit(out, cur_func.actuals.get(0), counter);
+          arg_list.add(new Operand(int_type, String.valueOf(counter.register - 1)));
           print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
           return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
         }
@@ -811,7 +885,9 @@ public class Codegen {
       /* dispatch */
       else if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
         List<Operand> pass_params = new ArrayList<Operand>();
-        pass_params.add(new Operand(get_optype(CLASS_NAME, true, 1), "this1"));
+
+        String func_class = get_class_name(cur_func.name);
+        pass_params.add(new Operand(get_optype(func_class, true, 1), "this1"));
         for (AST.expression e : cur_func.actuals) {
           // Below are all constants
           if (e instanceof AST.int_const) {
@@ -827,14 +903,37 @@ public class Codegen {
           else {
             if (e.type.equals("Int")) {
               if (e instanceof AST.object) {
-                pass_params.add(new Operand(int_type, ((AST.object)e).name));
+                AST.object print_var = (AST.object)e;
+                boolean flag = check_attribute(print_var.name);
+                Operand cur_var;
+                if (flag == true) {
+                  cur_var = new Operand(int_type.getPtrType(), print_var.name);
+                } else {
+                  cur_var = new Operand(int_type.getPtrType(), print_var.name + ".addr");
+                }
+                print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
+                counter.register++;
+                pass_params.add(new Operand(int_type, String.valueOf(counter.register - 1)));
               } else {
                 counter = NodeVisit(out, e, counter);
                 pass_params.add(new Operand(int_type, String.valueOf(counter.register - 1)));
               }
             } else if (e.type.equals("Bool")) {
               if (e instanceof AST.object) {
-                pass_params.add(new Operand(bool_type, ((AST.object)e).name));
+                AST.object print_var = (AST.object)e;
+                boolean flag = check_attribute(print_var.name);
+                Operand cur_var;
+                if (flag == true) {
+                  cur_var = new Operand(bool_type.getPtrType(), print_var.name);
+                } else {
+                  cur_var = new Operand(bool_type.getPtrType(), print_var.name + ".addr");
+                }
+                print_util.loadOp(out, bool_type, cur_var, new Operand(bool_type, String.valueOf(counter.register)));
+                counter.register++;
+                pass_params.add(new Operand(bool_type, String.valueOf(counter.register - 1)));
+              } else {
+                counter = NodeVisit(out, e, counter);
+                pass_params.add(new Operand(bool_type, String.valueOf(counter.register - 1)));
               }
             } else if (e.type.equals("String")) {
               if (e instanceof AST.object) {
@@ -857,7 +956,7 @@ public class Codegen {
           }
         }
         Operand return_op = null;
-        for (AST.method m : classList.get(CLASS_NAME).methods) {
+        for (AST.method m : classList.get(func_class).methods) {
           if (m.name.equals(cur_func.name)) {
             if (m.typeid.equals("Object")) {
               return_op = new Operand(void_type, "null");
@@ -877,13 +976,33 @@ public class Codegen {
             break;
           }
         }
-        print_util.callOp(out, new ArrayList<OpType>(), CLASS_NAME + "_" + cur_func.name, true, pass_params, return_op);
+
+        print_util.callOp(out, new ArrayList<OpType>(), func_class + "_" + cur_func.name, true, pass_params, return_op);
         return new Tracker(counter.register, return_op.getType(), counter.last_basic_block);
       }
       return counter;
     }
 
     return counter;
+  }
+
+  public String get_class_name(String func_name) {
+    String name = "";
+    for (AST.method m : classList.get(classList.get(CLASS_NAME).parent).methods) {
+      if (func_name.equals(m.name)) {
+        name = classList.get(CLASS_NAME).parent;
+        break;
+      }
+    }
+
+    for (AST.method m : classList.get(CLASS_NAME).methods) {
+      if (func_name.equals(m.name)) {
+        name = CLASS_NAME;
+        break;
+      }
+    }
+    System.out.println("++++++++++++++++++++++++" + name);
+    return name;
   }
 
   public Tracker cond_capture(PrintWriter out, AST.cond expr, Tracker counter) {
@@ -947,10 +1066,6 @@ public class Codegen {
     x = NodeVisit(out, expr.body, new Tracker(x.register, bool_type, "%for.body" + String.valueOf(curr_loop_counter)));
     OpType loop_type = x.last_instruction;
 
-    if (! (expr.body instanceof AST.block)) {
-      attempt_assign_retval(out, loop_type, x.register - 1);
-    }
-
     print_util.branchUncondOp(out , "for.cond" + String.valueOf(curr_loop_counter));
 
     //add exit basicblock
@@ -960,210 +1075,83 @@ public class Codegen {
   }
 
   public Tracker arith_capture(PrintWriter out, AST.expression expr, Tracker counter) {
-    // Operations are four kinds: mul, divide, plus, sub
-    // The idea is for every operation faced, we increment the "ops" and return it
-
     // First op is MUL
     if (expr instanceof AST.mul) {
       // Get the expressions separately
-      AST.expression e1 = ((AST.mul)expr).e1;
-      AST.expression e2 = ((AST.mul)expr).e2;
-      return arith_impl_capture(out, e1, e2, "mul", true, counter);
+      Tracker ops1 = NodeVisit(out, ((AST.mul)expr).e1, counter);
+      Tracker ops2 = NodeVisit(out, ((AST.mul)expr).e2, ops1);
+      print_util.arithOp(out, "mul", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(int_type, String.valueOf(ops2.register)));
+      return new Tracker(ops2.register + 1, int_type, ops2.last_basic_block);
 
     } else if (expr instanceof AST.divide) {
       // Get the expressions separately
-      AST.expression e1 = ((AST.divide)expr).e1;
-      AST.expression e2 = ((AST.divide)expr).e2;
-      return arith_impl_capture(out, e1, e2, "udiv", true, counter);
+      Tracker ops1 = NodeVisit(out, ((AST.divide)expr).e1, counter);
+      Tracker ops2 = NodeVisit(out, ((AST.divide)expr).e2, ops1);
+      print_util.arithOp(out, "udiv", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(int_type, String.valueOf(ops2.register)));
+      return new Tracker(ops2.register + 1, int_type, ops2.last_basic_block);
 
     } else if (expr instanceof AST.plus) {
       // Get the expressions separately
-      AST.expression e1 = ((AST.plus)expr).e1;
-      AST.expression e2 = ((AST.plus)expr).e2;
-      return arith_impl_capture(out, e1, e2, "add", true, counter);
+      Tracker ops1 = NodeVisit(out, ((AST.plus)expr).e1, counter);
+      Tracker ops2 = NodeVisit(out, ((AST.plus)expr).e2, ops1);
+      print_util.arithOp(out, "add", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(int_type, String.valueOf(ops2.register)));
+      return new Tracker(ops2.register + 1, int_type, ops2.last_basic_block);
 
     } else if (expr instanceof AST.sub) {
       // Get the expressions separately
-      AST.expression e1 = ((AST.sub)expr).e1;
-      AST.expression e2 = ((AST.sub)expr).e2;
-      return arith_impl_capture(out, e1, e2, "sub", true, counter);
+      Tracker ops1 = NodeVisit(out, ((AST.sub)expr).e1, counter);
+      Tracker ops2 = NodeVisit(out, ((AST.sub)expr).e2, ops1);
+      print_util.arithOp(out, "sub", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(int_type, String.valueOf(ops2.register)));
+      return new Tracker(ops2.register + 1, int_type, ops2.last_basic_block);
+
     } else if (expr instanceof AST.leq) {
       // Get the expressions separately
-      AST.expression e1 = ((AST.leq)expr).e1;
-      AST.expression e2 = ((AST.leq)expr).e2;
-      return arith_impl_capture(out, e1, e2, "LE", false, counter);
+      Tracker ops1 = NodeVisit(out, ((AST.leq)expr).e1, counter);
+      Tracker ops2 = NodeVisit(out, ((AST.leq)expr).e2, ops1);
+      print_util.compareOp(out, "LE", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(bool_type, String.valueOf(ops2.register)));
+      return new Tracker(ops2.register + 1, bool_type, ops2.last_basic_block);
+
     } else if (expr instanceof AST.lt) {
       // Get the expressions separately
-      AST.expression e1 = ((AST.lt)expr).e1;
-      AST.expression e2 = ((AST.lt)expr).e2;
-      return arith_impl_capture(out, e1, e2, "LT", false, counter);
+      Tracker ops1 = NodeVisit(out, ((AST.lt)expr).e1, counter);
+      Tracker ops2 = NodeVisit(out, ((AST.lt)expr).e2, ops1);
+      print_util.compareOp(out, "LT", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(bool_type, String.valueOf(ops2.register)));
+      return new Tracker(ops2.register + 1, bool_type, ops2.last_basic_block);
+
+    } else if (expr instanceof AST.eq) {
+      // Get the expressions separately
+      Tracker ops1 = NodeVisit(out, ((AST.eq)expr).e1, counter);
+      Tracker ops2 = NodeVisit(out, ((AST.eq)expr).e2, ops1);
+
+      if (ops1.last_instruction.getName().equals(int_type.getName()))
+        print_util.compareOp(out, "EQ", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(bool_type, String.valueOf(ops2.register)));
+
+      else if (ops1.last_instruction.getName().equals(bool_type.getName())) {
+        print_util.compareOp(out, "EQ", new Operand(bool_type, String.valueOf(ops1.register - 1)), new Operand(bool_type, String.valueOf(ops2.register - 1)), new Operand(bool_type, String.valueOf(ops2.register)));
+      }
+
+      else if (ops1.last_instruction.getName().equals(string_type.getName())) {
+        Operand return_val = new Operand(bool_type, String.valueOf(ops2.register));
+        List<Operand> arguments = new ArrayList<Operand>();
+        arguments.add(new Operand(string_type, String.valueOf(ops1.register - 1)));
+        arguments.add(new Operand(string_type, String.valueOf(ops2.register - 1)));
+        print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
+      }
+
+      return new Tracker(ops2.register + 1, bool_type, ops2.last_basic_block);
+    } else if (expr instanceof AST.comp) {
+      Tracker ops1 = NodeVisit(out, ((AST.comp)expr).e1, counter);
+      print_util.arithOp(out, "xor", new Operand(bool_type, String.valueOf(ops1.register - 1)), (Operand)new BoolValue(true), new Operand(bool_type, String.valueOf(ops1.register)));
+      return new Tracker(ops1.register + 1, bool_type, ops1.last_basic_block);
     }
+
+     else if (expr instanceof AST.neg) {
+      Tracker ops1 = NodeVisit(out, ((AST.neg)expr).e1, counter);
+      print_util.arithOp(out, "mul", new Operand(int_type, String.valueOf(ops1.register - 1)), (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(ops1.register)));
+      return new Tracker(ops1.register + 1, int_type, ops1.last_basic_block);
+    }
+
     return counter;
-  }
-
-  public Tracker arith_impl_capture(PrintWriter out, AST.expression e1, AST.expression e2, String operation, boolean isArith,  Tracker counter) {
-    // Test for the kinds of expressions obtained. This has to be done pairwise
-    // First case, if both the operands are int constants
-
-    OpType return_type = counter.last_instruction;
-    if (e1 instanceof AST.int_const && e2 instanceof AST.int_const) {
-      int e1_val = ((AST.int_const)e1).value;
-      int e2_val = ((AST.int_const)e2).value;
-
-      if (isArith) {
-        print_util.arithOp(out, operation, (Operand)new IntValue(e1_val), (Operand)new IntValue(e2_val), new Operand(int_type, String.valueOf(counter.register)));
-        return_type = int_type;
-      } else {
-        print_util.compareOp(out, operation, (Operand)new IntValue(e1_val), (Operand)new IntValue(e2_val), new Operand(bool_type, String.valueOf(counter.register)));
-        return_type = bool_type;
-      }
-
-      return new Tracker(counter.register + 1, return_type, counter.last_basic_block);
-    }
-
-    // Second and Third cases are analogous except for the placement of the object
-    else if (e1 instanceof AST.int_const && e2 instanceof AST.object) {
-      int e1_val = ((AST.int_const)e1).value;
-      AST.object e2_obj = (AST.object)e2;
-      Operand non_cons = new Operand(int_type, String.valueOf(counter.register));
-      boolean flag = check_attribute(e2_obj.name);
-      if (flag == true) {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
-      } else {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name + ".addr"), non_cons);
-      }
-      if (isArith) {
-        print_util.arithOp(out, operation, (Operand)new IntValue(e1_val), non_cons, new Operand(int_type, String.valueOf(counter.register + 1)));
-        return_type = int_type;
-
-      } else {
-        print_util.compareOp(out, operation, (Operand)new IntValue(e1_val), non_cons, new Operand(bool_type, String.valueOf(counter.register + 1)));
-        return_type = bool_type;
-      }
-
-      return new Tracker(counter.register + 2, return_type, counter.last_basic_block);
-    }
-
-    else if (e1 instanceof AST.object && e2 instanceof AST.int_const) {
-      int e2_val = ((AST.int_const)e2).value;
-      AST.object e1_obj = (AST.object)e1;
-      Operand non_cons = new Operand(int_type, String.valueOf(counter.register));
-      boolean flag = check_attribute(e1_obj.name);
-      if (flag == true) {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
-      } else {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name + ".addr"), non_cons);
-      }
-      if (isArith) {
-        print_util.arithOp(out, operation, (Operand)new IntValue(e2_val), non_cons, new Operand(int_type, String.valueOf(counter.register + 1)));
-        return_type = int_type;
-      } else {
-        print_util.compareOp(out, operation, (Operand)new IntValue(e2_val), non_cons, new Operand(bool_type, String.valueOf(counter.register + 1)));
-        return_type = bool_type;
-      }
-
-      return new Tracker(counter.register + 2, return_type, counter.last_basic_block);
-    }
-
-    // Last case is when both the operands are objects
-    else if (e1 instanceof AST.object && e2 instanceof AST.object) {
-      AST.object e1_obj = (AST.object)e1;
-      AST.object e2_obj = (AST.object)e2;
-      Operand non_cons_1 = new Operand(int_type, String.valueOf(counter.register));
-      Operand non_cons_2 = new Operand(int_type, String.valueOf(counter.register + 1));
-      boolean flag1 = check_attribute(e1_obj.name);
-      boolean flag2 = check_attribute(e2_obj.name);
-      if (flag1 == true) {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons_1);
-      } else {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name + ".addr"), non_cons_1);
-      }
-      if (flag2 == true) {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons_2);
-      } else {
-        print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name + ".addr"), non_cons_2);
-      }
-      if (isArith) {
-        print_util.arithOp(out, operation, non_cons_1, non_cons_2, new Operand(int_type, String.valueOf(counter.register + 2)));
-        return_type = int_type;
-      } else {
-        print_util.compareOp(out, operation, non_cons_1, non_cons_2, new Operand(bool_type, String.valueOf(counter.register + 2)));
-        return_type = bool_type;
-      }
-
-      return new Tracker(counter.register + 3, return_type, counter.last_basic_block);
-    }
-
-    // recursion
-    else {
-      if (e1 instanceof AST.object) {
-        AST.object e1_obj = (AST.object)e1;
-        Tracker cur_ops = arith_capture(out, e2, counter);
-        Operand non_cons = new Operand(int_type, String.valueOf(cur_ops.register));
-        boolean flag = check_attribute(e1_obj.name);
-        if (flag == true) {
-          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name), non_cons);
-        } else {
-          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e1_obj.name + ".addr"), non_cons);
-        }
-        if (isArith) {
-          print_util.arithOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(int_type, String.valueOf(cur_ops.register + 1)));
-          return_type = int_type;
-        } else {
-          print_util.compareOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(bool_type, String.valueOf(cur_ops.register + 1)));
-          return_type = bool_type;
-        }
-
-        return new Tracker(cur_ops.register + 2, return_type, counter.last_basic_block);
-      }
-
-      if (e2 instanceof AST.object) {
-        AST.object e2_obj = (AST.object)e2;
-        Tracker cur_ops = arith_capture(out, e1, counter);
-        Operand non_cons = new Operand(int_type, String.valueOf(cur_ops.register));
-        boolean flag = check_attribute(e2_obj.name);
-        if (flag == true) {
-          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name), non_cons);
-        } else {
-          print_util.loadOp(out, int_type, new Operand(new OpType(OpTypeId.INT32_PTR), e2_obj.name + ".addr"), non_cons);
-        }
-        if (isArith) {
-          print_util.arithOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(int_type, String.valueOf(cur_ops.register + 1)));
-          return_type = int_type;
-        } else {
-          print_util.compareOp(out, operation, non_cons, new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(bool_type, String.valueOf(cur_ops.register + 1)));
-          return_type = bool_type;
-        }
-        return new Tracker(cur_ops.register + 2, return_type, counter.last_basic_block);
-      }
-
-      if (e1 instanceof AST.int_const) {
-        Tracker cur_ops = arith_capture(out, e2, counter);
-        int e1_val = ((AST.int_const)e1).value;
-        if (isArith) {
-          print_util.arithOp(out, operation, (Operand)new IntValue(e1_val), new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(int_type, String.valueOf(cur_ops.register)));
-          return_type = int_type;
-        } else {
-          print_util.compareOp(out, operation, (Operand)new IntValue(e1_val), new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(bool_type, String.valueOf(cur_ops.register)));
-          return_type = bool_type;
-        }
-        return new Tracker(cur_ops.register + 1, return_type, counter.last_basic_block);
-      }
-
-      if (e2 instanceof AST.int_const) {
-        Tracker cur_ops = arith_capture(out, e1, counter);
-        int e2_val = ((AST.int_const)e2).value;
-        if (isArith) {
-          print_util.arithOp(out, operation, (Operand)new IntValue(e2_val), new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(int_type, String.valueOf(cur_ops.register)));
-          return_type = int_type;
-        } else {
-          print_util.compareOp(out, operation, (Operand)new IntValue(e2_val), new Operand(int_type, String.valueOf(cur_ops.register - 1)), new Operand(bool_type, String.valueOf(cur_ops.register)));
-          return_type = bool_type;
-        }
-        return new Tracker(cur_ops.register + 1, return_type, counter.last_basic_block);
-      }
-      return counter;
-    }
   }
 
   public boolean check_attribute(String objname) {
@@ -1173,243 +1161,5 @@ public class Codegen {
       }
     }
     return false;
-  }
-
-  public Tracker equality_capture(PrintWriter out, AST.expression e1, AST.expression e2, Tracker counter) {
-    // Test for the kinds of expressions obtained. This has to be done pairwise
-    // First case, if both the operands are int constants
-
-    /* checking for int constants */
-    OpType return_type = counter.last_instruction;
-    if (e1.type.equals("Int"))
-      return arith_impl_capture(out, e1, e2, "EQ", false, counter);
-
-    /* checking for bool constants */
-
-    /* both boolean constants */
-    if (e1.type.equals("Bool")) {
-
-      if (e1 instanceof AST.bool_const && e2 instanceof AST.bool_const) {
-        boolean e1_val = ((AST.bool_const)e1).value;
-        boolean e2_val = ((AST.bool_const)e2).value;
-        print_util.compareOp(out, "EQ", (Operand)new BoolValue(e1_val), (Operand)new BoolValue(e2_val), new Operand(bool_type, String.valueOf(counter.register)));
-        return new Tracker(counter.register + 1, bool_type, counter.last_basic_block);
-      }
-
-      // Second and Third cases are analogous except for the placement of the object
-      if (e1 instanceof AST.bool_const && e2 instanceof AST.object) {
-        boolean e1_val = ((AST.bool_const)e1).value;
-        AST.object e2_obj = (AST.object)e2;
-        Operand non_cons = new Operand(bool_type, String.valueOf(counter.register));
-        boolean flag = check_attribute(e2_obj.name);
-
-        if (flag == true) {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e2_obj.name), non_cons);
-        } else {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e2_obj.name + ".addr"), non_cons);
-        }
-        print_util.compareOp(out, "EQ", (Operand)new BoolValue(e1_val), non_cons, new Operand(bool_type, String.valueOf(counter.register + 1)));
-
-        return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
-      }
-
-      if (e1 instanceof AST.object && e2 instanceof AST.bool_const) {
-        boolean e2_val = ((AST.bool_const)e2).value;
-        AST.object e1_obj = (AST.object)e1;
-        Operand non_cons = new Operand(bool_type, String.valueOf(counter.register));
-        boolean flag = check_attribute(e1_obj.name);
-        if (flag == true) {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e1_obj.name), non_cons);
-        } else {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e1_obj.name + ".addr"), non_cons);
-        }
-        print_util.compareOp(out, "EQ", (Operand)new BoolValue(e2_val), non_cons, new Operand(bool_type, String.valueOf(counter.register + 1)));
-
-        return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
-      }
-
-      // Last case is when both the operands are objects
-      if (e1 instanceof AST.object && e2 instanceof AST.object) {
-        AST.object e1_obj = (AST.object)e1;
-        AST.object e2_obj = (AST.object)e2;
-        Operand non_cons_1 = new Operand(bool_type, String.valueOf(counter.register));
-        Operand non_cons_2 = new Operand(bool_type, String.valueOf(counter.register + 1));
-        boolean flag1 = check_attribute(e1_obj.name);
-        boolean flag2 = check_attribute(e2_obj.name);
-        if (flag1 == true) {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e1_obj.name), non_cons_1);
-        } else {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e1_obj.name + ".addr"), non_cons_1);
-        }
-        if (flag2 == true) {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e2_obj.name), non_cons_2);
-        } else {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT1_PTR), e2_obj.name + ".addr"), non_cons_2);
-        }
-        print_util.compareOp(out, "EQ", non_cons_1, non_cons_2, new Operand(bool_type, String.valueOf(counter.register + 2)));
-
-        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
-      }
-      return counter;
-    }
-
-    if (e1.type.equals("String")) {
-
-      if (e1 instanceof AST.string_const && e2 instanceof AST.string_const) {
-        String e1_val = ((AST.string_const)e1).value;
-        String e2_val = ((AST.string_const)e2).value;
-
-        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e1_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e1_val) + " to i8*");
-        out.println("\t%" + (counter.register + 1) + " = bitcast [" + String.valueOf(e2_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e2_val) + " to i8*");
-
-        Operand return_val = new Operand(bool_type, String.valueOf(counter.register + 2));
-        List<Operand> arguments = new ArrayList<Operand>();
-        arguments.add(new Operand(string_type, String.valueOf(counter.register)));
-        arguments.add(new Operand(string_type, String.valueOf(counter.register + 1)));
-        print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
-        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
-      }
-
-      // Second and Third cases are analogous except for the placement of the object
-      if (e1 instanceof AST.string_const && e2 instanceof AST.object) {
-        String e1_val = ((AST.string_const)e1).value;
-        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e1_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e1_val) + " to i8*");
-
-        AST.object e2_obj = (AST.object)e2;
-        Operand non_cons = new Operand(string_type, String.valueOf(counter.register + 1));
-        boolean flag = check_attribute(e2_obj.name);
-
-        if (flag == true) {
-          print_util.loadOp(out, string_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e2_obj.name), non_cons);
-        } else {
-          print_util.loadOp(out, string_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e2_obj.name + ".addr"), non_cons);
-        }
-
-        Operand return_val = new Operand(bool_type, String.valueOf(counter.register + 2));
-        List<Operand> arguments = new ArrayList<Operand>();
-        arguments.add(new Operand(string_type, String.valueOf(counter.register)));
-        arguments.add(new Operand(string_type, String.valueOf(counter.register + 1)));
-
-        print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
-
-        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
-      }
-
-      if (e1 instanceof AST.object && e2 instanceof AST.string_const) {
-        String e2_val = ((AST.string_const)e2).value;
-        out.println("\t%" + counter.register + " = bitcast [" + String.valueOf(e2_val.length() + 1) + " x i8]* " + "@.str." + string_table.get(e2_val) + " to i8*");
-
-        AST.object e1_obj = (AST.object)e1;
-        Operand non_cons = new Operand(string_type, String.valueOf(counter.register + 1));
-        boolean flag = check_attribute(e1_obj.name);
-
-        if (flag == true) {
-          print_util.loadOp(out, string_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e1_obj.name), non_cons);
-        } else {
-          print_util.loadOp(out, string_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e1_obj.name + ".addr"), non_cons);
-        }
-
-        Operand return_val = new Operand(bool_type, String.valueOf(counter.register + 2));
-        List<Operand> arguments = new ArrayList<Operand>();
-        arguments.add(new Operand(string_type, String.valueOf(counter.register)));
-        arguments.add(new Operand(string_type, String.valueOf(counter.register + 1)));
-
-        print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
-
-        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
-      }
-
-      // Last case is when both the operands are objects
-      if (e1 instanceof AST.object && e2 instanceof AST.object) {
-        AST.object e1_obj = (AST.object)e1;
-        AST.object e2_obj = (AST.object)e2;
-        Operand non_cons_1 = new Operand(bool_type, String.valueOf(counter.register));
-        Operand non_cons_2 = new Operand(bool_type, String.valueOf(counter.register + 1));
-        boolean flag1 = check_attribute(e1_obj.name);
-        boolean flag2 = check_attribute(e2_obj.name);
-        if (flag1 == true) {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e1_obj.name), non_cons_1);
-        } else {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e1_obj.name + ".addr"), non_cons_1);
-        }
-        if (flag2 == true) {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e2_obj.name), non_cons_2);
-        } else {
-          print_util.loadOp(out, bool_type, new Operand(new OpType(OpTypeId.INT8_PPTR), e2_obj.name + ".addr"), non_cons_2);
-        }
-
-        Operand return_val = new Operand(bool_type, String.valueOf(counter.register + 2));
-        List<Operand> arguments = new ArrayList<Operand>();
-        arguments.add(non_cons_1);
-        arguments.add(non_cons_2);
-
-        print_util.callOp(out, new ArrayList<OpType>(), "String_strcmp", true, arguments, return_val);
-
-        return new Tracker(counter.register + 3, bool_type, counter.last_basic_block);
-      }
-      return counter;
-    }
-
-    return counter;
-  }
-
-  public Tracker comp_capture(PrintWriter out, AST.expression e, Tracker counter) {
-    AST.comp cur_expr = (AST.comp)e;
-    AST.expression e1 = cur_expr.e1;
-
-    // If the expression on the rhs of not is bool_const
-    if (e1 instanceof AST.bool_const) {
-      print_util.arithOp(out, "xor", (Operand)new BoolValue(((AST.bool_const)e1).value), (Operand)new BoolValue(true), new Operand(bool_type, String.valueOf(counter.register)));
-      return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
-    }
-
-    // If the expression on the rhs of not is object
-    else if (e1 instanceof AST.object) {
-      AST.object e1_obj = (AST.object)e1;
-      Operand non_cons = new Operand(bool_type, String.valueOf(counter.register));
-      boolean flag = check_attribute(e1_obj.name);
-      if (flag == true) {
-        print_util.loadOp(out, bool_type, new Operand(bool_type.getPtrType(), e1_obj.name), non_cons);
-      } else {
-        print_util.loadOp(out, bool_type, new Operand(bool_type.getPtrType(), e1_obj.name + ".addr"), non_cons);
-      }
-      print_util.arithOp(out, "xor", non_cons, (Operand)new BoolValue(true), new Operand(bool_type, String.valueOf(counter.register + 1)));
-      return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
-    }
-
-    // Else if has to be an expression involving some params
-    else {
-      return NodeVisit(out, e1, counter);
-    }
-  }
-
-  public Tracker neg_capture(PrintWriter out, AST.expression e, Tracker counter) {
-    AST.neg cur_expr = (AST.neg)e;
-    AST.expression e1 = cur_expr.e1;
-
-    // If the expression on the rhs of ~ is int_const
-    if (e1 instanceof AST.int_const) {
-      print_util.arithOp(out, "mul", (Operand)new IntValue(((AST.int_const)e1).value), (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register)));
-      return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
-    }
-
-    // If the expression on the rhs of ~ is object
-    else if (e1 instanceof AST.object) {
-      AST.object e1_obj = (AST.object)e1;
-      Operand non_cons = new Operand(int_type, String.valueOf(counter.register));
-      boolean flag = check_attribute(e1_obj.name);
-      if (flag == true) {
-        print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), e1_obj.name), non_cons);
-      } else {
-        print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), e1_obj.name + ".addr"), non_cons);
-      }
-      print_util.arithOp(out, "mul", non_cons, (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(counter.register + 1)));
-      return new Tracker(counter.register + 2, int_type, counter.last_basic_block);
-    }
-
-    // Else if has to be an expression involving some params
-    else {
-      return NodeVisit(out, e1, counter);
-    }
   }
 }

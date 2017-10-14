@@ -1,4 +1,4 @@
-class Main inherits IO {
+class A inherits IO {
     i : Int;
     k : Bool <- true;
     j : String <- "Hello";
@@ -166,7 +166,7 @@ class Main inherits IO {
 *)
 };
 
-Class OMG {
+Class Main inherits A {
   do_this ( i : Int, j :String, k :Bool) : String {
       j
   };
