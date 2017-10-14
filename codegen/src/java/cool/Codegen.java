@@ -749,12 +749,8 @@ public class Codegen {
       AST.object obj = (AST.object)expr;
       OpType op = get_optype(obj.type, true, 0);
       Operand non_cons = new Operand(op, String.valueOf(counter.register));
-      boolean flag = check_attribute(obj.name);
-      if (flag == true) {
-        print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name), non_cons);
-      } else {
-        print_util.loadOp(out, op, new Operand(op.getPtrType(), obj.name + ".addr"), non_cons);
-      }
+      print_util.loadOp(out, op, new Operand(op.getPtrType(), get_attribute_address(obj.name)), non_cons);
+
       return new Tracker(counter.register + 1, op, counter.last_basic_block);
     }
 
@@ -786,17 +782,9 @@ public class Codegen {
 
     //handle IR for expr ::= ID <- expr
     if (expr instanceof AST.assign) {
-      System.out.println("AST.assgin ************* +");
       AST.assign cur_expr = (AST.assign)expr;
       counter = NodeVisit(out, cur_expr.e1, counter);
-      boolean flag = check_attribute(cur_expr.name);
-
-      // If attribute
-      if (flag == true) {
-        print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_expr.name));
-      } else {
-        print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_expr.name + ".addr"));
-      }
+      print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), get_attribute_address(cur_expr.name)));
       return counter;
     }
 
@@ -806,66 +794,26 @@ public class Codegen {
 
       // Handling IO.out_string cases
       if (cur_func.name.equals("out_string")) {
+        Tracker ops1 = NodeVisit(out, cur_func.actuals.get(0), counter);
+
         Operand returned = new Operand(void_type, "null");
         List<Operand> arg_list = new ArrayList<Operand>();
-        // Constant string case
-        if (cur_func.actuals.get(0) instanceof AST.string_const) {
-          String print_string = ((AST.string_const)cur_func.actuals.get(0)).value;
-          arg_list.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(print_string.length() + 1) + " x i8 ]* @.str." + String.valueOf(string_table.get(print_string)) + " to i8* )"));
-          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, new Operand(void_type, "null"));
-          return counter;
-        }
-        // Variable case
-        if (cur_func.actuals.get(0) instanceof AST.object) {
-          AST.object print_var = (AST.object)cur_func.actuals.get(0);
-          boolean flag = check_attribute(print_var.name);
-          Operand cur_var;
-          if (flag == true) {
-            cur_var = new Operand(string_type.getPtrType(), print_var.name);
-          } else {
-            cur_var = new Operand(string_type.getPtrType(), print_var.name + ".addr");
-          }
-          print_util.loadOp(out, string_type, cur_var, new Operand(string_type, String.valueOf(counter.register)));
-          arg_list.add(new Operand(string_type, String.valueOf(counter.register)));
-          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
-          return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
-        } else {
-          counter = NodeVisit(out, cur_func.actuals.get(0), counter);
-          arg_list.add(new Operand(string_type, String.valueOf(counter.register - 1)));
-          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
-          return new Tracker(counter.register + 1, string_type, counter.last_basic_block);
-        }
+        arg_list.add(new Operand(string_type, String.valueOf(ops1.register - 1)));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
+
+        return ops1;
       }
 
       // Handling IO.out_int cases
       else if (cur_func.name.equals("out_int")) {
+        Tracker ops1 = NodeVisit(out, cur_func.actuals.get(0), counter);
+
         Operand returned = new Operand(void_type, "null");
         List<Operand> arg_list = new ArrayList<Operand>();
-        // Constant val case
-        if (cur_func.actuals.get(0) instanceof AST.int_const) {
-          arg_list.add((Operand)new IntValue(((AST.int_const)cur_func.actuals.get(0)).value));
-          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
-        }
-        // Variable case
-        else if (cur_func.actuals.get(0) instanceof AST.object) {
-          AST.object print_var = (AST.object)cur_func.actuals.get(0);
-          boolean flag = check_attribute(print_var.name);
-          Operand cur_var;
-          if (flag == true) {
-            cur_var = new Operand(int_type.getPtrType(), print_var.name);
-          } else {
-            cur_var = new Operand(int_type.getPtrType(), print_var.name + ".addr");
-          }
-          print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
-          arg_list.add(new Operand(int_type, String.valueOf(counter.register)));
-          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
-          return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
-        } else {
-          counter = NodeVisit(out, cur_func.actuals.get(0), counter);
-          arg_list.add(new Operand(int_type, String.valueOf(counter.register - 1)));
-          print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
-          return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
-        }
+        arg_list.add(new Operand(int_type, String.valueOf(ops1.register - 1)));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
+
+        return ops1;
       }
 
       // Handling IO.in_int case
@@ -904,13 +852,8 @@ public class Codegen {
             if (e.type.equals("Int")) {
               if (e instanceof AST.object) {
                 AST.object print_var = (AST.object)e;
-                boolean flag = check_attribute(print_var.name);
-                Operand cur_var;
-                if (flag == true) {
-                  cur_var = new Operand(int_type.getPtrType(), print_var.name);
-                } else {
-                  cur_var = new Operand(int_type.getPtrType(), print_var.name + ".addr");
-                }
+                Operand cur_var = new Operand(int_type.getPtrType(), get_attribute_address(print_var.name));
+
                 print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
                 counter.register++;
                 pass_params.add(new Operand(int_type, String.valueOf(counter.register - 1)));
@@ -921,13 +864,8 @@ public class Codegen {
             } else if (e.type.equals("Bool")) {
               if (e instanceof AST.object) {
                 AST.object print_var = (AST.object)e;
-                boolean flag = check_attribute(print_var.name);
-                Operand cur_var;
-                if (flag == true) {
-                  cur_var = new Operand(bool_type.getPtrType(), print_var.name);
-                } else {
-                  cur_var = new Operand(bool_type.getPtrType(), print_var.name + ".addr");
-                }
+                Operand cur_var = new Operand(bool_type.getPtrType(), get_attribute_address(print_var.name));
+
                 print_util.loadOp(out, bool_type, cur_var, new Operand(bool_type, String.valueOf(counter.register)));
                 counter.register++;
                 pass_params.add(new Operand(bool_type, String.valueOf(counter.register - 1)));
@@ -938,13 +876,8 @@ public class Codegen {
             } else if (e.type.equals("String")) {
               if (e instanceof AST.object) {
                 AST.object print_var = (AST.object)e;
-                boolean flag = check_attribute(print_var.name);
-                Operand cur_var;
-                if (flag == true) {
-                  cur_var = new Operand(string_type.getPtrType(), print_var.name);
-                } else {
-                  cur_var = new Operand(string_type.getPtrType(), print_var.name + ".addr");
-                }
+                Operand cur_var = new Operand(string_type.getPtrType(), get_attribute_address(print_var.name));
+
                 print_util.loadOp(out, string_type, cur_var, new Operand(string_type, String.valueOf(counter.register)));
                 counter.register++;
                 pass_params.add(new Operand(string_type, String.valueOf(counter.register - 1)));
@@ -1001,7 +934,6 @@ public class Codegen {
         break;
       }
     }
-    System.out.println("++++++++++++++++++++++++" + name);
     return name;
   }
 
@@ -1145,7 +1077,7 @@ public class Codegen {
       return new Tracker(ops1.register + 1, bool_type, ops1.last_basic_block);
     }
 
-     else if (expr instanceof AST.neg) {
+    else if (expr instanceof AST.neg) {
       Tracker ops1 = NodeVisit(out, ((AST.neg)expr).e1, counter);
       print_util.arithOp(out, "mul", new Operand(int_type, String.valueOf(ops1.register - 1)), (Operand)new IntValue(-1), new Operand(int_type, String.valueOf(ops1.register)));
       return new Tracker(ops1.register + 1, int_type, ops1.last_basic_block);
@@ -1154,12 +1086,12 @@ public class Codegen {
     return counter;
   }
 
-  public boolean check_attribute(String objname) {
+  public String get_attribute_address(String objname) {
     for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
       if (objname.equals(check_attr.name)) {
-        return true;
+        return objname;
       }
     }
-    return false;
+    return (objname + ".addr");
   }
 }

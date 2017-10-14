@@ -9,7 +9,8 @@ class Main inherits IO {
             i <- in_int();
             i <- i*8+9*7;
             i <- ~i;
-            out_int(i);
+            out_int(loop_trial(0, 0, 5));
+          --  out_string(foo(1,true, "********", "+++++++"));
             k <- k = true = false;
             k <- not k;
             k <- not k;
@@ -21,8 +22,32 @@ class Main inherits IO {
         }
     };
 
-(*
+
+
+    honey2(a: Int, b:Int, c: Int, d:Int, e:String) : Int {
+        {
+        if a = b
+        then
+            if b <= c
+            then {
+            e;
+            2+b;
+        }
+            else a+9
+            fi
+        else 
+            if "harsh" = e
+            then  b+2
+            else  a+9
+            fi
+        fi;
+        9;
+    }
+    };
+    
+
     simple_loop_trial(a: Int, b: Int, c: Int) : Int {
+        {
         while a <= 10 
         loop   { 
             out_string("a : ");
@@ -35,10 +60,48 @@ class Main inherits IO {
             a <- a + 1;
             b <-b + a;
                 }
+        pool;
+        b;
+    }
+    };
+    
+    loop_trial_3(a : Int) : Object {
+        while 1 < 0
+        loop 1
         pool
     };
 
-*)
+    loop_trial(a: Int, b: Int, c: Int) : Int { {
+        while a <= 10 
+        loop {
+            while a < 8
+            loop {
+
+                if a = c
+                then
+                    if a <= c
+                    then {
+                    out_string("case1\n");
+                }
+                    else out_string("case2\n")
+                    fi
+                else 
+                    if a = b
+                    then  out_string("case3\n")
+                    else  out_string("case4\n")
+                    fi
+                fi;
+            a <- a + 1;
+            }
+            pool;
+            a <- a + 1;
+        }
+        pool;
+        5;
+
+    }
+    };
+
   foo(a: Int, b: Bool, c: String, d: String) : String {
         {        
             i <- 2 + 3 * 4;
