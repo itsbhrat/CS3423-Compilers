@@ -42,15 +42,16 @@ public class Codegen {
   HashMap<String, Integer> string_table = new HashMap<String, Integer>();
   Integer string_counter = 0;
 
-  OpType string_type = get_optype("String", true, 0);
-  OpType int_type = get_optype("Int", true, 0);
-  OpType bool_type = get_optype("Bool", true, 0);
+  OpType string_type = new OpType(OpTypeId.INT8_PTR);
+  OpType int_type = new OpType(OpTypeId.INT32);
+  OpType bool_type = new OpType(OpTypeId.INT1);
   OpType void_type = new OpType(OpTypeId.VOID);
 
   Integer loop_basic_block_counter = 0;
   Integer if_basic_block_counter = 0;
   String CLASS_NAME = null;
   OpType method_return_type;
+  List<String> function_formal_arguments;   // store the method formal parameters
 
   public Codegen(AST.program program, PrintWriter out) {
     // Write Code generator code here
@@ -114,7 +115,6 @@ public class Codegen {
 
     for (AST.class_ cl : program.classes) {
       filename = cl.filename;
-      System.out.println("class ==> " + cl.name);
 
       if (cl.name.equals("Main")) {
 
@@ -132,15 +132,17 @@ public class Codegen {
       // If the class is one of the predefined classes in COOL, we only require the functions
       // and not the class itself
       if (cl.name.equals("Int") || cl.name.equals("String") || cl.name.equals("Bool") || cl.name.equals("Object") || cl.name.equals("IO")) {
+
+        if (cl.name.equals("Object") || cl.name.equals("IO"))   // just defining IO and Object
+
         if (cl.name.equals("String")) {
+          print_util.typeDefine(out, cl.name, new ArrayList<OpType>()); // Emits the LLVM type
           pre_def_string(out, "length");
-          pre_def_string(out, "cat");
+          pre_def_string(out, "concat");
           pre_def_string(out, "substr");
           pre_def_string(out, "copy");
           pre_def_string(out, "strcmp");
         } else if (cl.name.equals("Object")) {
-          pre_def_object(out, "copy");            // To be implemented
-          pre_def_object(out, "type_name");       // To be implemented
           pre_def_object(out, "abort");           // To be implemented
         } else if (cl.name.equals("IO")) {
           pre_def_io(out, "in_int");
@@ -154,7 +156,7 @@ public class Codegen {
       // Taking the attributes of the class first and generating code for it
       List<OpType> attribute_types = new ArrayList<OpType>();
       for (AST.attr attribute : classList.get(cl.name).attributes) {
-        attribute_types.add(get_optype(attribute.typeid, true, 0));
+        attribute_types.add(get_optype(attribute.typeid, true, 1));
         if (attribute.typeid.equals("String") && attribute.value instanceof AST.string_const) { // Getting existing string constants
           string_capture(out, attribute.value);
         }
@@ -164,11 +166,7 @@ public class Codegen {
       /* Now we need to build a constructor for the class to initialize the values of the
       var_name : type_name <- assignment of type_name
       */
-      build_constructor(out, cl.name);
-
-      if (cl.name.equals("IO")) {
-        continue;
-      }
+      build_constructor(out, cl.name, new Tracker());
 
       Tracker counter = new Tracker();
 
@@ -185,9 +183,12 @@ public class Codegen {
         string_capture(out, mtd.body);
         List<Operand> arguments = new ArrayList<Operand>();
         arguments.add(new Operand(get_optype(cl.name, true, 1), "this"));
+        function_formal_arguments = new ArrayList<String>();
+
         for (AST.formal f : mtd.formals) {
-          Operand cur_arg = new Operand(get_optype(f.typeid, true, 0), f.name);
+          Operand cur_arg = new Operand(get_optype(f.typeid, true, 1), f.name);
           arguments.add(cur_arg);
+          function_formal_arguments.add(f.name);
         }
         String method_name = cl.name + "_" + mtd.name;
         OpType mtd_type;
@@ -218,6 +219,7 @@ public class Codegen {
         CLASS_NAME = cl.name;
         // Required to do here: Build expressions
         counter = NodeVisit(out, mtd.body, counter);
+
         if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond)) ) {
           attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
         }
@@ -270,8 +272,8 @@ public class Codegen {
     List <AST.formal> oi_formals = new ArrayList<AST.formal>();
     oi_formals.add(new AST.formal("out_int", "Int", 0));
 
-    iol.add(new AST.method("out_string", os_formals, "IO", new AST.no_expr(0), 0));
-    iol.add(new AST.method("out_int", oi_formals, "IO", new AST.no_expr(0), 0));
+    iol.add(new AST.method("out_string", os_formals, "Object", new AST.no_expr(0), 0));
+    iol.add(new AST.method("out_int", oi_formals, "Object", new AST.no_expr(0), 0));
     iol.add(new AST.method("in_string", new ArrayList<AST.formal>(), "String", new AST.no_expr(0), 0));
     iol.add(new AST.method("in_int", new ArrayList<AST.formal>(), "Int", new AST.no_expr(0), 0));
     program.classes.add(new AST.class_("IO", filename, "Object", iol, 0));
@@ -327,45 +329,23 @@ public class Codegen {
   }
 
   public OpType get_optype(String typeid, boolean isClass, int depth) {
-    if (typeid.equals("String") && isClass == true) {
-      return new OpType(OpTypeId.INT8_PTR);
+    if (typeid.equals("Object") || typeid.equals("void") ) {
+      return void_type;
+    } else if (typeid.equals("String") && isClass == true) {
+      return string_type;
     } else if (typeid.equals("Int") && isClass == true) {
-      return new OpType(OpTypeId.INT32);
+      return int_type;
     } else if (typeid.equals("Bool") && isClass == true) {
-      return new OpType(OpTypeId.INT1);
+      return bool_type;
     } else if (isClass == true) {
       return new OpType("class." + typeid, depth);
     } else {
       return new OpType(typeid, depth);
     }
   }
-  /*
-    public void get_default_value(OpType type, String name, boolean isAllocaNeeded) {
-      if (typeid.equals("String") && isClass == true) {
-        if(isAllocaNeeded)
-          out.println("%" + name + "");
-        out.println("store i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str. + something + i32 0, i32 0), i8** %j");
-        return new OpType(OpTypeId.INT8_PTR);
-      }
-      else if (typeid.equals("Int")) {
-          if(isAllocaNeeded)
-            out.println("%" + name + " = alloca i32 ");
-          out.println("store i32 0, i32* %i" + name);
-      }
-      else if (typeid.equals("Bool")) {
-          if(isAllocaNeeded)
-            out.println("%" + name + " = alloca i1 ");
-          out.println("store i32 0, i32* %i" + name);
-      }
-      else if (isClass == true) {
-        return new OpType("class." + typeid, depth);
-      } else {
-        return new OpType(typeid, depth);
-      }
-    }
-  */
+
   // Function to generate the constructor of a given class
-  public void build_constructor(PrintWriter out, String class_name) {
+  public void build_constructor(PrintWriter out, String class_name, Tracker counter) {
 
     // Name of constructor (mangled)
     String method_name = class_name + "_Cons_" + class_name;
@@ -401,7 +381,8 @@ public class Codegen {
         if (cur_attr.value instanceof AST.no_expr) {
           print_util.storeOp(out, (Operand)new IntValue(0), new Operand(ptr, cur_attr.name));
         } else {
-          print_util.storeOp(out, (Operand)new IntValue(((AST.int_const)cur_attr.value).value), new Operand(ptr, cur_attr.name));
+          counter = NodeVisit(out, cur_attr.value, counter);
+          print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
         }
       }
 
@@ -413,12 +394,11 @@ public class Codegen {
         String length_string = null;
         if (cur_attr.value instanceof AST.no_expr) {
           length_string = "[" + 1 + " x i8]";
-          out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str.empty");
+          out.println("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str.empty , i32 0, i32 0), i8** %" + cur_attr.name);
         } else {
-          length_string = "[" + String.valueOf(((AST.string_const)cur_attr.value).value.length() + 1) + " x i8]";
-          out.print("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str." + string_table.get(((AST.string_const)cur_attr.value).value));
+          counter = NodeVisit(out, cur_attr.value, counter);
+          print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
         }
-        out.println(", i32 0, i32 0), i8** %" + cur_attr.name);
       }
 
       // Bool attribute codegen
@@ -430,7 +410,28 @@ public class Codegen {
         if (cur_attr.value instanceof AST.no_expr) {
           print_util.storeOp(out, (Operand)new BoolValue(false), new Operand(ptr, cur_attr.name));
         } else {
-          print_util.storeOp(out, (Operand)new BoolValue(((AST.bool_const)cur_attr.value).value), new Operand(ptr, cur_attr.name));
+          counter = NodeVisit(out, cur_attr.value, counter);
+          print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
+        }
+      }
+
+      // Bool attribute codegen
+      else if (cur_attr.typeid.equals("IO") || cur_attr.typeid.equals("Object")) {
+        continue;
+      }
+
+      // other cases
+      else {
+        operand_list.add((Operand)new IntValue(0));
+        operand_list.add((Operand)new IntValue(i));
+        print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);    // That func is here
+        OpType ptr = get_optype(class_name, true, 1);
+        if ((cur_attr.value instanceof AST.no_expr)) {
+          out.println("store ")
+          print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
+        } else {
+          counter = NodeVisit(out, cur_attr.value, counter);
+          print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
         }
       }
     }
@@ -464,6 +465,10 @@ public class Codegen {
     ClassNode cur_class = classList.get(class_name);
     load_store_classOp(out, class_name, "this");
     for (int i = 0; i < cur_class.attributes.size(); i++) {
+
+      if (is_clash_with_method_formal(cur_class.attributes.get(i).name))    // checking function formal parameter masks global attribute
+        continue;
+
       List<Operand> operand_list = new ArrayList<Operand>();
       Operand result = new Operand(int_type, cur_class.attributes.get(i).name);
       operand_list.add(new Operand(get_optype(class_name, true, 1), "this1"));
@@ -471,6 +476,25 @@ public class Codegen {
       operand_list.add((Operand)new IntValue(i));
       print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);     // That func is here
     }
+  }
+
+  public boolean is_clash_with_method_formal(String variable_name) {
+    for (String a : function_formal_arguments) {
+      if ( a.equals(variable_name) )
+        return true;
+    }
+    return false;
+  }
+
+  public String get_attribute_address(String objname) {
+    if (!is_clash_with_method_formal(objname)) {    // checking function formal parameter masks global attribute
+      for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
+        if (objname.equals(check_attr.name)) {
+          return objname;
+        }
+      }
+    }
+    return (objname + ".addr");
   }
 
   // Utility function to perform load store pair operation for constructors
@@ -500,7 +524,7 @@ public class Codegen {
     }
 
     // Emitting code for cat
-    else if (f_name.equals("cat")) {
+    else if (f_name.equals("concat")) {
       return_val = new Operand(string_type, "retval");
       arguments = new ArrayList<Operand>();
       arguments.add(new Operand(string_type, "this"));
@@ -583,11 +607,22 @@ public class Codegen {
   }
 
   public void pre_def_object(PrintWriter out, String f_name) {
-    // Do Something
+    String new_method_name = "Object_" + f_name;
+    Operand return_val = null;
+    List<Operand> arguments = null;
+
+    // Method for generating the out_string method
+    if (f_name.equals("abort")) {
+      return_val = new Operand(void_type, "null");
+      arguments = new ArrayList<Operand>();
+      print_util.define(out, return_val.getType(), new_method_name, arguments);
+
+      out.println("call void (i32) @exit(i32 0)");
+      out.println("ret void\n}");
+    }
   }
 
   public void pre_def_io(PrintWriter out, String f_name) {
-    System.out.println("HELLO-***********\n");
     String new_method_name = "IO_" + f_name;
     Operand return_val = null;
     List<Operand> arguments = null;
@@ -619,6 +654,7 @@ public class Codegen {
     // Method for generating the in_string method
     else if (f_name.equals("in_string")) {
       arguments = new ArrayList<Operand>();
+      arguments.add(new Operand(get_optype("IO", true, 1), "this"));
       print_util.define(out, string_type, new_method_name, arguments);
 
       out.println("\t%0 = bitcast [3 x i8]* @strfmt to i8*");
@@ -695,14 +731,15 @@ public class Codegen {
       string_capture(out, ((AST.cond)expr).predicate);
       string_capture(out, ((AST.cond)expr).ifbody);
       string_capture(out, ((AST.cond)expr).elsebody);
-    } else if (expr instanceof AST.dispatch) {
+    }/* else if (expr instanceof AST.dispatch) {
       string_capture(out, ((AST.dispatch)expr).caller);
       for (AST.expression e : ((AST.dispatch)expr).actuals) {
         string_capture(out, e);
       }
-    } else if (expr instanceof AST.static_dispatch) {
+    }*/
+    else if (expr instanceof AST.static_dispatch) {
       string_capture(out, ((AST.static_dispatch)expr).caller);
-      for (AST.expression e : ((AST.dispatch)expr).actuals) {
+      for (AST.expression e : ((AST.static_dispatch)expr).actuals) {
         string_capture(out, e);
       }
     }
@@ -710,7 +747,7 @@ public class Codegen {
   }
 
   public void attempt_assign_retval(PrintWriter out, OpType op, int register) {
-    if (register >= 0 && method_return_type.getName().equals(op.getName())) {
+    if (register >= 0 && method_return_type.getName().equals(op.getName()) && (!(method_return_type.getName().equals("void"))) ) {
       print_util.storeOp(out, new Operand(method_return_type, String.valueOf(register)), new Operand(method_return_type.getPtrType(), "retval"));
     }
   }
@@ -747,21 +784,26 @@ public class Codegen {
     // handle IR for expr ::== ID
     else if (expr instanceof AST.object) {
       AST.object obj = (AST.object)expr;
-      OpType op = get_optype(obj.type, true, 0);
+      OpType op = get_optype(obj.type, true, 1);
       Operand non_cons = new Operand(op, String.valueOf(counter.register));
-      print_util.loadOp(out, op, new Operand(op.getPtrType(), get_attribute_address(obj.name)), non_cons);
+
+      if (obj.name.equals("self")) {
+        print_util.loadOp(out, op, new Operand(op, "this1"), non_cons);
+      } else {
+        print_util.loadOp(out, op, new Operand(op.getPtrType(), get_attribute_address(obj.name)), non_cons);
+      }
 
       return new Tracker(counter.register + 1, op, counter.last_basic_block);
     }
 
     // handle IR for expr ::== expr arith_op expr
-    if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub ||
-        expr instanceof AST.leq || expr instanceof AST.lt || expr instanceof AST.eq || expr instanceof AST.comp || expr instanceof AST.neg) {
+    else if (expr instanceof AST.mul || expr instanceof AST.divide || expr instanceof AST.plus || expr instanceof AST.sub ||
+             expr instanceof AST.leq || expr instanceof AST.lt || expr instanceof AST.eq || expr instanceof AST.comp || expr instanceof AST.neg) {
       return arith_capture(out, expr, counter);
     }
 
     // handle IR for expr ::== {[expr;]*}
-    if (expr instanceof AST.block) {
+    else if (expr instanceof AST.block) {
       AST.block the_block = (AST.block)expr;
       for (AST.expression cur_expr : the_block.l1) {
         counter = NodeVisit(out, cur_expr, counter);
@@ -771,152 +813,110 @@ public class Codegen {
     }
 
     //handle IR for expr ::= condition
-    if (expr instanceof AST.cond) {
+    else if (expr instanceof AST.cond) {
       return cond_capture(out, (AST.cond)expr, counter);
     }
 
     //handle IR for expr ::= loop
-    if (expr instanceof AST.loop) {
+    else if (expr instanceof AST.loop) {
       return loop_capture(out, (AST.loop)expr, counter);
     }
 
     //handle IR for expr ::= ID <- expr
-    if (expr instanceof AST.assign) {
+    else if (expr instanceof AST.assign) {
       AST.assign cur_expr = (AST.assign)expr;
       counter = NodeVisit(out, cur_expr.e1, counter);
       print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), get_attribute_address(cur_expr.name)));
       return counter;
     }
 
-    // This case covers functions of the given class called within the class
-    if (expr instanceof AST.dispatch) {
-      AST.dispatch cur_func = (AST.dispatch)expr;
-
-      // Handling IO.out_string cases
-      if (cur_func.name.equals("out_string")) {
-        Tracker ops1 = NodeVisit(out, cur_func.actuals.get(0), counter);
-
-        Operand returned = new Operand(void_type, "null");
-        List<Operand> arg_list = new ArrayList<Operand>();
-        arg_list.add(new Operand(string_type, String.valueOf(ops1.register - 1)));
-        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, arg_list, returned);
-
-        return ops1;
-      }
-
-      // Handling IO.out_int cases
-      else if (cur_func.name.equals("out_int")) {
-        Tracker ops1 = NodeVisit(out, cur_func.actuals.get(0), counter);
-
-        Operand returned = new Operand(void_type, "null");
-        List<Operand> arg_list = new ArrayList<Operand>();
-        arg_list.add(new Operand(int_type, String.valueOf(ops1.register - 1)));
-        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_int", true, arg_list, returned);
-
-        return ops1;
-      }
-
-      // Handling IO.in_int case
-      else if (cur_func.name.equals("in_int")) {
-        Operand returned = new Operand(int_type, String.valueOf(counter.register));
-        print_util.callOp(out, new ArrayList<OpType>(), "IO_in_int", true, new ArrayList<Operand>(), returned);
-        return new Tracker(counter.register + 1, int_type, counter.last_basic_block);
-      }
-
-      // Handling IO.in_string case
-      else if (cur_func.name.equals("in_string")) {
-        Operand returned = new Operand(string_type, String.valueOf(counter.register));
-        print_util.callOp(out, new ArrayList<OpType>(), "IO_in_string", true, new ArrayList<Operand>(), returned);
-        return new Tracker(counter.register + 1, string_type, counter.last_basic_block);
-      }
-
-      /* dispatch */
-      else if (cur_func.caller instanceof AST.object && ((AST.object)cur_func.caller).name.equals("self")) {
-        List<Operand> pass_params = new ArrayList<Operand>();
-
-        String func_class = get_class_name(cur_func.name);
-        pass_params.add(new Operand(get_optype(func_class, true, 1), "this1"));
-        for (AST.expression e : cur_func.actuals) {
-          // Below are all constants
-          if (e instanceof AST.int_const) {
-            pass_params.add((Operand)new IntValue(((AST.int_const)e).value));
-          } else if (e instanceof AST.bool_const) {
-            pass_params.add((Operand)new BoolValue(((AST.bool_const)e).value));
-          } else if (e instanceof AST.string_const) {
-            String cur_string = ((AST.string_const)e).value;
-            pass_params.add((Operand)new ConstValue(string_type, "bitcast ( [ " + String.valueOf(cur_string.length() + 1) + " x i8]* " + "@.str." + string_table.get(cur_string) + " to i8* )"));
-          }
-
-          // Below are all variables
-          else {
-            if (e.type.equals("Int")) {
-              if (e instanceof AST.object) {
-                AST.object print_var = (AST.object)e;
-                Operand cur_var = new Operand(int_type.getPtrType(), get_attribute_address(print_var.name));
-
-                print_util.loadOp(out, int_type, cur_var, new Operand(int_type, String.valueOf(counter.register)));
-                counter.register++;
-                pass_params.add(new Operand(int_type, String.valueOf(counter.register - 1)));
-              } else {
-                counter = NodeVisit(out, e, counter);
-                pass_params.add(new Operand(int_type, String.valueOf(counter.register - 1)));
-              }
-            } else if (e.type.equals("Bool")) {
-              if (e instanceof AST.object) {
-                AST.object print_var = (AST.object)e;
-                Operand cur_var = new Operand(bool_type.getPtrType(), get_attribute_address(print_var.name));
-
-                print_util.loadOp(out, bool_type, cur_var, new Operand(bool_type, String.valueOf(counter.register)));
-                counter.register++;
-                pass_params.add(new Operand(bool_type, String.valueOf(counter.register - 1)));
-              } else {
-                counter = NodeVisit(out, e, counter);
-                pass_params.add(new Operand(bool_type, String.valueOf(counter.register - 1)));
-              }
-            } else if (e.type.equals("String")) {
-              if (e instanceof AST.object) {
-                AST.object print_var = (AST.object)e;
-                Operand cur_var = new Operand(string_type.getPtrType(), get_attribute_address(print_var.name));
-
-                print_util.loadOp(out, string_type, cur_var, new Operand(string_type, String.valueOf(counter.register)));
-                counter.register++;
-                pass_params.add(new Operand(string_type, String.valueOf(counter.register - 1)));
-              } else {
-                counter = NodeVisit(out, e, counter);
-                pass_params.add(new Operand(string_type, String.valueOf(counter.register - 1)));
-              }
-            }
-          }
-        }
-        Operand return_op = null;
-        for (AST.method m : classList.get(func_class).methods) {
-          if (m.name.equals(cur_func.name)) {
-            if (m.typeid.equals("Object")) {
-              return_op = new Operand(void_type, "null");
-            } else if (m.typeid.equals("Int")) {
-              return_op = new Operand(int_type, String.valueOf(counter.register));
-              counter.register++;
-            } else if (m.typeid.equals("Bool")) {
-              return_op = new Operand(bool_type, String.valueOf(counter.register));
-              counter.register++;
-            } else if (m.typeid.equals("String")) {
-              return_op = new Operand(string_type, String.valueOf(counter.register));
-              counter.register++;
-            } else {
-              return_op = new Operand(get_optype(m.typeid, true, 0), String.valueOf(counter.register));
-              counter.register++;
-            }
-            break;
-          }
-        }
-
-        print_util.callOp(out, new ArrayList<OpType>(), func_class + "_" + cur_func.name, true, pass_params, return_op);
-        return new Tracker(counter.register, return_op.getType(), counter.last_basic_block);
-      }
+    //handle IR for expr ::= ID <- isvoid expr
+    else if (expr instanceof AST.isvoid) {
+      AST.assign cur_expr = (AST.isvoid)expr;
+      counter = NodeVisit(out, cur_expr.e1, counter);
+      if ()
+        print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), get_attribute_address(cur_expr.name)));
       return counter;
     }
 
+
+
+    //handle IR for expr ::= new ID
+    else if (expr instanceof AST.new_) {
+
+      AST.new_ cur_expr = (AST.new_)expr;
+
+      if (cur_expr.typeid.equals("Int")) {
+        print_util.allocaOp(out, int_type, new Operand(int_type, String.valueOf(counter.register)));
+        print_util.storeOp(out, (Operand)new IntValue(0), new Operand(int_type.getPtrType(), String.valueOf(counter.register)));
+        print_util.loadOp(out, int_type, new Operand(int_type.getPtrType(), String.valueOf(counter.register)), new Operand(int_type, String.valueOf(counter.register + 1)));
+        return new Tracker(counter.register + 2, int_type, counter.last_basic_block);
+      }
+
+      else if (cur_expr.typeid.equals("Bool")) {
+        print_util.allocaOp(out, bool_type, new Operand(bool_type, String.valueOf(counter.register)));
+        print_util.storeOp(out, (Operand)new BoolValue(false), new Operand(bool_type.getPtrType(), String.valueOf(counter.register)));
+        print_util.loadOp(out, bool_type, new Operand(bool_type.getPtrType(), String.valueOf(counter.register)), new Operand(bool_type, String.valueOf(counter.register + 1)));
+        return new Tracker(counter.register + 2, bool_type, counter.last_basic_block);
+      }
+
+      else if (cur_expr.typeid.equals("String")) {
+        String length_string = "[" + 1 + " x i8]";
+        print_util.allocaOp(out, string_type, new Operand(string_type, String.valueOf(counter.register)));
+        out.println("store i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str.empty , i32 0, i32 0), i8** %" + String.valueOf(counter.register));
+        print_util.loadOp(out, string_type, new Operand(string_type.getPtrType(), String.valueOf(counter.register)), new Operand(string_type, String.valueOf(counter.register + 1)));
+        return new Tracker(counter.register + 2, string_type, counter.last_basic_block);
+      }
+
+      else if (cur_expr.typeid.equals("IO") || cur_expr.typeid.equals("Object")) {
+        return counter;
+      }
+
+      print_util.allocaOp(out, get_optype(cur_expr.typeid, true, 0), new Operand(get_optype(cur_expr.typeid, true, 0), String.valueOf(counter.register)));
+      List<Operand> op_list = new ArrayList<Operand>();
+      OpType constructor_type = get_optype(cur_expr.typeid, true, 1);
+      op_list.add(new Operand(constructor_type, String.valueOf(counter.register)));
+      print_util.callOp(out, new ArrayList<OpType>(), cur_expr.typeid + "_Cons_" + cur_expr.typeid, true, op_list, new Operand(constructor_type, String.valueOf(counter.register + 1)));
+      return new Tracker(counter.register + 2, constructor_type, counter.last_basic_block);
+    }
+    // This case covers static dispatch
+    else if (expr instanceof AST.static_dispatch) {
+
+      AST.static_dispatch cur_func = (AST.static_dispatch)expr;
+
+      String function_being_called = cur_func.typeid + "_" + cur_func.name;
+      List<Operand> arg_list = new ArrayList<Operand>();
+
+      for (AST.expression e : cur_func.actuals) {
+        counter = NodeVisit(out, e, counter);
+        arg_list.add(new Operand(counter.last_instruction, String.valueOf(counter.register - 1)));
+      }
+
+      // calling the callere expression
+      if (! (cur_func.typeid.equals("IO"))) {
+        counter = NodeVisit(out, cur_func.caller, counter);
+        arg_list.add(0, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)));
+      }
+
+      Operand returned = new Operand(get_func_type(cur_func.typeid, cur_func.name), String.valueOf(counter.register));
+
+      print_util.callOp(out, new ArrayList<OpType>(), function_being_called, true, arg_list, returned);
+
+      if (returned.getTypename().equals("void"))
+        return new Tracker(counter.register, get_func_type(cur_func.typeid, cur_func.name), counter.last_basic_block);
+      else
+        return new Tracker(counter.register + 1, get_func_type(cur_func.typeid, cur_func.name), counter.last_basic_block);
+    }
     return counter;
+  }
+
+  public OpType get_func_type(String func_class, String method) {
+    for (AST.method m : classList.get(func_class).methods) {
+      if (m.name.equals(method)) {
+        return get_optype(m.typeid, true, 1);
+      }
+    }
+    return void_type;
   }
 
   public String get_class_name(String func_name) {
@@ -1086,12 +1086,4 @@ public class Codegen {
     return counter;
   }
 
-  public String get_attribute_address(String objname) {
-    for (AST.attr check_attr : classList.get(CLASS_NAME).attributes) {
-      if (objname.equals(check_attr.name)) {
-        return objname;
-      }
-    }
-    return (objname + ".addr");
-  }
 }

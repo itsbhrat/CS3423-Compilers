@@ -1,4 +1,5 @@
-class Main inherits IO {
+(*
+    class Main inherits IO {
     i : Int;
     k : Bool <- true;
     j : String <- "harsh";
@@ -144,16 +145,40 @@ class Main inherits IO {
         }
     };
 };
-
-(*
-
-Class Main inherits A {
-  do_this ( i : Int, j :String, k :Bool) : String {
-      j
-  };
-
-  do_that ( a : String ) : String {
-    a <- do_this(1, "OMG", false)
-  };
-
 *)
+
+Class A {
+  a : Int;
+  b : Bool;
+  c : String;
+};
+
+Class XYZ {
+  a : Int <- 4 + 5;
+  b : Bool;
+  c : String <- "Harsh";
+  d : A;
+  e : XYZ;
+  f : IO <- new IO;
+
+  do_this ( i : Int, j :String, k :Bool) : String { {
+    j@String.concat("Harsh");
+    f@IO.out_string(j);
+    --f@IO.out_int(@String.length());
+      j;
+  }
+  };
+
+  do_that ( a : String , b : XYZ) : String {
+    a <- b@XYZ.do_this(1, a, false)
+  };
+};
+
+class Main {
+    a : XYZ <- new XYZ;
+    b : IO <- new IO;
+    c : Int <- new Int;
+    main () : Object {
+      b@IO.out_string(a@XYZ.do_that("a", a))
+    };
+};
