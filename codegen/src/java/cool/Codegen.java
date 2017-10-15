@@ -133,10 +133,7 @@ public class Codegen {
       // and not the class itself
       if (cl.name.equals("Int") || cl.name.equals("String") || cl.name.equals("Bool") || cl.name.equals("Object") || cl.name.equals("IO")) {
 
-        if (cl.name.equals("Object") || cl.name.equals("IO"))   // just defining IO and Object
-
         if (cl.name.equals("String")) {
-          print_util.typeDefine(out, cl.name, new ArrayList<OpType>()); // Emits the LLVM type
           pre_def_string(out, "length");
           pre_def_string(out, "concat");
           pre_def_string(out, "substr");
@@ -149,6 +146,8 @@ public class Codegen {
           pre_def_io(out, "in_string");
           pre_def_io(out, "out_int");
           pre_def_io(out, "out_string");
+          print_util.typeDefine(out, cl.name, new ArrayList<OpType>());
+          build_constructor(out, cl.name, new Tracker());
         }
         continue;
       }
@@ -378,9 +377,10 @@ public class Codegen {
         operand_list.add((Operand)new IntValue(i));
         print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);    // That func is here
         OpType ptr = new OpType(OpTypeId.INT32_PTR);
-        if (cur_attr.value instanceof AST.no_expr) {
+        if (cur_attr.value instanceof AST.no_expr || cur_attr.value instanceof AST.new_) {
           print_util.storeOp(out, (Operand)new IntValue(0), new Operand(ptr, cur_attr.name));
-        } else {
+        } 
+        else {
           counter = NodeVisit(out, cur_attr.value, counter);
           print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
         }
@@ -392,7 +392,7 @@ public class Codegen {
         operand_list.add((Operand)new IntValue(i));
         print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);     // That func is here
         String length_string = null;
-        if (cur_attr.value instanceof AST.no_expr) {
+        if (cur_attr.value instanceof AST.no_expr || cur_attr.value instanceof AST.new_) {
           length_string = "[" + 1 + " x i8]";
           out.println("\tstore i8* getelementptr inbounds (" + length_string + ", " + length_string + "* @.str.empty , i32 0, i32 0), i8** %" + cur_attr.name);
         } else {
@@ -407,7 +407,7 @@ public class Codegen {
         operand_list.add((Operand)new IntValue(i));
         print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);    // That func is here
         OpType ptr = new OpType(OpTypeId.INT1_PTR);
-        if (cur_attr.value instanceof AST.no_expr) {
+        if (cur_attr.value instanceof AST.no_expr || cur_attr.value instanceof AST.new_) {
           print_util.storeOp(out, (Operand)new BoolValue(false), new Operand(ptr, cur_attr.name));
         } else {
           counter = NodeVisit(out, cur_attr.value, counter);
@@ -422,16 +422,18 @@ public class Codegen {
 
       // other cases
       else {
+        if (cur_attr.typeid.equals(class_name) && cur_attr.value instanceof AST.new_) {
+          out.println(";Possible stack recursion error possible. Please remove this statement in the program");
+        }
         operand_list.add((Operand)new IntValue(0));
         operand_list.add((Operand)new IntValue(i));
         print_util.getElementPtr(out, get_optype(class_name, true, 0), operand_list, result, true);    // That func is here
         OpType ptr = get_optype(class_name, true, 1);
         if ((cur_attr.value instanceof AST.no_expr)) {
-          out.println("store ")
-          print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
+          // Do nothing -- you are just creating an object. Not calling the constructor, which is only done in the case of new_
         } else {
           counter = NodeVisit(out, cur_attr.value, counter);
-          print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
+          print_util.storeOp(out, new Operand(get_optype(cur_attr.typeid, true, 1), String.valueOf(counter.register - 1)), new Operand(get_optype(cur_attr.typeid, true, 1).getPtrType(), cur_attr.name));
         }
       }
     }
@@ -530,7 +532,24 @@ public class Codegen {
       arguments.add(new Operand(string_type, "this"));
       arguments.add(new Operand(string_type, "that"));
       print_util.define(out, return_val.getType(), new_method_name, arguments);
+
+      return_val = new Operand(string_type, "memnew");
+      arguments = new ArrayList<Operand>();
+      arguments.add((Operand)new IntValue(1024));
+      print_util.callOp(out, new ArrayList<OpType>(), "malloc", true, arguments, return_val);
+
+      return_val = new Operand(string_type, "copystring");
+      arguments = new ArrayList<Operand>();
+      arguments.add(new Operand(string_type, "memnew"));
+      arguments.add(new Operand(string_type, "this"));
+      print_util.callOp(out, new ArrayList<OpType>(), "strcpy", true, arguments, return_val);
+
+      return_val = new Operand(string_type, "retval");
+      arguments = new ArrayList<Operand>();
+      arguments.add(new Operand(string_type, "copystring"));
+      arguments.add(new Operand(string_type, "that"));
       print_util.callOp(out, new ArrayList<OpType>(), "strcat", true, arguments, return_val);
+
       print_util.retOp(out, return_val);
     }
 
@@ -583,26 +602,6 @@ public class Codegen {
       print_util.compareOp(out, "EQ", return_val, (Operand)new IntValue(0), new Operand(bool_type, "1"));
 
       print_util.retOp(out, new Operand(bool_type, "1"));
-    }
-
-    // Emitting code for copy
-    else if (f_name.equals("copy")) {
-      return_val = new Operand(string_type, "retval");
-      arguments = new ArrayList<Operand>();
-      arguments.add(new Operand(string_type, "this"));
-      print_util.define(out, return_val.getType(), new_method_name, arguments);
-
-      return_val = new Operand(string_type, "0");
-      arguments = new ArrayList<Operand>();
-      arguments.add((Operand)new IntValue(1024));
-      print_util.callOp(out, new ArrayList<OpType>(), "malloc", true, arguments, return_val);
-
-      return_val = new Operand(string_type, "retval");
-      arguments = new ArrayList<Operand>();
-      arguments.add(new Operand(string_type, "0"));
-      arguments.add(new Operand(string_type, "this"));
-      print_util.callOp(out, new ArrayList<OpType>(), "strcpy", true, arguments, return_val);
-      print_util.retOp(out, return_val);
     }
   }
 
@@ -830,7 +829,7 @@ public class Codegen {
       return counter;
     }
 
-    //handle IR for expr ::= ID <- isvoid expr
+/*    //handle IR for expr ::= ID <- isvoid expr
     else if (expr instanceof AST.isvoid) {
       AST.assign cur_expr = (AST.isvoid)expr;
       counter = NodeVisit(out, cur_expr.e1, counter);
@@ -839,7 +838,7 @@ public class Codegen {
       return counter;
     }
 
-
+*/
 
     //handle IR for expr ::= new ID
     else if (expr instanceof AST.new_) {

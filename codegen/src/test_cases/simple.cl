@@ -162,6 +162,7 @@ Class XYZ {
   f : IO <- new IO;
 
   do_this ( i : Int, j :String, k :Bool) : String { {
+    j <- j.concat("Harsh");
     j@String.concat("Harsh");
     f@IO.out_string(j);
     --f@IO.out_int(@String.length());
