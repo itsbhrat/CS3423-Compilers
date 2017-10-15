@@ -76,10 +76,6 @@ class Printer {
     out.print(operation + " " + op1.getTypename() + " " + op1.getName() + ", "  + op2.getName() + "\n");
   }
 
-  void mallocOp(PrintWriter out, Operand size, Operand result) {
-    out.print("\t" + result.getName() + " = call i8* @malloc(i64 " + size.getName() + ")\n");
-  }
-
   void allocaOp(PrintWriter out, OpType type, Operand result) {
     out.print("\t" + result.getName() + " = alloca " + type.getName() + "\n");
   }

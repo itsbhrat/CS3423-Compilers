@@ -104,6 +104,7 @@ public class Codegen {
     out.println("@strfmt = private unnamed_addr constant [3 x i8] c\"%s\\00\"");
     out.println("@intfmt = private unnamed_addr constant [3 x i8] c\"%d\\00\"");
     out.println("@.str.empty = private unnamed_addr constant [1 x i8] c\"\\00\"");
+    out.println("@divby0err = private unnamed_addr constant [30 x i8] c\"Runtime Error: Divide by Zero\\00\"");
 
     // adding built in classes to the AST
     append_built_in_classes(program);
@@ -219,12 +220,21 @@ public class Codegen {
         // Required to do here: Build expressions
         counter = NodeVisit(out, mtd.body, counter);
 
+        // Add label to print and abort
+        out.println("func_abort:");
+        out.println("store i8* getelementptr inbounds ([30 x i8], [30 x i8]* @divby0err, i32 0, i32 0), i8** %err_msg");
+        print_util.loadOp(out, string_type, new Operand(string_type.getPtrType(), "err_msg"), new Operand(string_type, "print_err_msg"));
+        List<Operand> prnt_args = new ArrayList<Operand>();
+        prnt_args.add(new Operand(string_type, "print_err_msg"));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, prnt_args, new Operand(void_type, "null"));
+        print_util.callOp(out, new ArrayList<OpType>(), "Object_abort", true, new ArrayList<Operand>(), new Operand(void_type, "null"));
+
         if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond)) ) {
           attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
         }
 
         if (mtd.typeid.equals("Object")) {
-          print_util.retOp(out, new Operand(new OpType(OpTypeId.VOID), "null"));
+          print_util.retOp(out, new Operand(void_type, "null"));
         } else {
           print_util.loadOp(out, method_return_type, new Operand(method_return_type.getPtrType(), "retval"), new Operand(method_return_type, String.valueOf(counter.register)));
           print_util.retOp(out, new Operand(method_return_type, String.valueOf(counter.register)));
@@ -1018,7 +1028,14 @@ public class Codegen {
       // Get the expressions separately
       Tracker ops1 = NodeVisit(out, ((AST.divide)expr).e1, counter);
       Tracker ops2 = NodeVisit(out, ((AST.divide)expr).e2, ops1);
+
+      // Performing div by 0 check
+      String ops2_regis = String.valueOf(ops2.register - 1);
+      print_util.compareOp(out, "EQ", new Operand(int_type, ops2_regis), (Operand)new IntValue(0), new Operand(bool_type, "comp_" + String.valueOf(ops2.register - 1) + "_0"));
+      print_util.branchCondOp(out, new Operand(bool_type, "comp_" + ops2_regis + "_0"), "func_abort", "proceed_" + ops2_regis + "_0");
+      out.println("proceed_" + ops2_regis + "_0:");
       print_util.arithOp(out, "udiv", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(int_type, String.valueOf(ops2.register)));
+
       return new Tracker(ops2.register + 1, int_type, ops2.last_basic_block);
 
     } else if (expr instanceof AST.plus) {

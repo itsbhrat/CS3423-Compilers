@@ -153,7 +153,7 @@ Class A {
   c : String;
 };
 
-Class XYZ {
+Class XYZ inherits IO {
   a : Int <- 4 + 5;
   b : Bool;
   c : String <- "Harsh";
@@ -162,7 +162,8 @@ Class XYZ {
   f : IO <- new IO;
 
   do_this ( i : Int, j :String, k :Bool) : String { {
-    j <- j.concat("Harsh");
+    i <- i / 0;
+    out_string(j);
     j@String.concat("Harsh");
     f@IO.out_string(j);
     --f@IO.out_int(@String.length());
