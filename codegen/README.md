@@ -14,6 +14,8 @@ We have three files: `Codegen.java`, `Printer.java` and `dataType.java`. `Printe
 + `Codegen.java` depends on both `Printer.java` and `dataType.java`
 + `Printer.java` depends on `dataType.java`
 
+**DISCLAIMER: There seem to be multiple warning based on this directory structure. Please note that these warnings are just mere warnings, and do not affect the working of the code generator in any way possible.**
+
 ##### Building the classes
 -------------------------------------
 After observing C++ code translated into LLVM IR using `-Xclang -disable-O0-optnone -S -emit-llvm`, we realized that a class is maintained a typographical sense like `type {}`. This holds only for the attributes i.e., variables. For functions, some version of name mangling is done. 

@@ -3,7 +3,7 @@ package cool;
 import java.io.PrintWriter;
 import java.util.*;
 
-class Printer {
+public class Printer {
   void escapedString(PrintWriter out, String str) {
     for(int i = 0; i < str.length(); i++) {
       if (str.charAt(i) == '\\') {
