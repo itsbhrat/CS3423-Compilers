@@ -147,6 +147,8 @@
 };
 *)
 
+
+
 Class A {
   a : Int;
   b : Bool;
@@ -158,17 +160,21 @@ Class XYZ inherits IO {
   b : Bool;
   c : String <- "Harsh";
   d : A;
+  ra : String;
   e : XYZ;
-  f : IO <- new IO;
+  g : IO <- new IO;
+  f : IO;
+  h : Object <- new Object;
+  i : Object;
 
   do_this ( i : Int, j :String, k :Bool) : String { {
     i <- i / 8;
- --   f@IO.out_string("test_string\n");
-      f@IO.out_string("sagar"@String.substr(1, 2));
-      f@IO.out_int(4);
---    f@IO.out_string("\n\n\n");
---    f@IO.out_string(j);
- --   f@IO.out_string("harssadfsdafsdafsdah"@String.concat("+++++++"));
+    f@IO.out_string("test_string\nEnter:");
+    --f@IO.out_string("sagar"@String.substr(1, 2));
+    f@IO.out_int(f@IO.in_int());
+    f@IO.out_string("\n\n\n");
+    f@IO.out_string(j);
+    f@IO.out_int(ra@String.length());
       j;
   }
   };
