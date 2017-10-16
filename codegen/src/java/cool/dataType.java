@@ -239,6 +239,7 @@ class GlobalValue extends Operand {
     return value;
   }
 }
+
 class ConstValue extends Operand {
   protected String value;
   ConstValue(OpType t, String val) {
@@ -250,6 +251,7 @@ class ConstValue extends Operand {
     return value;
   }
 }
+
 class IntValue extends ConstValue {
   private int iValue;
   IntValue(int i) {
@@ -260,6 +262,7 @@ class IntValue extends ConstValue {
     return iValue;
   }
 }
+
 class BoolValue extends ConstValue {
   private boolean bValue;
   BoolValue(boolean b) {
