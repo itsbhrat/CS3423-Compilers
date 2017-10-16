@@ -219,16 +219,21 @@ public class Codegen {
         CLASS_NAME = cl.name;
         // Required to do here: Build expressions
         counter = NodeVisit(out, mtd.body, counter);
+        print_util.branchUncondOp(out, "fun_returning_basic_block");
 
         // Add label to print and abort
-        out.println("func_abort:");
-        out.println("store i8* getelementptr inbounds ([30 x i8], [30 x i8]* @divby0err, i32 0, i32 0), i8** %err_msg");
+        out.println("func_div_by_zero_abort:");
+        print_util.allocaOp(out, string_type, new Operand(string_type, "err_msg"));
+        out.println("\tstore i8* getelementptr inbounds ([30 x i8], [30 x i8]* @divby0err, i32 0, i32 0), i8** %err_msg");
         print_util.loadOp(out, string_type, new Operand(string_type.getPtrType(), "err_msg"), new Operand(string_type, "print_err_msg"));
         List<Operand> prnt_args = new ArrayList<Operand>();
         prnt_args.add(new Operand(string_type, "print_err_msg"));
         print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, prnt_args, new Operand(void_type, "null"));
         print_util.callOp(out, new ArrayList<OpType>(), "Object_abort", true, new ArrayList<Operand>(), new Operand(void_type, "null"));
+        print_util.branchUncondOp(out, "fun_returning_basic_block");
 
+        // Placeholder completion added
+        out.println("fun_returning_basic_block:");
         if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond)) ) {
           attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
         }
@@ -240,7 +245,6 @@ public class Codegen {
           print_util.retOp(out, new Operand(method_return_type, String.valueOf(counter.register)));
           counter.register++;
         }
-        // Placeholder completion added
       }
     }
   }
@@ -389,8 +393,7 @@ public class Codegen {
         OpType ptr = new OpType(OpTypeId.INT32_PTR);
         if (cur_attr.value instanceof AST.no_expr || cur_attr.value instanceof AST.new_) {
           print_util.storeOp(out, (Operand)new IntValue(0), new Operand(ptr, cur_attr.name));
-        } 
-        else {
+        } else {
           counter = NodeVisit(out, cur_attr.value, counter);
           print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), cur_attr.name));
         }
@@ -839,16 +842,16 @@ public class Codegen {
       return counter;
     }
 
-/*    //handle IR for expr ::= ID <- isvoid expr
-    else if (expr instanceof AST.isvoid) {
-      AST.assign cur_expr = (AST.isvoid)expr;
-      counter = NodeVisit(out, cur_expr.e1, counter);
-      if ()
-        print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), get_attribute_address(cur_expr.name)));
-      return counter;
-    }
+    /*    //handle IR for expr ::= ID <- isvoid expr
+        else if (expr instanceof AST.isvoid) {
+          AST.assign cur_expr = (AST.isvoid)expr;
+          counter = NodeVisit(out, cur_expr.e1, counter);
+          if ()
+            print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), get_attribute_address(cur_expr.name)));
+          return counter;
+        }
 
-*/
+    */
 
     //handle IR for expr ::= new ID
     else if (expr instanceof AST.new_) {
@@ -1032,7 +1035,7 @@ public class Codegen {
       // Performing div by 0 check
       String ops2_regis = String.valueOf(ops2.register - 1);
       print_util.compareOp(out, "EQ", new Operand(int_type, ops2_regis), (Operand)new IntValue(0), new Operand(bool_type, "comp_" + String.valueOf(ops2.register - 1) + "_0"));
-      print_util.branchCondOp(out, new Operand(bool_type, "comp_" + ops2_regis + "_0"), "func_abort", "proceed_" + ops2_regis + "_0");
+      print_util.branchCondOp(out, new Operand(bool_type, "comp_" + ops2_regis + "_0"), "func_div_by_zero_abort" , "proceed_" + ops2_regis + "_0");
       out.println("proceed_" + ops2_regis + "_0:");
       print_util.arithOp(out, "udiv", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(int_type, String.valueOf(ops2.register)));
 
