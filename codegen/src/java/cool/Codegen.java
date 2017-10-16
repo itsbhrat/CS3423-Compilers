@@ -726,7 +726,6 @@ public class Codegen {
     // Method for generating the in_string method
     else if (f_name.equals("in_string")) {
       arguments = new ArrayList<Operand>();
-      arguments.add(new Operand(get_optype("IO", true, 1), "this"));
       print_util.define(out, string_type, new_method_name, arguments);
 
       out.println("\t%0 = bitcast [3 x i8]* @strfmt to i8*");
