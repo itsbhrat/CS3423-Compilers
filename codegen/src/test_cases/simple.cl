@@ -164,8 +164,8 @@ Class A {
         c;
     }
   };
-
 };
+
 
 Class XYZ inherits IO {
   a : Int <- 4 + 5;

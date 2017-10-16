@@ -106,7 +106,6 @@ public class Codegen {
     out.println("@.str.empty = private unnamed_addr constant [1 x i8] c\"\\00\"");
     out.println("@divby0err = private unnamed_addr constant [31 x i8] c\"Runtime Error: Divide by Zero\\0A\\00\"");
     out.println("@staticdispatchonvoiderr = private unnamed_addr constant [47 x i8] c\"Runtime Error: Static Dispatch on void object\\0A\\00\"");
-    out.println("@nostaticdispatchonvoiderr = private unnamed_addr constant [29 x i8] c\"Problem Error:**********\\0A\\0A\\0A\\0A\\00\"");
 
     // adding built in classes to the AST
     append_built_in_classes(program);
