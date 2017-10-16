@@ -162,11 +162,13 @@ Class XYZ inherits IO {
   f : IO <- new IO;
 
   do_this ( i : Int, j :String, k :Bool) : String { {
-    i <- i / 0;
-    out_string(j);
-    j@String.concat("Harsh");
-    f@IO.out_string(j);
-    --f@IO.out_int(@String.length());
+    i <- i / 8;
+ --   f@IO.out_string("test_string\n");
+      f@IO.out_string("sagar"@String.substr(1, 2));
+      f@IO.out_int(4);
+--    f@IO.out_string("\n\n\n");
+--    f@IO.out_string(j);
+ --   f@IO.out_string("harssadfsdafsdafsdah"@String.concat("+++++++"));
       j;
   }
   };

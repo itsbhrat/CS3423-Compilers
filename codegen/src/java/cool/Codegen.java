@@ -568,7 +568,7 @@ public class Codegen {
 
     // Emitting code for substr
     // This needs to be checked
-    /*
+    
     else if (f_name.equals("substr")) {
       return_val = new Operand(string_type, "retval");
       arguments = new ArrayList<Operand>();
@@ -585,18 +585,19 @@ public class Codegen {
       return_val = new Operand(string_type, "1");
       arguments = new ArrayList<Operand>();
       arguments.add(new Operand(string_type, "this"));
-      arguments.add((Operand)new IntValue(0));
       arguments.add(new Operand(int_type, "start"));
-      print_util.getElementPtr(out, string_type, arguments, return_val, true);
+      print_util.getElementPtr(out, new OpType(OpTypeId.INT8), arguments, return_val, true);
 
-      return_val = new Operand(string_type, "retval");
+      return_val = new Operand(string_type, "2");
       arguments = new ArrayList<Operand>();
       arguments.add(new Operand(string_type, "0"));
       arguments.add(new Operand(string_type, "1"));
       arguments.add(new Operand(int_type, "len"));
       print_util.callOp(out, new ArrayList<OpType>(), "strncpy", true, arguments, return_val);
-      print_util.retOp(out, return_val);
-    }*/
+      out.println("\t%3 = getelementptr inbounds [1 x i8], [1 x i8]* @.str.empty, i32 0, i32 0");
+      out.println("\t%retval = call i8* @strcat( i8* %2, i8* %3 )");
+      out.println("\tret i8* %retval\n}");
+    }
 
     // Emitting code for strcmp
     else if (f_name.equals("strcmp")) {
