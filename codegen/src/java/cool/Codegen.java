@@ -222,8 +222,7 @@ public class Codegen {
         CLASS_NAME = cl.name;
         // Required to do here: Build expressions
         counter = NodeVisit(out, mtd.body, counter);
-        if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond) ||
-               (mtd.body instanceof AST.static_dispatch)) ) {
+        if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond))) {
           attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
         }
 
@@ -326,15 +325,6 @@ public class Codegen {
 
     program.classes.add(new AST.class_("String", filename, "Object", sl, 0));
   }
-  /*
-    public Operand get_initial_value(String type) {
-      if(type.equals("Int"))
-        return (Operand)(new IntValue(0));
-      else if(type.equals("Bool"))
-        return (Operand)(new BoolValue(false));
-      else if(type.equals("String"))
-        return (Operand)(new IntValue(0));
-    }*/
 
   public void insert_class(AST.class_ cur_class) {
     List<AST.attr> cur_class_attributes = new ArrayList<AST.attr>();
@@ -444,11 +434,6 @@ public class Codegen {
         }
       }
 
-      // // Bool attribute codegen
-      // else if (cur_attr.typeid.equals("IO") || cur_attr.typeid.equals("Object")) {
-      //   continue;
-      // }
-
       // other cases
       else {
         if (cur_attr.typeid.equals(class_name) && cur_attr.value instanceof AST.new_) {
@@ -510,6 +495,7 @@ public class Codegen {
     }
   }
 
+  // overriding  global params with function formals 
   public boolean is_clash_with_method_formal(String variable_name) {
     for (String a : function_formal_arguments) {
       if ( a.equals(variable_name) )
@@ -584,7 +570,6 @@ public class Codegen {
     }
 
     // Emitting code for substr
-    // This needs to be checked
 
     else if (f_name.equals("substr")) {
       return_val = new Operand(string_type, "retval");
@@ -760,13 +745,7 @@ public class Codegen {
       string_capture(out, ((AST.cond)expr).predicate);
       string_capture(out, ((AST.cond)expr).ifbody);
       string_capture(out, ((AST.cond)expr).elsebody);
-    }/* else if (expr instanceof AST.dispatch) {
-      string_capture(out, ((AST.dispatch)expr).caller);
-      for (AST.expression e : ((AST.dispatch)expr).actuals) {
-        string_capture(out, e);
-      }
-    }*/
-    else if (expr instanceof AST.static_dispatch) {
+    } else if (expr instanceof AST.static_dispatch) {
       string_capture(out, ((AST.static_dispatch)expr).caller);
       for (AST.expression e : ((AST.static_dispatch)expr).actuals) {
         string_capture(out, e);
@@ -775,12 +754,13 @@ public class Codegen {
     return ;
   }
 
+  // assgin to retval only if type permits
   public void attempt_assign_retval(PrintWriter out, OpType op, int register) {
     if (register >= 0 && method_return_type.getName().equals(op.getName()) && (!(method_return_type.getName().equals("void"))) ) {
       print_util.storeOp(out, new Operand(method_return_type, String.valueOf(register)), new Operand(method_return_type.getPtrType(), "retval"));
     }
   }
-  // TODO discuss return values
+
   public Tracker NodeVisit(PrintWriter out, AST.expression expr, Tracker counter) {
 
     // code for making the IR for bool constatnts
@@ -863,7 +843,7 @@ public class Codegen {
     else if (expr instanceof AST.new_) {
 
       AST.new_ cur_expr = (AST.new_)expr;
-
+      // handling the primitive cases separately as they have no LLVM type
       if (cur_expr.typeid.equals("Int")) {
         print_util.allocaOp(out, int_type, new Operand(int_type, String.valueOf(counter.register)));
         print_util.storeOp(out, (Operand)new IntValue(0), new Operand(int_type.getPtrType(), String.valueOf(counter.register)));
@@ -941,6 +921,7 @@ public class Codegen {
     return counter;
   }
 
+  // get the return type of function for assigning retval
   public OpType get_func_type(String func_class, String method) {
     for (AST.method m : classList.get(func_class).methods) {
       if (m.name.equals(method)) {
@@ -970,7 +951,7 @@ public class Codegen {
     }
     return name;
   }
-
+  // handling if functions
   public Tracker cond_capture(PrintWriter out, AST.cond expr, Tracker counter) {
     // adding current basic block to stack for taking car of nested if
     //
@@ -986,7 +967,6 @@ public class Codegen {
     out.println("\nif.then" + String.valueOf(curr_if_bb_counter) + ":");
     then_block = NodeVisit(out, expr.ifbody, new Tracker(predicate_block.register, predicate_block.last_instruction, "%if.then" + String.valueOf(curr_if_bb_counter)));
 
-    // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
 
     print_util.branchUncondOp(out , "if.end" + String.valueOf(curr_if_bb_counter));
 
@@ -994,7 +974,6 @@ public class Codegen {
     out.println("\nif.else" + String.valueOf(curr_if_bb_counter) + ":");
     else_block = NodeVisit(out, expr.elsebody, new Tracker(then_block.register, then_block.last_instruction, "%if.else" + String.valueOf(curr_if_bb_counter)));
 
-    // print_util.storeOp(out, new Operand(method_return_type, String.valueOf(x - 1)), new Operand(method_return_type.getPtrType(), "retval"));
 
     print_util.branchUncondOp(out , "if.end" + String.valueOf(curr_if_bb_counter));
 
@@ -1006,6 +985,7 @@ public class Codegen {
       return new Tracker(else_block.register, cond_type, "%if.end" + String.valueOf(curr_if_bb_counter));
     }
     String phi_node_1, phi_node_2;
+    // handling nested cases
     phi_node_1 = " [ %" + (then_block.register - 1) + " , " + then_block.last_basic_block + " ]";
     phi_node_2 = " [ %" + (else_block.register - 1) + " , " + else_block.last_basic_block + " ]";
 
@@ -1021,7 +1001,6 @@ public class Codegen {
     int curr_loop_counter = loop_basic_block_counter;
     loop_basic_block_counter++;
 
-    // attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
 
     print_util.branchUncondOp(out , "for.cond" + String.valueOf(curr_loop_counter));
     out.println("\nfor.cond" + String.valueOf(curr_loop_counter) + ":");
@@ -1044,7 +1023,7 @@ public class Codegen {
   }
 
   public Tracker arith_capture(PrintWriter out, AST.expression expr, Tracker counter) {
-    // First op is MUL
+
     if (expr instanceof AST.mul) {
       // Get the expressions separately
       Tracker ops1 = NodeVisit(out, ((AST.mul)expr).e1, counter);

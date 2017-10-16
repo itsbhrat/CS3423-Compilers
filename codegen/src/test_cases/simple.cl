@@ -158,8 +158,6 @@ Class A {
  sagar () : String {
     {
         f@IO.out_string("Inside class A function sagar");
-        
-
 
         c;
     }
@@ -171,7 +169,7 @@ Class XYZ inherits IO {
   a : Int <- 4 + 5;
   b : Bool;
   c : String <- "Harsh";
-  d : A;
+  d : A <- new A ;
   ra : String;
   e : XYZ;
   g : IO <- new IO;
@@ -188,7 +186,12 @@ Class XYZ inherits IO {
     f@IO.out_string("\n\n\n");
     f@IO.out_string(j);
     f@IO.out_int(ra@String.length());
-    f@IO.out_string(d@A.sagar());
+    f@IO.out_string("so");
+
+    if j = "harsh"
+        then j <- "omeaga"
+        else j <- "++++++++"
+    fi;
       j;
   }
   };
