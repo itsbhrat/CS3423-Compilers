@@ -152,7 +152,19 @@
 Class A {
   a : Int;
   b : Bool;
-  c : String;
+  c : String <- "hello";
+  f : IO <- new IO;
+ 
+ sagar () : String {
+    {
+        f@IO.out_string("Inside class A function sagar");
+        
+
+
+        c;
+    }
+  };
+
 };
 
 Class XYZ inherits IO {
@@ -163,18 +175,20 @@ Class XYZ inherits IO {
   ra : String;
   e : XYZ;
   g : IO <- new IO;
-  f : IO;
+  f : IO <- new IO;
   h : Object <- new Object;
   i : Object;
 
   do_this ( i : Int, j :String, k :Bool) : String { {
     i <- i / 8;
+    d@A.sagar();
     f@IO.out_string("test_string\nEnter:");
-    --f@IO.out_string("sagar"@String.substr(1, 2));
+    f@IO.out_string("sagar"@String.substr(1, 2));
     f@IO.out_int(f@IO.in_int());
     f@IO.out_string("\n\n\n");
     f@IO.out_string(j);
     f@IO.out_int(ra@String.length());
+    f@IO.out_string(d@A.sagar());
       j;
   }
   };

@@ -144,8 +144,6 @@ public class Codegen {
           pre_def_string(out, "strcmp");
         } else if (cl.name.equals("Object")) {
           pre_def_object(out, "abort");
-          pre_def_object(out, "isvoid");
-          pre_def_object(out, "abortable_void");
           print_util.typeDefine(out, cl.name, new ArrayList<OpType>());
           build_constructor(out, cl.name, new Tracker());
         } else if (cl.name.equals("IO")) {
@@ -225,6 +223,22 @@ public class Codegen {
         CLASS_NAME = cl.name;
         // Required to do here: Build expressions
         counter = NodeVisit(out, mtd.body, counter);
+        if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond) ||
+               (mtd.body instanceof AST.static_dispatch)) ) {
+          attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
+        }
+
+        // Placeholder completion added
+        print_util.branchUncondOp(out, "fun_returning_basic_block");
+        // Add label to print and abort
+        out.println("dispatch_on_void_basic_block:");
+        print_util.allocaOp(out, string_type, new Operand(string_type, "err_msg_void_dispatch"));
+        out.println("\tstore i8* getelementptr inbounds ([47 x i8], [47 x i8]* @staticdispatchonvoiderr, i32 0, i32 0), i8** %err_msg_void_dispatch");
+        print_util.loadOp(out, string_type, new Operand(string_type.getPtrType(), "err_msg_void_dispatch"), new Operand(string_type, "print_err_msg_void_dispatch"));
+        List<Operand> prnt_args = new ArrayList<Operand>();
+        prnt_args.add(new Operand(string_type, "print_err_msg_void_dispatch"));
+        print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, prnt_args, new Operand(void_type, "null"));
+        print_util.callOp(out, new ArrayList<OpType>(), "Object_abort", true, new ArrayList<Operand>(), new Operand(void_type, "null"));
         print_util.branchUncondOp(out, "fun_returning_basic_block");
 
         // Add label to print and abort
@@ -232,7 +246,7 @@ public class Codegen {
         print_util.allocaOp(out, string_type, new Operand(string_type, "err_msg"));
         out.println("\tstore i8* getelementptr inbounds ([31 x i8], [31 x i8]* @divby0err, i32 0, i32 0), i8** %err_msg");
         print_util.loadOp(out, string_type, new Operand(string_type.getPtrType(), "err_msg"), new Operand(string_type, "print_err_msg"));
-        List<Operand> prnt_args = new ArrayList<Operand>();
+        prnt_args = new ArrayList<Operand>();
         prnt_args.add(new Operand(string_type, "print_err_msg"));
         print_util.callOp(out, new ArrayList<OpType>(), "IO_out_string", true, prnt_args, new Operand(void_type, "null"));
         print_util.callOp(out, new ArrayList<OpType>(), "Object_abort", true, new ArrayList<Operand>(), new Operand(void_type, "null"));
@@ -240,9 +254,6 @@ public class Codegen {
 
         // Placeholder completion added
         out.println("fun_returning_basic_block:");
-        if (! ((mtd.body instanceof AST.block) || (mtd.body instanceof AST.loop) || (mtd.body instanceof AST.cond)) ) {
-          attempt_assign_retval(out, counter.last_instruction, counter.register - 1);
-        }
 
         if (mtd.typeid.equals("Object")) {
           print_util.retOp(out, new Operand(void_type, "null"));
@@ -450,9 +461,7 @@ public class Codegen {
         OpType ptr = get_optype(class_name, true, 1);
         if ((cur_attr.value instanceof AST.no_expr)) {
           String null_type = get_optype(cur_attr.typeid, true, 1).getName();
-          out.println("\t%" + String.valueOf(counter.register) + " = bitcast i8* null to " + null_type);
-          out.println("\tstore " + null_type + " %" + String.valueOf(counter.register) + " , " + null_type + "* %" + (cur_attr.name));
-          counter.register++;
+          out.println("\tstore " + null_type + " null , " + null_type + "* %" + (cur_attr.name));
         } else {
           counter = NodeVisit(out, cur_attr.value, counter);
           print_util.storeOp(out, new Operand(get_optype(cur_attr.typeid, true, 1), String.valueOf(counter.register - 1)), new Operand(get_optype(cur_attr.typeid, true, 1).getPtrType(), cur_attr.name));
@@ -641,56 +650,6 @@ public class Codegen {
 
       out.println("call void (i32) @exit(i32 0)");
       out.println("ret void\n}");
-    }
-
-    // Method for generating the isvoid method
-    else if (f_name.equals("isvoid")) {
-      return_val = new Operand(bool_type, "retval");
-      arguments = new ArrayList<Operand>();
-      arguments.add(new Operand(string_type , "this"));
-      print_util.define(out, return_val.getType(), new_method_name, arguments);
-      // Add label to print and abort
-      print_util.allocaOp(out, bool_type, return_val);
-      print_util.allocaOp(out, string_type, new Operand(string_type, "0"));
-      out.println("\tstore i8* null , i8** %0");
-      out.println("\t%1 = load i8* , i8** %0");
-      print_util.compareOp(out, "EQ", arguments.get(0), new Operand(string_type, "1"), new Operand(bool_type, "2"));
-      print_util.branchCondOp(out, new Operand(bool_type, "2"), "cond_true" , "cond_false");
-      out.println("cond_true:");
-      out.println("\tstore i1 true, i1* %retval\n\tbr label %cond_end");
-      out.println("cond_false:");
-      out.println("\tstore i1 false, i1* %retval\n\tbr label %cond_end");
-      out.println("cond_end:");
-      out.println("\t%3 = load i1, i1* %retval");
-      out.println("\tret i1 %3\n}");
-    }
-
-    // Method for generating the abortable_void method
-    else if (f_name.equals("abortable_void")) {
-      return_val = new Operand(void_type, "retval");
-      arguments = new ArrayList<Operand>();
-      arguments.add(new Operand(string_type , "this"));
-      print_util.define(out, return_val.getType(), new_method_name, arguments);
-      // Add label to print and abort
-      print_util.allocaOp(out, string_type, new Operand(string_type, "0"));
-      out.println("\tstore i8* null , i8** %0");
-      out.println("\t%1 = load i8* , i8** %0");
-      print_util.compareOp(out, "EQ", arguments.get(0), new Operand(string_type, "1"), new Operand(bool_type, "2"));
-      print_util.branchCondOp(out, new Operand(bool_type, "2"), "cond_true" , "cond_false");
-      out.println("cond_true:");
-      print_util.allocaOp(out, string_type, new Operand(string_type, "err_msg"));
-      out.println("\tstore i8* getelementptr inbounds ([47 x i8], [47 x i8]* @staticdispatchonvoiderr, i32 0, i32 0), i8** %err_msg");
-      out.println("\t%print_err_msg = load i8*, i8** %err_msg");
-      out.println("\tcall void @IO_out_string( i8* %print_err_msg )");
-      out.println("\tcall void @Object_abort()\n\tbr label %cond_end");
-      out.println("cond_false:");
-      // print_util.allocaOp(out, string_type, new Operand(string_type, "err_msg1"));
-      // out.println("\tstore i8* getelementptr inbounds ([29 x i8], [29 x i8]* @nostaticdispatchonvoiderr, i32 0, i32 0), i8** %err_msg1");
-      // out.println("\t%print_err_msg1 = load i8*, i8** %err_msg1");
-      // out.println("\tcall void @IO_out_string( i8* %print_err_msg1 )");
-      out.println("\tbr label %cond_end");
-      out.println("cond_end:");
-      print_util.retOp(out, return_val);
     }
   }
 
@@ -902,17 +861,6 @@ public class Codegen {
       return counter;
     }
 
-    /*    //handle IR for expr ::= ID <- isvoid expr
-        else if (expr instanceof AST.isvoid) {
-          AST.assign cur_expr = (AST.isvoid)expr;
-          counter = NodeVisit(out, cur_expr.e1, counter);
-          if ()
-            print_util.storeOp(out, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)), new Operand(counter.last_instruction.getPtrType(), get_attribute_address(cur_expr.name)));
-          return counter;
-        }
-
-    */
-
     //handle IR for expr ::= new ID
     else if (expr instanceof AST.new_) {
 
@@ -951,29 +899,35 @@ public class Codegen {
     else if (expr instanceof AST.static_dispatch) {
 
       AST.static_dispatch cur_func = (AST.static_dispatch)expr;
-      // recursing on the caller
-      counter = NodeVisit(out, cur_func.caller, counter);
 
-      OpType res_type = get_optype(expr.type, true, 1);
-      out.println("\t%" + String.valueOf(counter.register) + " = bitcast " + counter.last_instruction.getName() + " %" + (counter.register - 1) + " to " + string_type.getName());
-      List<Operand> arg_list = new ArrayList<Operand>();
-      arg_list.add(new Operand(string_type, String.valueOf(counter.register)));
-      print_util.callOp(out, new ArrayList<OpType>(), "Object_abortable_void", true, arg_list, new Operand(void_type, "void_var"));
-      counter.register += 1;
+      // recursing on the caller
+      /*  checking the voidness of the callee */
+      if (! (cur_func.typeid.equals("Int") || cur_func.typeid.equals("Bool") || cur_func.typeid.equals("String"))) {
+        counter = NodeVisit(out, cur_func.caller, counter);
+        String callee_type_name = counter.last_instruction.getName();
+
+        out.println("\t%" + counter.register + " = icmp eq " + callee_type_name + " null , %" + (counter.register - 1) + "\t\t\t\t\t\t\t\t;checking the voidness of the callee");
+        print_util.branchCondOp(out, new Operand(bool_type, String.valueOf(counter.register)), "dispatch_on_void_basic_block" , "proceed_" + counter.register);
+
+        out.println("proceed_" + counter.register + ":");
+        counter.register++;
+        counter.last_basic_block = "proceed_" + counter.register + ":";
+      }
 
       String function_being_called = cur_func.typeid + "_" + cur_func.name;
-      arg_list = new ArrayList<Operand>();
+      List<Operand> arg_list = new ArrayList<Operand>();
 
+      // recursing on the arguements
       for (AST.expression e : cur_func.actuals) {
         counter = NodeVisit(out, e, counter);
         arg_list.add(new Operand(counter.last_instruction, String.valueOf(counter.register - 1)));
       }
 
-      // object static dispatch not possible
-
       // calling the caller expression
+      counter = NodeVisit(out, cur_func.caller, counter);
+
       if (! (cur_func.typeid.equals("IO"))) {
-        counter = NodeVisit(out, cur_func.caller, counter);
+        // IO class will not have %Class.IO* this pointer
         arg_list.add(0, new Operand(counter.last_instruction, String.valueOf(counter.register - 1)));
       }
       Operand returned = new Operand(get_func_type(cur_func.typeid, cur_func.name), String.valueOf(counter.register));
@@ -982,8 +936,9 @@ public class Codegen {
 
       if (returned.getTypename().equals("void"))
         return new Tracker(counter.register, get_func_type(cur_func.typeid, cur_func.name), counter.last_basic_block);
-      else
+      else {
         return new Tracker(counter.register + 1, get_func_type(cur_func.typeid, cur_func.name), counter.last_basic_block);
+      }
     }
     return counter;
   }
@@ -1049,6 +1004,9 @@ public class Codegen {
     out.println("\nif.end" + String.valueOf(curr_if_bb_counter) + ":");
     OpType cond_type = else_block.last_instruction;
 
+    if (cond_type.getName().equals("void")) {
+      return new Tracker(else_block.register, cond_type, "%if.end" + String.valueOf(curr_if_bb_counter));
+    }
     String phi_node_1, phi_node_2;
     phi_node_1 = " [ %" + (then_block.register - 1) + " , " + then_block.last_basic_block + " ]";
     phi_node_2 = " [ %" + (else_block.register - 1) + " , " + else_block.last_basic_block + " ]";
@@ -1108,7 +1066,7 @@ public class Codegen {
       out.println("proceed_" + ops2_regis + "_0:");
       print_util.arithOp(out, "udiv", new Operand(int_type, String.valueOf(ops1.register - 1)), new Operand(int_type, String.valueOf(ops2.register - 1)), new Operand(int_type, String.valueOf(ops2.register)));
 
-      return new Tracker(ops2.register + 1, int_type, ops2.last_basic_block);
+      return new Tracker(ops2.register + 1, int_type, "proceed_" + ops2_regis + "_0:");
 
     } else if (expr instanceof AST.plus) {
       // Get the expressions separately
