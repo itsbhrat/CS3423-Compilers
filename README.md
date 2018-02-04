@@ -1,5 +1,5 @@
 # CS3423-Compilers
-Group for CS3423 - Compilers 2 (Fall 2017)
+Group for CS3423 - Compilers 2 (Fall 2017) at IITH
 
 ### Assignments include
 
