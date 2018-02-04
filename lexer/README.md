@@ -1,59 +1,80 @@
 # COOL Compiler #
-**Sections of interest in the COOL Manual**
 
-* Section 10.1 through till Section 10.5 : For basic Lexical Rule Checking
-* Section 7.1 : For maximum length of the string.
+--------->  CODE EXPLANATION
+Tokens: This section contains all the tokens that will map with the cool code based on certain conditions. The (operators / keywords / special characters) are defined by the 'literal'. To handle lower and upper case for the case insensitive part, I have used fragments mapping every character to its lower and upper case.
 
-Comments have been provided throughout the entire Source Code except in sections where the Code is not supposed to be edited.
+@members : In processString() , following operations are done. The string length is checked. All the escape sequences(\\n) are replaced by the actual escape sequences (\n). The nonescape sequences (\c) are replaced by the character(c).
 
-### The design/pipeline of the lexer is as follows: ###
 
-* __Detect errors.__
+StringExceptNewLineQuote : This is a fragment telling what valid characters are there for a string. ~[\n"\u0000] tells no \n , " , NULL Character are allowed in the string , but \\\n , \\\" are allowed.
 
-	This was just to make sure that the erroneous strings are unambiguously detected. Erroneous strings either end on EOF, or do not have a terminating double quote, or exceed 1024 characters in length.
 
-* __Scan through the special characters of the language__. 
+VERIFICATION FOR Cool Manual Section 10.2
 
-* __Detect Keywords.__
+STR_CONST: The regular expressions are as follows. 
+1 - The correct case is tested as the string starting with ",  containing (StringExceptNewLineQuote)* and ending with ".
 
-	This is probably one of the most important design decision. Keywords cannot be used as Object identifiers or Type identifiers, and thus hold a special place in the nomenclature of language. Since COOL is _case-insensitive_ w.r.t. keywords, it could so happen that wHile can be misunderstood as a Object Identifier if the regex for detecting object identifiers was placed above the regex for detecting the keyword _WHILE_. This is why the detecting keywords part of the lexing is placed this high in the pipeline.
+2 - If the string contains NULL character: string starts with ", containing (StringExceptNewLineQuote)*, has at least 1 Null Character, and the remaining string, terminated by \n or " or EOF.
+This is an invalid string and the error "String contains null character" is reported.
 
-* __Detect Integer Constants, Type Identifiers and Object Identifiers.__
+3 - If the string contains EOF: string starts with ", containing (StringExceptNewLineQuote)*, has an EOF.
+This is an invalid string and the error "EOF in string constant" is reported.
 
-	This is placed at an unambiguous position because the detection of these are succeeded by Whitespace, Comments and String Literals detection.
+4 - If the string contains \n : string starts with " , containing (StringExceptNewLineQuote)* , has \n (This is different that \\n).
+This is an invalid string and the error "Unterminated string constant" is reported.
 
-* __Detect String Literals__
+Hence all the cases in the Cool Manual Section 10.2 are taken care of.
 
-	Possibly the hardest part of the assignment was the detection of **correct** string literals. First the unterminated string is detected, then the correct strings are those which are terminated (basically). 
 
-	The regex for detecting a unterminated string does this: 
 
-	First the starting double quote is detected. 
-  	
-  	Then, all characters except for \n (newline), " (double quote), \\ (single back-slash), __= (~["\\\\\\n])*__
-  	
-  	or, all characters preceeded by a \\ (back-slash) are accepted. __= ('\\\\' (. | EOF))*__
-  	      
-  	Hence the regex for an unterminated string (without the quotes) is: __(~["\\\\\\n] | '\\\\' (. | EOF))*__
-  	
-	The erroneous strings were discussed previously, so if these characters that are consumed by the regex are succeeded by a double quote, then the string literal is valid.
+VERIFICATION FOR Cool Manual Section 10.1, 10.4
 
-* __WhiteSpace__
+TYPEID: This consists of a name beginning with a upperCase followed by any number of IdentifierName. SELF_TYPE is considered here.
+OBJECTID: This consists of a name beginning with a lowerCase followed by any number of IdentifierName. self is considered here.
+INT_CONST: This consists of any combination of digits.
+Keywords: In the "Special Symbols in Cool" section, the keywords are defined. Using fragments, all keywords (except true, false), case insensitivity is ensured.
+For true/false , the 1st character is lower case followed by characters of any case.
 
-	Consume all newlines(\n), formfeeds(\f), carriage returns(\r), tabs(\t) and vertical tabs(\v) and skip it, because there are of no interest to us. Vertical tabs have to be represented in Unicode format since neither JAVA nor ANTLR accept '\v' escape sequence.
+Hence all the cases in the Cool Manual Section 10.1, 10.4 are taken care of.
 
-* __Detect Comments__
 
-	Detecting single line comments were very direct. For detecting multi-line comments, I used **modes**. My understanding was that **mode** was a local stack. So when I see a '(\*', I push a START_COMMENT mode and then when I see a '\*)' I pop that mode off the stack. Unbalanced stack leads to Unmatched Braces.
+VERIFICATION FOR Cool Manual Section 10.5
 
-	According to requirements, all valid strings are being processed and reset. 
+WS : [\f\u000b\r\t\n ]+ -> skip ;
+This takes care for all unused whitespaces in the Cool code.
+Hence all the cases in the Cool Manual Section 10.5 are taken care of.
 
-### Test Cases: ###
 
-* There are 6 test cases along with the source code.
+VERIFICATION FOR Cool Manual Section 10.3
 
-	The test cases are fun to play with and are well annotated, so that the person checking the errors generated will know why they are being generated.
+In the "COMMENTS  CHECKING" section, the comments are checked. Using modes in ANTLR, the comments are lexed.
+If any *) is found without any (*, the error "UNMATCHED *)" is printed.
+If any (* is found, mode is changed to COMMENTSTARTED.
+In COMMENTSTARTED id any (* is found mode is changed to COMMENTINCOMMENT.
+Here all the balanced (* *) are eaten up. If before complete balancing EOF is encountered, the error "EOF in the comment" is printed.
+Similarly when the recursion ends mode is popped back to COMMENTSTARTED, from where it is popped back to DEFAULT mode.
 
-	`test_1.cl` and `test_6.cl` are entirely clean code (`test_6.cl` was submitted as a non-trivial program), whereas the rest have some or the other error in them. 
+Hence all the cases in the Cool Manual Section 10.3 are taken care of.
 
-	All errors generate pertain to some rule/definition in the COOL Manual is the aforementioned sections of interest being violated.
+
+
+ 
+--------->  EXPLANATION OF THE TEST CASES
+
+comments.cl: This tests for all the possible comments lexical facts/errors, namely EOF, unmatched *), nesting comments, valid comments, etc.
+
+EOFStringEnd.txt: This tests for a string ending with EOF.
+
+Helloworld.cl: This is the original file that was included in the assignment.
+
+keywordLiteraltTokens.cl : This tests for all the keywords and their case insensitivity, along with all the valid operators in Cool. For the operators, just the operator is printed back. For the keywords, the token name is printed.
+
+nonTrivialProgram.cl : This is one of the non-trivial programs I made for Assignment 0. In this, no lexical errors are generated. Along with this the constructs for loops, conditionals, let statements, etc are tested.
+
+stringHasNullCharacter.txt : This tests for a string containing a NULL character.
+
+stringLexicalChecking.cl : This tests for all the possible string assignments in Cool. This test file contains some valid strings, some strings with escape sequences (the corresponding replacements are performed), some strings containing \n , some strings containing \\n,  a string longer than 1024 (max Length Of String in Cool).
+
+typeIdObjectId.cl : This test checks for the TypeId, ObjectId names, taking into their consideration their particular case sensitivity, checks for true, false, True, False are also done.
+
+
